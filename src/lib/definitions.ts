@@ -24,6 +24,26 @@ export type Invoice = {
   notes?: string;
 };
 
+export type PurchaseOrder = {
+  id: string;
+  client: Client;
+  lineItems: LineItem[];
+  status: 'Draft' | 'Sent' | 'Approved' | 'Rejected';
+  issueDate: Date;
+  deliveryDate: Date;
+  notes?: string;
+};
+
+export type DeliveryNote = {
+    id: string;
+    client: Client;
+    invoiceId?: string; // Associated invoice
+    lineItems: Omit<LineItem, 'price'>[];
+    status: 'Draft' | 'Delivered' | 'Canceled';
+    deliveryDate: Date;
+    notes?: string;
+};
+
 export type Expense = {
   id: string;
   description: string;

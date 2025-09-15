@@ -1,4 +1,4 @@
-import { Client, Invoice, Expense, LineItem } from '@/lib/definitions';
+import { Client, Invoice, Expense, LineItem, PurchaseOrder, DeliveryNote } from '@/lib/definitions';
 
 export const mockClients: Client[] = [
   { id: '1', name: 'Stark Industries', email: 'contact@stark.com', address: '10880 Malibu Point, 90265, Malibu', phone: '+12223334444' },
@@ -14,6 +14,14 @@ const generateLineItems = (count: number): LineItem[] => {
     quantity: Math.floor(Math.random() * 5) + 1,
     price: Math.floor(Math.random() * 500) + 50,
   }));
+};
+
+const generateDeliveryLineItems = (count: number): Omit<LineItem, 'price'>[] => {
+    return Array.from({ length: count }, (_, i) => ({
+      id: `${i + 1}`,
+      description: `Service or Product ${i + 1}`,
+      quantity: Math.floor(Math.random() * 10) + 1,
+    }));
 };
 
 export const mockInvoices: Invoice[] = [
@@ -65,6 +73,53 @@ export const mockInvoices: Invoice[] = [
   },
 ];
 
+export const mockPurchaseOrders: PurchaseOrder[] = [
+    {
+        id: 'BC-001',
+        client: mockClients[1],
+        lineItems: generateLineItems(4),
+        status: 'Approved',
+        issueDate: new Date('2023-11-10'),
+        deliveryDate: new Date('2023-12-10'),
+    },
+    {
+        id: 'BC-002',
+        client: mockClients[3],
+        lineItems: generateLineItems(2),
+        status: 'Sent',
+        issueDate: new Date('2023-11-20'),
+        deliveryDate: new Date('2023-12-20'),
+        notes: 'Urgent order'
+    },
+     {
+        id: 'BC-003',
+        client: mockClients[0],
+        lineItems: generateLineItems(1),
+        status: 'Draft',
+        issueDate: new Date(),
+        deliveryDate: new Date(new Date().setDate(new Date().getDate() + 15)),
+    },
+];
+
+export const mockDeliveryNotes: DeliveryNote[] = [
+    {
+        id: 'BL-001',
+        client: mockClients[1],
+        invoiceId: 'INV-002',
+        lineItems: generateDeliveryLineItems(3),
+        status: 'Delivered',
+        deliveryDate: new Date('2023-11-25'),
+    },
+    {
+        id: 'BL-002',
+        client: mockClients[0],
+        lineItems: generateDeliveryLineItems(2),
+        status: 'Draft',
+        deliveryDate: new Date(),
+        notes: 'To be delivered tomorrow.'
+    }
+];
+
 
 export const mockExpenses: Expense[] = [
     { id: '1', description: 'Office Supplies', category: 'Office', amount: 150.75, date: new Date('2023-11-10') },
@@ -74,8 +129,8 @@ export const mockExpenses: Expense[] = [
     { id: '5', description: 'Travel to Conference', category: 'Travel', amount: 1200.00, date: new Date('2023-10-20') },
 ];
 
-export const getInvoiceTotal = (invoice: Invoice): number => {
+export const getInvoiceTotal = (invoice: Invoice | PurchaseOrder): number => {
     const subtotal = invoice.lineItems.reduce((acc, item) => acc + item.quantity * item.price, 0);
-    const tax = subtotal * (invoice.taxRate / 100);
+    const tax = subtotal * (('taxRate' in invoice ? invoice.taxRate : 0) / 100);
     return subtotal + tax;
 }
