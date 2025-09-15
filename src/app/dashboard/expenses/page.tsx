@@ -10,6 +10,7 @@ import { MoreHorizontal, PlusCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 export default function ExpensesPage() {
   return (
@@ -17,38 +18,38 @@ export default function ExpensesPage() {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Expenses</CardTitle>
-            <CardDescription>Track and manage your business expenses.</CardDescription>
+            <CardTitle>Dépenses</CardTitle>
+            <CardDescription>Suivez et gérez les dépenses de votre entreprise.</CardDescription>
           </div>
           <Dialog>
             <DialogTrigger asChild>
                 <Button size="sm">
-                    <PlusCircle className="mr-2 h-4 w-4" /> Add Expense
+                    <PlusCircle className="mr-2 h-4 w-4" /> Ajouter une dépense
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                    <DialogTitle>Add New Expense</DialogTitle>
+                    <DialogTitle>Ajouter une nouvelle dépense</DialogTitle>
                     <DialogDescription>
-                        Fill in the details for the new expense.
+                        Remplissez les détails de la nouvelle dépense.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="description" className="text-right">Description</Label>
-                        <Input id="description" defaultValue="Office Supplies" className="col-span-3" />
+                        <Input id="description" defaultValue="Fournitures de bureau" className="col-span-3" />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="category" className="text-right">Category</Label>
-                        <Input id="category" defaultValue="Office" className="col-span-3" />
+                        <Label htmlFor="category" className="text-right">Catégorie</Label>
+                        <Input id="category" defaultValue="Bureau" className="col-span-3" />
                     </div>
                      <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="amount" className="text-right">Amount ($)</Label>
+                        <Label htmlFor="amount" className="text-right">Montant (€)</Label>
                         <Input id="amount" type="number" defaultValue="150.00" className="col-span-3" />
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button type="submit">Save Expense</Button>
+                    <Button type="submit">Enregistrer la dépense</Button>
                 </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -59,9 +60,9 @@ export default function ExpensesPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Description</TableHead>
-              <TableHead>Category</TableHead>
+              <TableHead>Catégorie</TableHead>
               <TableHead>Date</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
+              <TableHead className="text-right">Montant</TableHead>
               <TableHead className="w-[50px] text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -70,21 +71,21 @@ export default function ExpensesPage() {
               <TableRow key={expense.id}>
                 <TableCell className="font-medium">{expense.description}</TableCell>
                 <TableCell>{expense.category}</TableCell>
-                <TableCell>{format(expense.date, 'PPP')}</TableCell>
-                <TableCell className="text-right">${expense.amount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</TableCell>
+                <TableCell>{format(expense.date, 'PPP', { locale: fr })}</TableCell>
+                <TableCell className="text-right">{expense.amount.toLocaleString('fr-FR', {style: 'currency', currency: 'EUR'})}</TableCell>
                 <TableCell className="text-right">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
+                                <span className="sr-only">Ouvrir le menu</span>
                                 <MoreHorizontal className="h-4 w-4" />
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem>Edit</DropdownMenuItem>
+                            <DropdownMenuItem>Modifier</DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">Delete</DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">Supprimer</DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </TableCell>

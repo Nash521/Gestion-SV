@@ -4,12 +4,12 @@ import { usePathname } from "next/navigation";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 
 const titles: { [key: string]: string } = {
-    '/dashboard': 'Dashboard',
-    '/dashboard/invoices': 'Invoices',
-    '/dashboard/invoices/new': 'New Invoice',
+    '/dashboard': 'Tableau de bord',
+    '/dashboard/invoices': 'Factures',
+    '/dashboard/invoices/new': 'Nouvelle Facture',
     '/dashboard/clients': 'Clients',
-    '/dashboard/expenses': 'Expenses',
-    '/dashboard/reporting': 'AI Reporting',
+    '/dashboard/expenses': 'Dépenses',
+    '/dashboard/reporting': 'Rapports IA',
 };
 
 export function PageHeader() {

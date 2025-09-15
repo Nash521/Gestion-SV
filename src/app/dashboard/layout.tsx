@@ -45,18 +45,18 @@ export default function DashboardLayout({
                             <AvatarFallback>U</AvatarFallback>
                         </Avatar>
                         <div className="flex flex-col text-sm text-left">
-                            <span className="font-semibold">Demo User</span>
+                            <span className="font-semibold">Utilisateur Démo</span>
                             <span className="text-muted-foreground text-xs">user@billflow.com</span>
                         </div>
                     </div>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56 mb-2 ml-2">
-                    <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                    <DropdownMenuLabel>Mon Compte</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem>Profile</DropdownMenuItem>
-                    <DropdownMenuItem>Settings</DropdownMenuItem>
+                    <DropdownMenuItem>Profil</DropdownMenuItem>
+                    <DropdownMenuItem>Paramètres</DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem>Logout</DropdownMenuItem>
+                    <DropdownMenuItem>Déconnexion</DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
         </SidebarFooter>
@@ -70,7 +70,7 @@ export default function DashboardLayout({
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
                             type="search"
-                            placeholder="Search..."
+                            placeholder="Rechercher..."
                             className="pl-8 sm:w-[300px] md:w-[200px] lg:w-[300px]"
                         />
                     </div>

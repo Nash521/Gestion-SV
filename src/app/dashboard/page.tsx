@@ -19,42 +19,42 @@ export default function DashboardPage() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                    <CardTitle className="text-sm font-medium">Revenu Total</CardTitle>
                     <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">${totalRevenue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
-                    <p className="text-xs text-muted-foreground">+20.1% from last month</p>
+                    <div className="text-2xl font-bold">{totalRevenue.toLocaleString('fr-FR', {style: 'currency', currency: 'EUR'})}</div>
+                    <p className="text-xs text-muted-foreground">+20.1% depuis le mois dernier</p>
                 </CardContent>
             </Card>
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Overdue Invoices</CardTitle>
+                    <CardTitle className="text-sm font-medium">Factures en retard</CardTitle>
                     <FileText className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold text-destructive">${overdueAmount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
-                    <p className="text-xs text-muted-foreground">{mockInvoices.filter(i => i.status === 'Overdue').length} overdue invoices</p>
+                    <div className="text-2xl font-bold text-destructive">{overdueAmount.toLocaleString('fr-FR', {style: 'currency', currency: 'EUR'})}</div>
+                    <p className="text-xs text-muted-foreground">{mockInvoices.filter(i => i.status === 'Overdue').length} factures en retard</p>
                 </CardContent>
             </Card>
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">New Clients</CardTitle>
+                    <CardTitle className="text-sm font-medium">Nouveaux Clients</CardTitle>
                     <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl font-bold">+5</div>
-                    <p className="text-xs text-muted-foreground">+10% this month</p>
+                    <p className="text-xs text-muted-foreground">+10% ce mois-ci</p>
                 </CardContent>
             </Card>
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+                    <CardTitle className="text-sm font-medium">Total des Dépenses</CardTitle>
                     <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">$4,231.89</div>
-                    <p className="text-xs text-muted-foreground">+19% from last month</p>
+                    <div className="text-2xl font-bold">{Number(4231.89).toLocaleString('fr-FR', {style: 'currency', currency: 'EUR'})}</div>
+                    <p className="text-xs text-muted-foreground">+19% depuis le mois dernier</p>
                 </CardContent>
             </Card>
         </div>
@@ -62,8 +62,8 @@ export default function DashboardPage() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
             <Card className="lg:col-span-4">
                 <CardHeader>
-                    <CardTitle>Revenue Overview</CardTitle>
-                    <CardDescription>A summary of your revenue over the last 6 months.</CardDescription>
+                    <CardTitle>Aperçu des revenus</CardTitle>
+                    <CardDescription>Un résumé de vos revenus sur les 6 derniers mois.</CardDescription>
                 </CardHeader>
                 <CardContent className="pl-2">
                      <RevenueChart />
@@ -72,12 +72,12 @@ export default function DashboardPage() {
             <Card className="lg:col-span-3">
                 <CardHeader className="flex flex-row items-center">
                     <div className="grid gap-2">
-                        <CardTitle>Recent Invoices</CardTitle>
-                        <CardDescription>Your most recently created invoices.</CardDescription>
+                        <CardTitle>Factures Récentes</CardTitle>
+                        <CardDescription>Vos factures les plus récentes.</CardDescription>
                     </div>
                     <Button asChild size="sm" className="ml-auto gap-1">
                         <Link href="/dashboard/invoices">
-                            View All
+                            Voir tout
                             <ArrowUpRight className="h-4 w-4" />
                         </Link>
                     </Button>
@@ -87,8 +87,8 @@ export default function DashboardPage() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Client</TableHead>
-                                <TableHead className="hidden sm:table-cell">Status</TableHead>
-                                <TableHead className="text-right">Amount</TableHead>
+                                <TableHead className="hidden sm:table-cell">Statut</TableHead>
+                                <TableHead className="text-right">Montant</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -103,7 +103,7 @@ export default function DashboardPage() {
                                     <TableCell className="hidden sm:table-cell">
                                         <StatusBadge status={invoice.status} />
                                     </TableCell>
-                                    <TableCell className="text-right">${getInvoiceTotal(invoice).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</TableCell>
+                                    <TableCell className="text-right">{getInvoiceTotal(invoice).toLocaleString('fr-FR', {style: 'currency', currency: 'EUR'})}</TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>

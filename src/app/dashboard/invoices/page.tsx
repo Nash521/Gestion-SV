@@ -8,6 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { MoreHorizontal, PlusCircle } from 'lucide-react';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 export default function InvoicesPage() {
   return (
@@ -15,12 +16,12 @@ export default function InvoicesPage() {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Invoices</CardTitle>
-            <CardDescription>Manage your invoices and track their status.</CardDescription>
+            <CardTitle>Factures</CardTitle>
+            <CardDescription>Gérez vos factures et suivez leur statut.</CardDescription>
           </div>
           <Button asChild size="sm">
             <Link href="/dashboard/invoices/new">
-              <PlusCircle className="mr-2 h-4 w-4" /> Create Invoice
+              <PlusCircle className="mr-2 h-4 w-4" /> Créer une facture
             </Link>
           </Button>
         </div>
@@ -29,11 +30,11 @@ export default function InvoicesPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Invoice ID</TableHead>
+              <TableHead>ID de Facture</TableHead>
               <TableHead>Client</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Due Date</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
+              <TableHead>Statut</TableHead>
+              <TableHead>Date d'échéance</TableHead>
+              <TableHead className="text-right">Montant</TableHead>
               <TableHead className="w-[50px] text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -45,22 +46,22 @@ export default function InvoicesPage() {
                 <TableCell>
                   <StatusBadge status={invoice.status} />
                 </TableCell>
-                <TableCell>{format(invoice.dueDate, 'PPP')}</TableCell>
-                <TableCell className="text-right">${getInvoiceTotal(invoice).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</TableCell>
+                <TableCell>{format(invoice.dueDate, 'PPP', { locale: fr })}</TableCell>
+                <TableCell className="text-right">{getInvoiceTotal(invoice).toLocaleString('fr-FR', {style: 'currency', currency: 'EUR'})}</TableCell>
                 <TableCell className="text-right">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
+                                <span className="sr-only">Ouvrir le menu</span>
                                 <MoreHorizontal className="h-4 w-4" />
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem>View Details</DropdownMenuItem>
-                            <DropdownMenuItem>Mark as Paid</DropdownMenuItem>
+                            <DropdownMenuItem>Voir les détails</DropdownMenuItem>
+                            <DropdownMenuItem>Marquer comme payée</DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">Delete</DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">Supprimer</DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </TableCell>

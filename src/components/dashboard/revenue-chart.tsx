@@ -9,17 +9,17 @@ import {
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
 const chartData = [
-  { month: "January", revenue: 18600 },
-  { month: "February", revenue: 30500 },
-  { month: "March", revenue: 23700 },
-  { month: "April", revenue: 7300 },
-  { month: "May", revenue: 20900 },
-  { month: "June", revenue: 21400 },
+  { month: "Janvier", revenue: 18600 },
+  { month: "Février", revenue: 30500 },
+  { month: "Mars", revenue: 23700 },
+  { month: "Avril", revenue: 7300 },
+  { month: "Mai", revenue: 20900 },
+  { month: "Juin", revenue: 21400 },
 ];
 
 const chartConfig = {
   revenue: {
-    label: "Revenue",
+    label: "Revenu",
     color: "hsl(var(--chart-1))",
   },
 };
@@ -40,9 +40,12 @@ export function RevenueChart() {
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
-                tickFormatter={(value) => `$${value / 1000}k`}
+                tickFormatter={(value) => `${value / 1000}k €`}
                 />
-                <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                <ChartTooltip
+                    cursor={false}
+                    content={<ChartTooltipContent formatter={(value, name) => [`${Number(value).toLocaleString('fr-FR', {style: 'currency', currency: 'EUR'})}`, chartConfig.revenue.label]} />}
+                />
                 <Bar dataKey="revenue" fill="var(--color-revenue)" radius={8} />
             </BarChart>
         </ChartContainer>

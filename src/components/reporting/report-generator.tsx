@@ -20,7 +20,7 @@ export function ReportGenerator() {
     setReport('');
 
     if (!question) {
-      setError('Please enter a question.');
+      setError('Veuillez poser une question.');
       return;
     }
 
@@ -30,11 +30,11 @@ export function ReportGenerator() {
         if (result.report) {
           setReport(result.report);
         } else {
-          setError('Could not generate a report for this question.');
+          setError('Impossible de générer un rapport pour cette question.');
         }
       } catch (err) {
         console.error(err);
-        setError('An unexpected error occurred. Please try again.');
+        setError('Une erreur inattendue est survenue. Veuillez réessayer.');
       }
     });
   };
@@ -43,7 +43,7 @@ export function ReportGenerator() {
     <div className="space-y-6">
       <form onSubmit={handleSubmit} className="space-y-4">
         <Textarea
-          placeholder="e.g., What is my total revenue and expenses?"
+          placeholder="ex: Quel est mon revenu total et mes dépenses ?"
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           rows={3}
@@ -54,14 +54,14 @@ export function ReportGenerator() {
           ) : (
             <Sparkles className="mr-2 h-4 w-4" />
           )}
-          Generate Report
+          Générer le rapport
         </Button>
       </form>
 
       {error && (
         <Alert variant="destructive">
             <Terminal className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
+            <AlertTitle>Erreur</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
@@ -70,7 +70,7 @@ export function ReportGenerator() {
          <div className="flex items-center justify-center p-8 rounded-lg border border-dashed">
             <div className="flex items-center gap-2 text-muted-foreground">
                 <Loader2 className="h-5 w-5 animate-spin" />
-                <span>Generating report...</span>
+                <span>Génération du rapport...</span>
             </div>
          </div>
       )}
@@ -80,7 +80,7 @@ export function ReportGenerator() {
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <Sparkles className="h-5 w-5 text-primary" />
-                    Generated Report
+                    Rapport Généré
                 </CardTitle>
             </CardHeader>
             <CardContent>

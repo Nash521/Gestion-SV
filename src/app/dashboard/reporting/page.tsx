@@ -6,10 +6,10 @@ export default function ReportingPage() {
     <div className="max-w-3xl mx-auto">
       <Card>
         <CardHeader>
-          <CardTitle>AI Reporting Assistant</CardTitle>
+          <CardTitle>Assistant de Reporting IA</CardTitle>
           <CardDescription>
-            Ask a question about your finances in plain language, and our AI will generate a report for you.
-            Try asking "What was my total revenue?" or "How much do I have in overdue invoices?".
+            Posez une question sur vos finances en langage naturel, et notre IA générera un rapport pour vous.
+            Essayez de demander "Quel a été mon revenu total ?" ou "Combien ai-je de factures en retard ?".
           </CardDescription>
         </CardHeader>
         <CardContent>

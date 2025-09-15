@@ -17,11 +17,11 @@ import {
 } from '@/components/ui/sidebar';
 
 const navItems = [
-    { href: '/dashboard', icon: <LayoutDashboard />, label: 'Dashboard' },
-    { href: '/dashboard/invoices', icon: <FileText />, label: 'Invoices' },
+    { href: '/dashboard', icon: <LayoutDashboard />, label: 'Tableau de bord' },
+    { href: '/dashboard/invoices', icon: <FileText />, label: 'Factures' },
     { href: '/dashboard/clients', icon: <Users />, label: 'Clients' },
-    { href: '/dashboard/expenses', icon: <Wallet />, label: 'Expenses' },
-    { href: '/dashboard/reporting', icon: <FilePieChart />, label: 'Reporting' },
+    { href: '/dashboard/expenses', icon: <Wallet />, label: 'Dépenses' },
+    { href: '/dashboard/reporting', icon: <FilePieChart />, label: 'Rapports' },
 ];
 
 export function SidebarNav() {
