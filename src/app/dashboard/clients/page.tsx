@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { MoreHorizontal, PlusCircle } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Mail, MessageSquare } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -45,6 +45,10 @@ export default function ClientsPage() {
                         <Label htmlFor="address" className="text-right">Adresse</Label>
                         <Input id="address" defaultValue="123 Rue Principale" className="col-span-3" />
                     </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="phone" className="text-right">Téléphone</Label>
+                        <Input id="phone" defaultValue="+1234567890" className="col-span-3" />
+                    </div>
                 </div>
                 <DialogFooter>
                     <Button type="submit">Enregistrer le client</Button>
@@ -59,6 +63,7 @@ export default function ClientsPage() {
             <TableRow>
               <TableHead>Nom du client</TableHead>
               <TableHead>Email</TableHead>
+              <TableHead>Téléphone</TableHead>
               <TableHead>Adresse</TableHead>
               <TableHead className="w-[50px] text-right">Actions</TableHead>
             </TableRow>
@@ -68,6 +73,7 @@ export default function ClientsPage() {
               <TableRow key={client.id}>
                 <TableCell className="font-medium">{client.name}</TableCell>
                 <TableCell>{client.email}</TableCell>
+                <TableCell>{client.phone || 'N/A'}</TableCell>
                 <TableCell>{client.address}</TableCell>
                 <TableCell className="text-right">
                     <DropdownMenu>
@@ -80,6 +86,21 @@ export default function ClientsPage() {
                         <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                             <DropdownMenuItem>Modifier</DropdownMenuItem>
+                             <DropdownMenuSeparator />
+                             <DropdownMenuItem asChild>
+                                <a href={`mailto:${client.email}`} className="flex items-center">
+                                    <Mail className="mr-2 h-4 w-4"/>
+                                    <span>Contacter par Email</span>
+                                </a>
+                            </DropdownMenuItem>
+                            {client.phone && (
+                                <DropdownMenuItem asChild>
+                                    <a href={`https://wa.me/${client.phone.replace(/\+/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center">
+                                        <MessageSquare className="mr-2 h-4 w-4"/>
+                                        <span>Contacter par WhatsApp</span>
+                                    </a>
+                                </DropdownMenuItem>
+                            )}
                             <DropdownMenuSeparator />
                             <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">Supprimer</DropdownMenuItem>
                         </DropdownMenuContent>

@@ -3,6 +3,7 @@ export type Client = {
   name: string;
   email: string;
   address: string;
+  phone?: string;
 };
 
 export type LineItem = {
