@@ -159,9 +159,7 @@ export default function AccountingPage() {
         if (!startDate || !endDate) return;
 
         const doc = new jsPDF();
-        // @ts-ignore
-        const autoTable = doc.autoTable;
-
+        
         doc.setFontSize(18);
         doc.text('Bilan Comptable', 14, 22);
         doc.setFontSize(11);
@@ -188,7 +186,7 @@ export default function AccountingPage() {
             ];
         });
         
-        autoTable(doc, {
+        (doc as any).autoTable({
             startY: 40,
             head: [['Date', 'Description', 'Catégorie', 'Entrée', 'Dépense']],
             body: tableData,
@@ -196,7 +194,7 @@ export default function AccountingPage() {
             headStyles: { fillColor: [41, 128, 185] },
         });
         
-        const finalY = (autoTable as any).last.finalY;
+        const finalY = (doc as any).lastAutoTable.finalY;
         doc.setFontSize(12);
         doc.text('Résumé', 14, finalY + 15);
 
@@ -206,7 +204,7 @@ export default function AccountingPage() {
             ['Bénéfice Net:', (totalIncome - totalExpenses).toLocaleString('fr-FR', { style: 'currency', currency: 'XOF' })],
         ]
 
-        autoTable(doc, {
+        ;(doc as any).autoTable({
              startY: finalY + 20,
              body: summaryData,
              theme: 'plain'
