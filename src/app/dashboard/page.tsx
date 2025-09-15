@@ -6,28 +6,8 @@ import { ArrowUpRight, DollarSign, Users, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { StatusBadge } from '@/components/shared/status-badge';
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { RevenueChart } from '@/components/dashboard/revenue-chart';
 
-const chartData = [
-  { month: "January", revenue: 18600 },
-  { month: "February", revenue: 30500 },
-  { month: "March", revenue: 23700 },
-  { month: "April", revenue: 7300 },
-  { month: "May", revenue: 20900 },
-  { month: "June", revenue: 21400 },
-];
-
-const chartConfig = {
-  revenue: {
-    label: "Revenue",
-    color: "hsl(var(--chart-1))",
-  },
-};
 
 export default function DashboardPage() {
     const totalRevenue = mockInvoices.filter(i => i.status === 'Paid').reduce((acc, inv) => acc + getInvoiceTotal(inv), 0);
@@ -86,26 +66,7 @@ export default function DashboardPage() {
                     <CardDescription>A summary of your revenue over the last 6 months.</CardDescription>
                 </CardHeader>
                 <CardContent className="pl-2">
-                     <ChartContainer config={chartConfig} className="h-[300px] w-full">
-                        <BarChart accessibilityLayer data={chartData}>
-                           <CartesianGrid vertical={false} />
-                            <XAxis
-                            dataKey="month"
-                            tickLine={false}
-                            axisLine={false}
-                            tickMargin={8}
-                            tickFormatter={(value) => value.slice(0, 3)}
-                            />
-                            <YAxis
-                            tickLine={false}
-                            axisLine={false}
-                            tickMargin={8}
-                            tickFormatter={(value) => `$${value / 1000}k`}
-                            />
-                            <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-                            <Bar dataKey="revenue" fill="var(--color-revenue)" radius={8} />
-                        </BarChart>
-                    </ChartContainer>
+                     <RevenueChart />
                 </CardContent>
             </Card>
             <Card className="lg:col-span-3">
