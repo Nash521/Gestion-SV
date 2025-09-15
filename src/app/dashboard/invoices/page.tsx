@@ -16,12 +16,12 @@ export default function InvoicesPage() {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Factures</CardTitle>
-            <CardDescription>Gérez vos factures et suivez leur statut.</CardDescription>
+            <CardTitle>Proformas</CardTitle>
+            <CardDescription>Gérez vos proformas et suivez leur statut.</CardDescription>
           </div>
           <Button asChild size="sm">
             <Link href="/dashboard/invoices/new">
-              <PlusCircle className="mr-2 h-4 w-4" /> Créer une facture
+              <PlusCircle className="mr-2 h-4 w-4" /> Créer une proforma
             </Link>
           </Button>
         </div>
@@ -30,7 +30,7 @@ export default function InvoicesPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>ID de Facture</TableHead>
+              <TableHead>ID de Proforma</TableHead>
               <TableHead>Client</TableHead>
               <TableHead>Statut</TableHead>
               <TableHead>Date d'échéance</TableHead>

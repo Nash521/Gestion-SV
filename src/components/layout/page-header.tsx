@@ -5,8 +5,8 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 
 const titles: { [key: string]: string } = {
     '/dashboard': 'Tableau de bord',
-    '/dashboard/invoices': 'Factures',
-    '/dashboard/invoices/new': 'Nouvelle Facture',
+    '/dashboard/invoices': 'Proformas',
+    '/dashboard/invoices/new': 'Nouvelle Proforma',
     '/dashboard/purchase-orders': 'Bons de commande',
     '/dashboard/purchase-orders/new': 'Nouveau Bon de commande',
     '/dashboard/delivery-notes': 'Bons de livraison',

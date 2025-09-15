@@ -37,7 +37,7 @@ export type PurchaseOrder = {
 export type DeliveryNote = {
     id: string;
     client: Client;
-    invoiceId?: string; // Associated invoice
+    invoiceId?: string; // Associated proforma
     lineItems: Omit<LineItem, 'price'>[];
     status: 'Draft' | 'Delivered' | 'Canceled';
     deliveryDate: Date;

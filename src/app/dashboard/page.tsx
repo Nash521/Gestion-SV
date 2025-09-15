@@ -29,12 +29,12 @@ export default function DashboardPage() {
             </Card>
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Factures en retard</CardTitle>
+                    <CardTitle className="text-sm font-medium">Proformas en retard</CardTitle>
                     <FileText className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl font-bold text-destructive">{overdueAmount.toLocaleString('fr-FR', {style: 'currency', currency: 'XOF'})}</div>
-                    <p className="text-xs text-muted-foreground">{mockInvoices.filter(i => i.status === 'Overdue').length} factures en retard</p>
+                    <p className="text-xs text-muted-foreground">{mockInvoices.filter(i => i.status === 'Overdue').length} proformas en retard</p>
                 </CardContent>
             </Card>
             <Card>
@@ -72,8 +72,8 @@ export default function DashboardPage() {
             <Card className="lg:col-span-3">
                 <CardHeader className="flex flex-row items-center">
                     <div className="grid gap-2">
-                        <CardTitle>Factures Récentes</CardTitle>
-                        <CardDescription>Vos factures les plus récentes.</CardDescription>
+                        <CardTitle>Proformas Récentes</CardTitle>
+                        <CardDescription>Vos proformas les plus récentes.</CardDescription>
                     </div>
                     <Button asChild size="sm" className="ml-auto gap-1">
                         <Link href="/dashboard/invoices">

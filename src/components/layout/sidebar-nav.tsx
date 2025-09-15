@@ -20,7 +20,7 @@ import {
 
 const navItems = [
     { href: '/dashboard', icon: <LayoutDashboard />, label: 'Tableau de bord' },
-    { href: '/dashboard/invoices', icon: <FileText />, label: 'Factures' },
+    { href: '/dashboard/invoices', icon: <FileText />, label: 'Proformas' },
     { href: '/dashboard/purchase-orders', icon: <ShoppingCart />, label: 'Bons de commande' },
     { href: '/dashboard/delivery-notes', icon: <Truck />, label: 'Bons de livraison' },
     { href: '/dashboard/clients', icon: <Users />, label: 'Clients' },

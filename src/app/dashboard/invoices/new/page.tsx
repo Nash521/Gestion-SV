@@ -75,8 +75,8 @@ export default function NewInvoicePage() {
   function onSubmit(data: InvoiceFormValues) {
     console.log(data);
     toast({
-      title: "Facture créée",
-      description: "La nouvelle facture a été créée avec succès.",
+      title: "Proforma créée",
+      description: "La nouvelle proforma a été créée avec succès.",
     });
     // Ici, vous enverriez généralement les données à votre serveur
   }
@@ -86,8 +86,8 @@ export default function NewInvoicePage() {
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <Card>
           <CardHeader>
-            <CardTitle>Nouvelle Facture</CardTitle>
-            <CardDescription>Remplissez le formulaire pour créer une nouvelle facture.</CardDescription>
+            <CardTitle>Nouvelle Proforma</CardTitle>
+            <CardDescription>Remplissez le formulaire pour créer une nouvelle proforma.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid md:grid-cols-3 gap-6">
@@ -194,7 +194,7 @@ export default function NewInvoicePage() {
             </div>
             
             <div className="space-y-4">
-                <h3 className="text-lg font-medium">Lignes de la facture</h3>
+                <h3 className="text-lg font-medium">Lignes de la proforma</h3>
                 {fields.map((item, index) => (
                     <div key={item.id} className="flex items-start gap-4 p-4 border rounded-lg bg-muted/20">
                         <div className="grid grid-cols-1 md:grid-cols-12 gap-4 flex-1">
@@ -271,7 +271,7 @@ export default function NewInvoicePage() {
                         <FormItem>
                             <FormLabel>Notes</FormLabel>
                             <FormControl>
-                                <Textarea placeholder="Notes optionnelles sur la facture" {...field} />
+                                <Textarea placeholder="Notes optionnelles sur la proforma" {...field} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -314,7 +314,7 @@ export default function NewInvoicePage() {
             <Button type="button" variant="outline" asChild>
                 <Link href="/dashboard/invoices">Annuler</Link>
             </Button>
-            <Button type="submit">Créer la facture</Button>
+            <Button type="submit">Créer la proforma</Button>
           </CardFooter>
         </Card>
       </form>

@@ -32,7 +32,7 @@ export default function DeliveryNotesPage() {
             <TableRow>
               <TableHead>ID du bon</TableHead>
               <TableHead>Client</TableHead>
-              <TableHead>Facture associée</TableHead>
+              <TableHead>Proforma associée</TableHead>
               <TableHead>Statut</TableHead>
               <TableHead>Date de livraison</TableHead>
               <TableHead className="w-[50px] text-right">Actions</TableHead>
