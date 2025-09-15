@@ -1,6 +1,9 @@
 "use client"
 import React, { useState } from 'react';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 import { mockTransactions } from '@/lib/data';
+import type { Transaction } from '@/lib/definitions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -60,12 +63,16 @@ const TransactionTable = ({ transactions, type }: { transactions: any[], type: '
     </Table>
 );
 
-const ExportDialog = ({ onExport }: { onExport: (startDate?: Date, endDate?: Date) => void }) => {
+const ExportDialog = ({ onExport, toast }: { onExport: (startDate?: Date, endDate?: Date) => void; toast: any }) => {
     const [startDate, setStartDate] = useState<Date | undefined>();
     const [endDate, setEndDate] = useState<Date | undefined>();
 
     const handleExportClick = () => {
         onExport(startDate, endDate);
+        toast({
+            title: "Exportation lancée",
+            description: "La génération de votre bilan PDF va commencer."
+        });
     };
 
     return (
@@ -149,12 +156,63 @@ export default function AccountingPage() {
     const { toast } = useToast();
 
     const handleExport = (startDate?: Date, endDate?: Date) => {
-        // La logique de génération de PDF sera ajoutée ici.
-        console.log("Exporting from", startDate, "to", endDate);
-        toast({
-            title: "Exportation lancée",
-            description: "La génération de votre bilan PDF va commencer."
+        if (!startDate || !endDate) return;
+
+        const doc = new jsPDF();
+        // @ts-ignore
+        const autoTable = doc.autoTable;
+
+        doc.setFontSize(18);
+        doc.text('Bilan Comptable', 14, 22);
+        doc.setFontSize(11);
+        doc.text(`Période du ${format(startDate, 'PPP', { locale: fr })} au ${format(endDate, 'PPP', { locale: fr })}`, 14, 30);
+
+        const filteredTransactions = mockTransactions.filter(t => {
+            const transactionDate = new Date(t.date);
+            return transactionDate >= startDate && transactionDate <= endDate;
         });
+
+        let totalIncome = 0;
+        let totalExpenses = 0;
+
+        const tableData = filteredTransactions.map(t => {
+            if (t.type === 'income') totalIncome += t.amount;
+            if (t.type === 'expense') totalExpenses += t.amount;
+
+            return [
+                format(t.date, 'dd/MM/yyyy', { locale: fr }),
+                t.description,
+                t.category,
+                t.type === 'income' ? t.amount.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF' }) : '',
+                t.type === 'expense' ? t.amount.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF' }) : ''
+            ];
+        });
+        
+        autoTable(doc, {
+            startY: 40,
+            head: [['Date', 'Description', 'Catégorie', 'Entrée', 'Dépense']],
+            body: tableData,
+            theme: 'grid',
+            headStyles: { fillColor: [41, 128, 185] },
+        });
+        
+        const finalY = (autoTable as any).last.finalY;
+        doc.setFontSize(12);
+        doc.text('Résumé', 14, finalY + 15);
+
+        const summaryData = [
+            ['Total des Entrées:', totalIncome.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF' })],
+            ['Total des Dépenses:', totalExpenses.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF' })],
+            ['Bénéfice Net:', (totalIncome - totalExpenses).toLocaleString('fr-FR', { style: 'currency', currency: 'XOF' })],
+        ]
+
+        autoTable(doc, {
+             startY: finalY + 20,
+             body: summaryData,
+             theme: 'plain'
+        });
+
+        doc.save(`bilan-comptable-${format(startDate, 'yyyy-MM-dd')}-${format(endDate, 'yyyy-MM-dd')}.pdf`);
     };
 
     return (
@@ -166,7 +224,7 @@ export default function AccountingPage() {
                         <CardDescription>Suivez vos entrées et vos dépenses.</CardDescription>
                     </div>
                     <div className="flex items-center gap-2">
-                         <ExportDialog onExport={handleExport} />
+                         <ExportDialog onExport={handleExport} toast={toast} />
                          <Dialog>
                             <DialogTrigger asChild>
                                 <Button size="sm">
