@@ -1,0 +1,131 @@
+"use client"
+import React from 'react';
+import { mockTransactions } from '@/lib/data';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { MoreHorizontal, PlusCircle } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+
+const TransactionTable = ({ transactions, type }: { transactions: any[], type: 'income' | 'expense' }) => (
+    <Table>
+        <TableHeader>
+            <TableRow>
+                <TableHead>Description</TableHead>
+                <TableHead>Catégorie</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead className="text-right">Montant</TableHead>
+                <TableHead className="w-[50px] text-right">Actions</TableHead>
+            </TableRow>
+        </TableHeader>
+        <TableBody>
+            {transactions.filter(t => t.type === type).map((transaction) => (
+                <TableRow key={transaction.id}>
+                    <TableCell className="font-medium">{transaction.description}</TableCell>
+                    <TableCell>{transaction.category}</TableCell>
+                    <TableCell>{format(transaction.date, 'PPP', { locale: fr })}</TableCell>
+                    <TableCell className={`text-right font-semibold ${type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                        {transaction.amount.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF' })}
+                    </TableCell>
+                    <TableCell className="text-right">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                    <span className="sr-only">Ouvrir le menu</span>
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem>Modifier</DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">Supprimer</DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </TableCell>
+                </TableRow>
+            ))}
+        </TableBody>
+    </Table>
+);
+
+
+export default function AccountingPage() {
+    return (
+        <Card>
+            <CardHeader>
+                <div className="flex items-center justify-between">
+                    <div>
+                        <CardTitle>Comptabilité</CardTitle>
+                        <CardDescription>Suivez vos entrées et vos dépenses.</CardDescription>
+                    </div>
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button size="sm">
+                                <PlusCircle className="mr-2 h-4 w-4" /> Ajouter une transaction
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[425px]">
+                            <DialogHeader>
+                                <DialogTitle>Nouvelle transaction</DialogTitle>
+                                <DialogDescription>
+                                    Remplissez les détails de la transaction.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-4">
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="type" className="text-right">Type</Label>
+                                     <Select>
+                                        <SelectTrigger className="col-span-3">
+                                            <SelectValue placeholder="Sélectionnez un type" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="income">Entrée</SelectItem>
+                                            <SelectItem value="expense">Dépense</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="description" className="text-right">Description</Label>
+                                    <Input id="description" placeholder="Ex: Fournitures de bureau" className="col-span-3" />
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="category" className="text-right">Catégorie</Label>
+                                    <Input id="category" placeholder="Ex: Bureau" className="col-span-3" />
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="amount" className="text-right">Montant (XOF)</Label>
+                                    <Input id="amount" type="number" placeholder="15000" className="col-span-3" />
+                                </div>
+                            </div>
+                            <DialogFooter>
+                                <Button type="submit">Enregistrer</Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                </div>
+            </CardHeader>
+            <CardContent>
+                <Tabs defaultValue="income">
+                    <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="income">Entrées</TabsTrigger>
+                        <TabsTrigger value="expense">Dépenses</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="income">
+                       <TransactionTable transactions={mockTransactions} type="income" />
+                    </TabsContent>
+                    <TabsContent value="expense">
+                       <TransactionTable transactions={mockTransactions} type="expense" />
+                    </TabsContent>
+                </Tabs>
+            </CardContent>
+        </Card>
+    );
+}

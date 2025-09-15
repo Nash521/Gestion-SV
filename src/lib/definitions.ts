@@ -44,10 +44,11 @@ export type DeliveryNote = {
     notes?: string;
 };
 
-export type Expense = {
-  id: string;
-  description: string;
-  category: string;
-  amount: number;
-  date: Date;
-};
+export type Transaction = {
+    id: string;
+    type: 'income' | 'expense';
+    description: string;
+    category: string;
+    amount: number;
+    date: Date;
+}

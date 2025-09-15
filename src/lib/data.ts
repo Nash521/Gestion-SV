@@ -1,4 +1,4 @@
-import { Client, Invoice, Expense, LineItem, PurchaseOrder, DeliveryNote } from '@/lib/definitions';
+import { Client, Invoice, Transaction, LineItem, PurchaseOrder, DeliveryNote } from '@/lib/definitions';
 
 export const mockClients: Client[] = [
   { id: '1', name: 'Stark Industries', email: 'contact@stark.com', address: '10880 Malibu Point, 90265, Malibu', phone: '+12223334444' },
@@ -121,12 +121,15 @@ export const mockDeliveryNotes: DeliveryNote[] = [
 ];
 
 
-export const mockExpenses: Expense[] = [
-    { id: '1', description: 'Office Supplies', category: 'Office', amount: 150.75, date: new Date('2023-11-10') },
-    { id: '2', description: 'Cloud Server Hosting', category: 'Software', amount: 75.00, date: new Date('2023-11-01') },
-    { id: '3', description: 'Client Lunch', category: 'Meals', amount: 250.50, date: new Date('2023-10-28') },
-    { id: '4', description: 'Domain Name Renewal', category: 'Software', amount: 20.00, date: new Date('2023-11-15') },
-    { id: '5', description: 'Travel to Conference', category: 'Travel', amount: 1200.00, date: new Date('2023-10-20') },
+export const mockTransactions: Transaction[] = [
+    { id: '1', type: 'expense', description: 'Office Supplies', category: 'Office', amount: 15000, date: new Date('2023-11-10') },
+    { id: '2', type: 'expense', description: 'Cloud Server Hosting', category: 'Software', amount: 75000, date: new Date('2023-11-01') },
+    { id: '3', type: 'expense', description: 'Client Lunch', category: 'Meals', amount: 25000, date: new Date('2023-10-28') },
+    { id: '4', type: 'expense', description: 'Domain Name Renewal', category: 'Software', amount: 20000, date: new Date('2023-11-15') },
+    { id: '5', type: 'expense', description: 'Travel to Conference', category: 'Travel', amount: 120000, date: new Date('2023-10-20') },
+    { id: '6', type: 'income', description: 'Payment from Stark Industries', category: 'Payments', amount: 1200000, date: new Date('2023-11-05') },
+    { id: '7', type: 'income', description: 'Project Alpha - Milestone 1', category: 'Projects', amount: 550000, date: new Date('2023-11-20') },
+    { id: '8', type: 'income', description: 'Consulting services', category: 'Services', amount: 250000, date: new Date('2023-11-22') },
 ];
 
 export const getInvoiceTotal = (invoice: Invoice | PurchaseOrder): number => {

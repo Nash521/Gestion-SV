@@ -12,7 +12,7 @@ const titles: { [key: string]: string } = {
     '/dashboard/delivery-notes': 'Bons de livraison',
     '/dashboard/delivery-notes/new': 'Nouveau Bon de livraison',
     '/dashboard/clients': 'Clients',
-    '/dashboard/expenses': 'Dépenses',
+    '/dashboard/accounting': 'Comptabilité',
     '/dashboard/reporting': 'Rapports IA',
 };
 

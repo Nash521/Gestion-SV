@@ -24,7 +24,7 @@ const navItems = [
     { href: '/dashboard/purchase-orders', icon: <ShoppingCart />, label: 'Bons de commande' },
     { href: '/dashboard/delivery-notes', icon: <Truck />, label: 'Bons de livraison' },
     { href: '/dashboard/clients', icon: <Users />, label: 'Clients' },
-    { href: '/dashboard/expenses', icon: <Wallet />, label: 'Dépenses' },
+    { href: '/dashboard/accounting', icon: <Wallet />, label: 'Comptabilité' },
     { href: '/dashboard/reporting', icon: <FilePieChart />, label: 'Rapports' },
 ];
 

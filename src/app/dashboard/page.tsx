@@ -1,5 +1,5 @@
 import React from 'react';
-import { mockInvoices, getInvoiceTotal } from '@/lib/data';
+import { mockInvoices, mockTransactions, getInvoiceTotal } from '@/lib/data';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowUpRight, DollarSign, Users, FileText } from 'lucide-react';
@@ -12,10 +12,24 @@ import { RevenueChart } from '@/components/dashboard/revenue-chart';
 export default function DashboardPage() {
     const overdueInvoicesCount = mockInvoices.filter(i => i.status === 'Overdue').length;
     const recentInvoices = [...mockInvoices].sort((a,b) => b.issueDate.getTime() - a.issueDate.getTime()).slice(0, 5);
+    
+    const totalIncome = mockTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
+    const totalExpenses = mockTransactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
+    const totalRevenue = totalIncome - totalExpenses;
 
   return (
     <div className="grid gap-6">
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+             <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Revenu Total</CardTitle>
+                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{totalRevenue.toLocaleString('fr-FR', {style: 'currency', currency: 'XOF'})}</div>
+                    <p className="text-xs text-muted-foreground">Basé sur les entrées et les dépenses</p>
+                </CardContent>
+            </Card>
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Proformas en Retard</CardTitle>
@@ -34,16 +48,6 @@ export default function DashboardPage() {
                 <CardContent>
                     <div className="text-2xl font-bold">+5</div>
                     <p className="text-xs text-muted-foreground">+10% ce mois-ci</p>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Total des Dépenses</CardTitle>
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">{Number(4231.89).toLocaleString('fr-FR', {style: 'currency', currency: 'XOF'})}</div>
-                    <p className="text-xs text-muted-foreground">+19% depuis le mois dernier</p>
                 </CardContent>
             </Card>
         </div>
