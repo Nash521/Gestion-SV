@@ -149,7 +149,7 @@ const ExportDialog = ({ onExport, toast }: { onExport: (startDate?: Date, endDat
             </DialogContent>
         </Dialog>
     );
-}
+};
 
 
 export default function AccountingPage() {
