@@ -11,6 +11,7 @@ import {
   SidebarContent,
   SidebarInset,
   SidebarFooter,
+  SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -63,7 +64,10 @@ export default function DashboardLayout({
       </Sidebar>
       <SidebarInset>
         <header className="flex h-16 items-center justify-between gap-4 border-b bg-background px-4 md:px-6">
-            <PageHeader />
+            <div className="flex items-center gap-2">
+                <SidebarTrigger className="hidden md:flex" />
+                <PageHeader />
+            </div>
             <div className="flex w-full max-w-sm items-center gap-4 md:ml-auto md:gap-2 lg:gap-4">
                 <form className="ml-auto flex-1 sm:flex-initial">
                     <div className="relative">
