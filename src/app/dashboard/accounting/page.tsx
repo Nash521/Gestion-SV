@@ -165,9 +165,12 @@ export default function AccountingPage() {
         doc.setFontSize(11);
         doc.text(`Période du ${format(startDate, 'PPP', { locale: fr })} au ${format(endDate, 'PPP', { locale: fr })}`, 14, 30);
 
+        const endOfDay = new Date(endDate);
+        endOfDay.setHours(23, 59, 59, 999);
+
         const filteredTransactions = mockTransactions.filter(t => {
             const transactionDate = new Date(t.date);
-            return transactionDate >= startDate && transactionDate <= endDate;
+            return transactionDate >= startDate && transactionDate <= endOfDay;
         });
 
         let totalIncome = 0;
@@ -194,7 +197,7 @@ export default function AccountingPage() {
             headStyles: { fillColor: [41, 128, 185] },
         });
         
-        const finalY = (doc as any).lastAutoTable.finalY;
+        const finalY = (doc as any).lastAutoTable.finalY || 40;
         doc.setFontSize(12);
         doc.text('Résumé', 14, finalY + 15);
 
@@ -202,9 +205,9 @@ export default function AccountingPage() {
             ['Total des Entrées:', totalIncome.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF' })],
             ['Total des Dépenses:', totalExpenses.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF' })],
             ['Bénéfice Net:', (totalIncome - totalExpenses).toLocaleString('fr-FR', { style: 'currency', currency: 'XOF' })],
-        ]
+        ];
 
-        ;(doc as any).autoTable({
+        (doc as any).autoTable({
              startY: finalY + 20,
              body: summaryData,
              theme: 'plain'
@@ -274,7 +277,7 @@ export default function AccountingPage() {
                 <Tabs defaultValue="income">
                     <TabsList className="grid w-full grid-cols-2">
                         <TabsTrigger value="income">Entrées</TabsTrigger>
-                        <TabsTrigger value="expense">Dépenses</TabsTrigger>
+                        <TabsTrigger value="expense">Dépenses</Tabs-trigger>
                     </TabsList>
                     <TabsContent value="income">
                        <TransactionTable transactions={mockTransactions} type="income" />
