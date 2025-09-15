@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Settings,
-  Package,
+  Briefcase,
   Search,
 } from 'lucide-react';
 import {
@@ -29,8 +29,8 @@ export default function DashboardLayout({
       <Sidebar>
         <SidebarHeader>
           <div className="flex items-center gap-2 p-2">
-            <Package className="size-6 text-primary" />
-            <span className="text-xl font-semibold font-headline">BillFlow</span>
+            <Briefcase className="size-6 text-primary" />
+            <span className="text-xl font-semibold font-headline">GestioSV</span>
           </div>
         </SidebarHeader>
         <SidebarContent>
@@ -46,7 +46,7 @@ export default function DashboardLayout({
                         </Avatar>
                         <div className="flex flex-col text-sm text-left">
                             <span className="font-semibold">Utilisateur Démo</span>
-                            <span className="text-muted-foreground text-xs">user@billflow.com</span>
+                            <span className="text-muted-foreground text-xs">user@gestiosv.com</span>
                         </div>
                     </div>
                 </DropdownMenuTrigger>

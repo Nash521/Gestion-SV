@@ -3,8 +3,8 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
-  title: 'BillFlow',
-  description: 'Simplifiez votre facturation et votre comptabilité avec BillFlow.',
+  title: 'GestioSV',
+  description: 'Simplifiez votre facturation et votre comptabilité avec GestioSV.',
 };
 
 export default function RootLayout({

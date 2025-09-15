@@ -18,7 +18,7 @@ const titles: { [key: string]: string } = {
 
 export function PageHeader() {
     const pathname = usePathname();
-    const title = titles[pathname] || 'BillFlow';
+    const title = titles[pathname] || 'GestioSV';
 
     return (
         <div className="flex items-center gap-2">
