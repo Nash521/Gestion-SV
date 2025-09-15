@@ -10,8 +10,7 @@ import { RevenueChart } from '@/components/dashboard/revenue-chart';
 
 
 export default function DashboardPage() {
-    const totalRevenue = mockInvoices.filter(i => i.status === 'Paid').reduce((acc, inv) => acc + getInvoiceTotal(inv), 0);
-    const overdueAmount = mockInvoices.filter(i => i.status === 'Overdue').reduce((acc, inv) => acc + getInvoiceTotal(inv), 0);
+    const overdueInvoicesCount = mockInvoices.filter(i => i.status === 'Overdue').length;
     const recentInvoices = [...mockInvoices].sort((a,b) => b.issueDate.getTime() - a.issueDate.getTime()).slice(0, 5);
 
   return (
@@ -19,22 +18,12 @@ export default function DashboardPage() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Revenu Total</CardTitle>
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">{totalRevenue.toLocaleString('fr-FR', {style: 'currency', currency: 'XOF'})}</div>
-                    <p className="text-xs text-muted-foreground">+20.1% depuis le mois dernier</p>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Proformas en retard</CardTitle>
+                    <CardTitle className="text-sm font-medium">Proformas en Retard</CardTitle>
                     <FileText className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold text-destructive">{overdueAmount.toLocaleString('fr-FR', {style: 'currency', currency: 'XOF'})}</div>
-                    <p className="text-xs text-muted-foreground">{mockInvoices.filter(i => i.status === 'Overdue').length} proformas en retard</p>
+                    <div className="text-2xl font-bold text-destructive">{overdueInvoicesCount}</div>
+                    <p className="text-xs text-muted-foreground">Total des proformas impayées</p>
                 </CardContent>
             </Card>
             <Card>
