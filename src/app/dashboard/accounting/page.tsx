@@ -60,19 +60,13 @@ const TransactionTable = ({ transactions, type }: { transactions: any[], type: '
     </Table>
 );
 
-const ExportDialog = () => {
-    const { toast } = useToast();
+const ExportDialog = ({ onExport }: { onExport: (startDate?: Date, endDate?: Date) => void }) => {
     const [startDate, setStartDate] = useState<Date | undefined>();
     const [endDate, setEndDate] = useState<Date | undefined>();
 
-    const handleExport = () => {
-        // La logique de génération de PDF sera ajoutée ici.
-        console.log("Exporting from", startDate, "to", endDate);
-        toast({
-            title: "Exportation lancée",
-            description: "La génération de votre bilan PDF va commencer."
-        })
-    }
+    const handleExportClick = () => {
+        onExport(startDate, endDate);
+    };
 
     return (
         <Dialog>
@@ -143,7 +137,7 @@ const ExportDialog = () => {
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button onClick={handleExport} disabled={!startDate || !endDate}>Générer le PDF</Button>
+                    <Button onClick={handleExportClick} disabled={!startDate || !endDate}>Générer le PDF</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -152,6 +146,17 @@ const ExportDialog = () => {
 
 
 export default function AccountingPage() {
+    const { toast } = useToast();
+
+    const handleExport = (startDate?: Date, endDate?: Date) => {
+        // La logique de génération de PDF sera ajoutée ici.
+        console.log("Exporting from", startDate, "to", endDate);
+        toast({
+            title: "Exportation lancée",
+            description: "La génération de votre bilan PDF va commencer."
+        });
+    };
+
     return (
         <Card>
             <CardHeader>
@@ -161,7 +166,7 @@ export default function AccountingPage() {
                         <CardDescription>Suivez vos entrées et vos dépenses.</CardDescription>
                     </div>
                     <div className="flex items-center gap-2">
-                         <ExportDialog />
+                         <ExportDialog onExport={handleExport} />
                          <Dialog>
                             <DialogTrigger asChild>
                                 <Button size="sm">
