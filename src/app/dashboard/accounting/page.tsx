@@ -1,5 +1,5 @@
 "use client"
-import React from 'react';
+import React, { useState } from 'react';
 import { mockTransactions } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,12 +7,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { MoreHorizontal, PlusCircle } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, FileDown, CalendarIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 const TransactionTable = ({ transactions, type }: { transactions: any[], type: 'income' | 'expense' }) => (
     <Table>
@@ -56,60 +60,153 @@ const TransactionTable = ({ transactions, type }: { transactions: any[], type: '
     </Table>
 );
 
+const ExportDialog = () => {
+    const { toast } = useToast();
+    const [startDate, setStartDate] = useState<Date | undefined>();
+    const [endDate, setEndDate] = useState<Date | undefined>();
+
+    const handleExport = () => {
+        // La logique de génération de PDF sera ajoutée ici.
+        console.log("Exporting from", startDate, "to", endDate);
+        toast({
+            title: "Exportation lancée",
+            description: "La génération de votre bilan PDF va commencer."
+        })
+    }
+
+    return (
+        <Dialog>
+            <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                    <FileDown className="mr-2 h-4 w-4" /> Exporter le bilan
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>Exporter le bilan comptable</DialogTitle>
+                    <DialogDescription>
+                        Sélectionnez la période pour laquelle vous souhaitez exporter le bilan.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                         <Label className="text-right">Du</Label>
+                         <Popover>
+                            <PopoverTrigger asChild>
+                                 <Button
+                                    variant={"outline"}
+                                    className={cn(
+                                    "col-span-3 justify-start text-left font-normal",
+                                    !startDate && "text-muted-foreground"
+                                    )}
+                                >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {startDate ? format(startDate, "PPP", {locale: fr}) : <span>Choisir une date</span>}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                                <Calendar
+                                    mode="single"
+                                    selected={startDate}
+                                    onSelect={setStartDate}
+                                    initialFocus
+                                    locale={fr}
+                                />
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+                     <div className="grid grid-cols-4 items-center gap-4">
+                         <Label className="text-right">Au</Label>
+                         <Popover>
+                            <PopoverTrigger asChild>
+                                 <Button
+                                    variant={"outline"}
+                                    className={cn(
+                                    "col-span-3 justify-start text-left font-normal",
+                                    !endDate && "text-muted-foreground"
+                                    )}
+                                >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {endDate ? format(endDate, "PPP", {locale: fr}) : <span>Choisir une date</span>}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                                <Calendar
+                                    mode="single"
+                                    selected={endDate}
+                                    onSelect={setEndDate}
+                                    initialFocus
+                                    locale={fr}
+                                />
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button onClick={handleExport} disabled={!startDate || !endDate}>Générer le PDF</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 
 export default function AccountingPage() {
     return (
         <Card>
             <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2">
                     <div>
                         <CardTitle>Comptabilité</CardTitle>
                         <CardDescription>Suivez vos entrées et vos dépenses.</CardDescription>
                     </div>
-                    <Dialog>
-                        <DialogTrigger asChild>
-                            <Button size="sm">
-                                <PlusCircle className="mr-2 h-4 w-4" /> Ajouter une transaction
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[425px]">
-                            <DialogHeader>
-                                <DialogTitle>Nouvelle transaction</DialogTitle>
-                                <DialogDescription>
-                                    Remplissez les détails de la transaction.
-                                </DialogDescription>
-                            </DialogHeader>
-                            <div className="grid gap-4 py-4">
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="type" className="text-right">Type</Label>
-                                     <Select>
-                                        <SelectTrigger className="col-span-3">
-                                            <SelectValue placeholder="Sélectionnez un type" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="income">Entrée</SelectItem>
-                                            <SelectItem value="expense">Dépense</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                    <div className="flex items-center gap-2">
+                         <ExportDialog />
+                         <Dialog>
+                            <DialogTrigger asChild>
+                                <Button size="sm">
+                                    <PlusCircle className="mr-2 h-4 w-4" /> Ajouter une transaction
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[425px]">
+                                <DialogHeader>
+                                    <DialogTitle>Nouvelle transaction</DialogTitle>
+                                    <DialogDescription>
+                                        Remplissez les détails de la transaction.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <div className="grid gap-4 py-4">
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="type" className="text-right">Type</Label>
+                                        <Select>
+                                            <SelectTrigger className="col-span-3">
+                                                <SelectValue placeholder="Sélectionnez un type" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="income">Entrée</SelectItem>
+                                                <SelectItem value="expense">Dépense</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="description" className="text-right">Description</Label>
+                                        <Input id="description" placeholder="Ex: Fournitures de bureau" className="col-span-3" />
+                                    </div>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="category" className="text-right">Catégorie</Label>
+                                        <Input id="category" placeholder="Ex: Bureau" className="col-span-3" />
+                                    </div>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="amount" className="text-right">Montant (XOF)</Label>
+                                        <Input id="amount" type="number" placeholder="15000" className="col-span-3" />
+                                    </div>
                                 </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="description" className="text-right">Description</Label>
-                                    <Input id="description" placeholder="Ex: Fournitures de bureau" className="col-span-3" />
-                                </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="category" className="text-right">Catégorie</Label>
-                                    <Input id="category" placeholder="Ex: Bureau" className="col-span-3" />
-                                </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="amount" className="text-right">Montant (XOF)</Label>
-                                    <Input id="amount" type="number" placeholder="15000" className="col-span-3" />
-                                </div>
-                            </div>
-                            <DialogFooter>
-                                <Button type="submit">Enregistrer</Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
+                                <DialogFooter>
+                                    <Button type="submit">Enregistrer</Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+                    </div>
                 </div>
             </CardHeader>
             <CardContent>
