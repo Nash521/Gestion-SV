@@ -151,7 +151,6 @@ const ExportDialog = ({ onExport, toast }: { onExport: (startDate?: Date, endDat
     );
 };
 
-
 export default function AccountingPage() {
     const { toast } = useToast();
 
