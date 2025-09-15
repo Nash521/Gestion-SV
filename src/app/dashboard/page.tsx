@@ -23,7 +23,7 @@ export default function DashboardPage() {
                     <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">{totalRevenue.toLocaleString('fr-FR', {style: 'currency', currency: 'EUR'})}</div>
+                    <div className="text-2xl font-bold">{totalRevenue.toLocaleString('fr-FR', {style: 'currency', currency: 'XOF'})}</div>
                     <p className="text-xs text-muted-foreground">+20.1% depuis le mois dernier</p>
                 </CardContent>
             </Card>
@@ -33,7 +33,7 @@ export default function DashboardPage() {
                     <FileText className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold text-destructive">{overdueAmount.toLocaleString('fr-FR', {style: 'currency', currency: 'EUR'})}</div>
+                    <div className="text-2xl font-bold text-destructive">{overdueAmount.toLocaleString('fr-FR', {style: 'currency', currency: 'XOF'})}</div>
                     <p className="text-xs text-muted-foreground">{mockInvoices.filter(i => i.status === 'Overdue').length} factures en retard</p>
                 </CardContent>
             </Card>
@@ -53,7 +53,7 @@ export default function DashboardPage() {
                     <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">{Number(4231.89).toLocaleString('fr-FR', {style: 'currency', currency: 'EUR'})}</div>
+                    <div className="text-2xl font-bold">{Number(4231.89).toLocaleString('fr-FR', {style: 'currency', currency: 'XOF'})}</div>
                     <p className="text-xs text-muted-foreground">+19% depuis le mois dernier</p>
                 </CardContent>
             </Card>
@@ -103,7 +103,7 @@ export default function DashboardPage() {
                                     <TableCell className="hidden sm:table-cell">
                                         <StatusBadge status={invoice.status} />
                                     </TableCell>
-                                    <TableCell className="text-right">{getInvoiceTotal(invoice).toLocaleString('fr-FR', {style: 'currency', currency: 'EUR'})}</TableCell>
+                                    <TableCell className="text-right">{getInvoiceTotal(invoice).toLocaleString('fr-FR', {style: 'currency', currency: 'XOF'})}</TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>

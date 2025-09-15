@@ -40,11 +40,11 @@ export function RevenueChart() {
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
-                tickFormatter={(value) => `${value / 1000}k €`}
+                tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
                 />
                 <ChartTooltip
                     cursor={false}
-                    content={<ChartTooltipContent formatter={(value, name) => [`${Number(value).toLocaleString('fr-FR', {style: 'currency', currency: 'EUR'})}`, chartConfig.revenue.label]} />}
+                    content={<ChartTooltipContent formatter={(value, name) => [`${Number(value).toLocaleString('fr-FR', {style: 'currency', currency: 'XOF'})}`, chartConfig.revenue.label]} />}
                 />
                 <Bar dataKey="revenue" fill="var(--color-revenue)" radius={8} />
             </BarChart>

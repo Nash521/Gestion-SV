@@ -44,7 +44,7 @@ export default function ExpensesPage() {
                         <Input id="category" defaultValue="Bureau" className="col-span-3" />
                     </div>
                      <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="amount" className="text-right">Montant (€)</Label>
+                        <Label htmlFor="amount" className="text-right">Montant (XOF)</Label>
                         <Input id="amount" type="number" defaultValue="150.00" className="col-span-3" />
                     </div>
                 </div>
@@ -72,7 +72,7 @@ export default function ExpensesPage() {
                 <TableCell className="font-medium">{expense.description}</TableCell>
                 <TableCell>{expense.category}</TableCell>
                 <TableCell>{format(expense.date, 'PPP', { locale: fr })}</TableCell>
-                <TableCell className="text-right">{expense.amount.toLocaleString('fr-FR', {style: 'currency', currency: 'EUR'})}</TableCell>
+                <TableCell className="text-right">{expense.amount.toLocaleString('fr-FR', {style: 'currency', currency: 'XOF'})}</TableCell>
                 <TableCell className="text-right">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>

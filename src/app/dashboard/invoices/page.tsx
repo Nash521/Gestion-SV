@@ -47,7 +47,7 @@ export default function InvoicesPage() {
                   <StatusBadge status={invoice.status} />
                 </TableCell>
                 <TableCell>{format(invoice.dueDate, 'PPP', { locale: fr })}</TableCell>
-                <TableCell className="text-right">{getInvoiceTotal(invoice).toLocaleString('fr-FR', {style: 'currency', currency: 'EUR'})}</TableCell>
+                <TableCell className="text-right">{getInvoiceTotal(invoice).toLocaleString('fr-FR', {style: 'currency', currency: 'XOF'})}</TableCell>
                 <TableCell className="text-right">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>

@@ -238,7 +238,7 @@ export default function NewInvoicePage() {
                                 )}
                             />
                             <div className="md:col-span-2 flex items-end">
-                                <p className="font-medium text-sm w-full text-right">{((form.watch(`lineItems.${index}.quantity`) || 0) * (form.watch(`lineItems.${index}.price`) || 0)).toLocaleString('fr-FR', {style: 'currency', currency: 'EUR'})}</p>
+                                <p className="font-medium text-sm w-full text-right">{((form.watch(`lineItems.${index}.quantity`) || 0) * (form.watch(`lineItems.${index}.price`) || 0)).toLocaleString('fr-FR', {style: 'currency', currency: 'XOF'})}</p>
                             </div>
                         </div>
                          <Button
@@ -295,15 +295,15 @@ export default function NewInvoicePage() {
                      <div className="w-full max-w-xs space-y-2">
                         <div className="flex justify-between">
                             <span className="text-muted-foreground">Sous-total</span>
-                            <span>{subtotal.toLocaleString('fr-FR', {style: 'currency', currency: 'EUR'})}</span>
+                            <span>{subtotal.toLocaleString('fr-FR', {style: 'currency', currency: 'XOF'})}</span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-muted-foreground">Taxe ({form.watch('taxRate') || 0}%)</span>
-                            <span>{(total - subtotal).toLocaleString('fr-FR', {style: 'currency', currency: 'EUR'})}</span>
+                            <span>{(total - subtotal).toLocaleString('fr-FR', {style: 'currency', currency: 'XOF'})}</span>
                         </div>
                          <div className="flex justify-between font-bold text-lg border-t pt-2 mt-2">
                             <span>Total</span>
-                            <span>{total.toLocaleString('fr-FR', {style: 'currency', currency: 'EUR'})}</span>
+                            <span>{total.toLocaleString('fr-FR', {style: 'currency', currency: 'XOF'})}</span>
                         </div>
                     </div>
                 </div>
