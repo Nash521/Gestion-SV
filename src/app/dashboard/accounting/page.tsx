@@ -220,15 +220,18 @@ export default function AccountingPage() {
         doc.text('Résumé', 14, finalY + 15);
 
         const summaryData = [
-            ['Total des Entrées:', totalIncome.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF' })],
-            ['Total des Dépenses:', totalExpenses.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF' })],
-            ['Bénéfice Net:', (totalIncome - totalExpenses).toLocaleString('fr-FR', { style: 'currency', currency: 'XOF' })],
+            ['Total des Entrées:', `${totalIncome.toString()} XOF`],
+            ['Total des Dépenses:', `${totalExpenses.toString()} XOF`],
+            ['Bénéfice Net:', `${(totalIncome - totalExpenses).toString()} XOF`],
         ];
 
         (doc as any).autoTable({
              startY: finalY + 20,
              body: summaryData,
-             theme: 'plain'
+             theme: 'plain',
+             columnStyles: {
+                1: { halign: 'right' },
+            }
         });
 
         doc.save(`bilan-comptable-${format(startDate, 'yyyy-MM-dd')}-${format(endDate, 'yyyy-MM-dd')}.pdf`);
