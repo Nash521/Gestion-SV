@@ -164,12 +164,15 @@ export default function AccountingPage() {
         doc.setFontSize(11);
         doc.text(`Période du ${format(startDate, 'PPP', { locale: fr })} au ${format(endDate, 'PPP', { locale: fr })}`, 14, 30);
 
-        const endOfDay = new Date(endDate);
-        endOfDay.setHours(23, 59, 59, 999);
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
 
         const filteredTransactions = mockTransactions.filter(t => {
             const transactionDate = new Date(t.date);
-            return transactionDate >= startDate && transactionDate <= endOfDay;
+            return transactionDate >= start && transactionDate <= end;
         });
 
         let totalIncome = 0;
@@ -187,10 +190,6 @@ export default function AccountingPage() {
                 t.type === 'expense' ? t.amount.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF' }) : ''
             ];
         });
-        
-        // ---- DÉBUT DE LA MODIFICATION DE TEST ----
-        console.log('Données envoyées au PDF :', tableData);
-        // ---- FIN DE LA MODIFICATION DE TEST ----
 
         (doc as any).autoTable({
             startY: 40,
