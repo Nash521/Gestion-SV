@@ -188,6 +188,10 @@ export default function AccountingPage() {
             ];
         });
         
+        // ---- DÉBUT DE LA MODIFICATION DE TEST ----
+        console.log('Données envoyées au PDF :', tableData);
+        // ---- FIN DE LA MODIFICATION DE TEST ----
+
         (doc as any).autoTable({
             startY: 40,
             head: [['Date', 'Description', 'Catégorie', 'Entrée', 'Dépense']],
@@ -276,7 +280,7 @@ export default function AccountingPage() {
                 <Tabs defaultValue="income">
                     <TabsList className="grid w-full grid-cols-2">
                         <TabsTrigger value="income">Entrées</TabsTrigger>
-                        <TabsTrigger value="expense">Dépenses</Tabs-trigger>
+ <TabsTrigger value="expense">Dépenses</TabsTrigger>
                     </TabsList>
                     <TabsContent value="income">
                        <TransactionTable transactions={mockTransactions} type="income" />
