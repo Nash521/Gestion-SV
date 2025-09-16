@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { MoreHorizontal, PlusCircle, FileDown, CalendarIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -147,8 +147,108 @@ const ExportDialog = ({ onExport, toast }: { onExport: (startDate?: Date, endDat
     );
 };
 
+const AddTransactionDialog = ({ onAddTransaction }: { onAddTransaction: (transaction: Omit<Transaction, 'id' | 'date'>) => void }) => {
+    const [type, setType] = useState<'income' | 'expense' | ''>('');
+    const [description, setDescription] = useState('');
+    const [category, setCategory] = useState('');
+    const [amount, setAmount] = useState('');
+    const [isOpen, setIsOpen] = useState(false);
+
+    const handleSubmit = () => {
+        // Basic validation
+        if (!type || !description || !category || !amount) {
+            alert('Veuillez remplir tous les champs.');
+            return;
+        }
+
+        const newTransaction: Omit<Transaction, 'id' | 'date'> = {
+            type: type,
+            description: description,
+            category: category,
+            amount: parseFloat(amount),
+        };
+        
+        onAddTransaction(newTransaction);
+        console.log('Nouvelle transaction:', newTransaction);
+        
+        // Reset form and close dialog
+        setType('');
+        setDescription('');
+        setCategory('');
+        setAmount('');
+        setIsOpen(false);
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                <Button size="sm">
+                    <PlusCircle className="mr-2 h-4 w-4" /> Ajouter une transaction
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>Nouvelle transaction</DialogTitle>
+                    <DialogDescription>
+                        Remplissez les détails de la transaction.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="type" className="text-right">Type</Label>
+                        <Select onValueChange={(value: 'income' | 'expense') => setType(value)} value={type}>
+                            <SelectTrigger className="col-span-3">
+                                <SelectValue placeholder="Sélectionnez un type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="income">Entrée</SelectItem>
+                                <SelectItem value="expense">Dépense</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="description" className="text-right">Description</Label>
+                        <Input id="description" placeholder="Ex: Fournitures de bureau" className="col-span-3" value={description} onChange={(e) => setDescription(e.target.value)} />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="category" className="text-right">Catégorie</Label>
+                        <Input id="category" placeholder="Ex: Bureau" className="col-span-3" value={category} onChange={(e) => setCategory(e.target.value)} />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="amount" className="text-right">Montant (XOF)</Label>
+                        <Input id="amount" type="number" placeholder="15000" className="col-span-3" value={amount} onChange={(e) => setAmount(e.target.value)} />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                         <Button type="button" variant="outline">Annuler</Button>
+                    </DialogClose>
+                    <Button onClick={handleSubmit}>Enregistrer</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
+
 export default function AccountingPage() {
     const { toast } = useToast();
+    const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
+
+    const handleAddTransaction = (newTransaction: Omit<Transaction, 'id' | 'date'>) => {
+        const transactionToAdd: Transaction = {
+            id: `TRANS-${Date.now()}`,
+            ...newTransaction,
+            date: new Date(),
+        };
+
+        setTransactions(prevTransactions => [transactionToAdd, ...prevTransactions]);
+        
+        toast({
+            title: "Transaction ajoutée",
+            description: `La transaction "${transactionToAdd.description}" a été ajoutée.`,
+        });
+    };
 
     const handleExport = (startDate?: Date, endDate?: Date) => {
         if (!startDate || !endDate) {
@@ -173,7 +273,7 @@ export default function AccountingPage() {
         const end = new Date(endDate);
         end.setHours(23, 59, 59, 999);
         
-        const filteredTransactions = mockTransactions.filter(t => {
+        const filteredTransactions = transactions.filter(t => {
             const transactionDate = new Date(t.date);
             return transactionDate >= start && transactionDate <= end;
         });
@@ -252,50 +352,7 @@ export default function AccountingPage() {
                     </div>
                     <div className="flex items-center gap-2">
                          <ExportDialog onExport={handleExport} toast={toast} />
-                         <Dialog>
-                            <DialogTrigger asChild>
-                                <Button size="sm">
-                                    <PlusCircle className="mr-2 h-4 w-4" /> Ajouter une transaction
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent className="sm:max-w-[425px]">
-                                <DialogHeader>
-                                    <DialogTitle>Nouvelle transaction</DialogTitle>
-                                    <DialogDescription>
-                                        Remplissez les détails de la transaction.
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <div className="grid gap-4 py-4">
-                                    <div className="grid grid-cols-4 items-center gap-4">
-                                        <Label htmlFor="type" className="text-right">Type</Label>
-                                        <Select>
-                                            <SelectTrigger className="col-span-3">
-                                                <SelectValue placeholder="Sélectionnez un type" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="income">Entrée</SelectItem>
-                                                <SelectItem value="expense">Dépense</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="grid grid-cols-4 items-center gap-4">
-                                        <Label htmlFor="description" className="text-right">Description</Label>
-                                        <Input id="description" placeholder="Ex: Fournitures de bureau" className="col-span-3" />
-                                    </div>
-                                    <div className="grid grid-cols-4 items-center gap-4">
-                                        <Label htmlFor="category" className="text-right">Catégorie</Label>
-                                        <Input id="category" placeholder="Ex: Bureau" className="col-span-3" />
-                                    </div>
-                                    <div className="grid grid-cols-4 items-center gap-4">
-                                        <Label htmlFor="amount" className="text-right">Montant (XOF)</Label>
-                                        <Input id="amount" type="number" placeholder="15000" className="col-span-3" />
-                                    </div>
-                                </div>
-                                <DialogFooter>
-                                    <Button type="submit">Enregistrer</Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
+                         <AddTransactionDialog onAddTransaction={handleAddTransaction} />
                     </div>
                 </div>
             </CardHeader>
@@ -306,13 +363,15 @@ export default function AccountingPage() {
                         <TabsTrigger value="expense">Dépenses</TabsTrigger>
                     </TabsList>
                     <TabsContent value="income">
-                       <TransactionTable transactions={mockTransactions} type="income" />
+                       <TransactionTable transactions={transactions} type="income" />
                     </TabsContent>
                     <TabsContent value="expense">
-                       <TransactionTable transactions={mockTransactions} type="expense" />
+                       <TransactionTable transactions={transactions} type="expense" />
                     </TabsContent>
                 </Tabs>
             </CardContent>
         </Card>
     );
 }
+
+    
