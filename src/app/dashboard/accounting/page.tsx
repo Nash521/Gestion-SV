@@ -198,8 +198,8 @@ export default function AccountingPage() {
                 format(new Date(t.date), 'dd/MM/yyyy', { locale: fr }),
                 t.description,
                 t.category,
-                t.type === 'income' ? t.amount.toLocaleString('fr-FR') : '',
-                t.type === 'expense' ? t.amount.toLocaleString('fr-FR') : ''
+                t.type === 'income' ? t.amount.toString() : '',
+                t.type === 'expense' ? t.amount.toString() : ''
             ];
         });
 
