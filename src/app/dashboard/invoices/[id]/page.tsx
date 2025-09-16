@@ -32,7 +32,7 @@ function exportInvoiceToPDF(invoice: Invoice) {
     const margin = 15;
 
     // Header
-    doc.setFillColor(76, 81, 191); // A blue color similar to the template
+    doc.setFillColor(76, 81, 191);
     doc.rect(0, 0, pageWidth, 40, 'F');
     
     // Logo
