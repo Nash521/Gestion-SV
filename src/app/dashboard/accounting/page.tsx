@@ -1,5 +1,5 @@
 "use client"
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { mockTransactions } from '@/lib/data';
@@ -22,7 +22,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
-const TransactionTable = ({ transactions, type, onDelete }: { transactions: Transaction[], type: 'income' | 'expense', onDelete: (transactionId: string) => void }) => (
+const TransactionTable = ({ transactions, type, onDelete, onEdit }: { transactions: Transaction[], type: 'income' | 'expense', onDelete: (transactionId: string) => void, onEdit: (transaction: Transaction) => void }) => (
     <Table>
         <TableHeader>
             <TableRow>
@@ -52,7 +52,7 @@ const TransactionTable = ({ transactions, type, onDelete }: { transactions: Tran
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                <DropdownMenuItem>Modifier</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => onEdit(transaction)}>Modifier</DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem 
                                     className="text-destructive focus:text-destructive focus:bg-destructive/10"
@@ -153,49 +153,76 @@ const ExportDialog = ({ onExport, toast }: { onExport: (startDate?: Date, endDat
     );
 };
 
-const AddTransactionDialog = ({ onAddTransaction }: { onAddTransaction: (transaction: Omit<Transaction, 'id' | 'date'>) => void }) => {
+const AddOrEditTransactionDialog = ({ 
+    isOpen, 
+    setIsOpen, 
+    onAddTransaction, 
+    onEditTransaction,
+    transactionToEdit 
+}: { 
+    isOpen: boolean;
+    setIsOpen: (isOpen: boolean) => void;
+    onAddTransaction: (transaction: Omit<Transaction, 'id' | 'date'>) => void;
+    onEditTransaction: (transaction: Transaction) => void;
+    transactionToEdit?: Transaction | null;
+}) => {
     const [type, setType] = useState<'income' | 'expense' | ''>('');
     const [description, setDescription] = useState('');
     const [category, setCategory] = useState('');
     const [amount, setAmount] = useState('');
-    const [isOpen, setIsOpen] = useState(false);
+    
+    const isEditMode = !!transactionToEdit;
+
+    useEffect(() => {
+        if (isEditMode && transactionToEdit) {
+            setType(transactionToEdit.type);
+            setDescription(transactionToEdit.description);
+            setCategory(transactionToEdit.category);
+            setAmount(String(transactionToEdit.amount));
+        } else {
+            // Reset form for "add" mode
+            setType('');
+            setDescription('');
+            setCategory('');
+            setAmount('');
+        }
+    }, [transactionToEdit, isEditMode, isOpen]);
+
 
     const handleSubmit = () => {
-        // Basic validation
         if (!type || !description || !category || !amount) {
             alert('Veuillez remplir tous les champs.');
             return;
         }
 
-        const newTransaction: Omit<Transaction, 'id' | 'date'> = {
-            type: type,
+        const transactionData = {
+            type: type as 'income' | 'expense',
             description: description,
             category: category,
             amount: parseFloat(amount),
         };
+
+        if (isEditMode && transactionToEdit) {
+             onEditTransaction({
+                ...transactionData,
+                id: transactionToEdit.id,
+                date: transactionToEdit.date, // Keep original date or allow editing? For now, keep.
+            });
+        } else {
+             const newTransaction: Omit<Transaction, 'id' | 'date'> = transactionData;
+             onAddTransaction(newTransaction);
+        }
         
-        onAddTransaction(newTransaction);
-        
-        // Reset form and close dialog
-        setType('');
-        setDescription('');
-        setCategory('');
-        setAmount('');
         setIsOpen(false);
     };
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogTrigger asChild>
-                <Button size="sm">
-                    <PlusCircle className="mr-2 h-4 w-4" /> Ajouter une transaction
-                </Button>
-            </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                    <DialogTitle>Nouvelle transaction</DialogTitle>
+                    <DialogTitle>{isEditMode ? 'Modifier la transaction' : 'Nouvelle transaction'}</DialogTitle>
                     <DialogDescription>
-                        Remplissez les détails de la transaction.
+                       {isEditMode ? 'Mettez à jour les détails de la transaction.' : 'Remplissez les détails de la transaction.'}
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
@@ -226,7 +253,7 @@ const AddTransactionDialog = ({ onAddTransaction }: { onAddTransaction: (transac
                 </div>
                 <DialogFooter>
                     <DialogClose asChild>
-                         <Button type="button" variant="outline">Annuler</Button>
+                         <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>Annuler</Button>
                     </DialogClose>
                     <Button onClick={handleSubmit}>Enregistrer</Button>
                 </DialogFooter>
@@ -240,6 +267,8 @@ export default function AccountingPage() {
     const { toast } = useToast();
     const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
     const [transactionIdToDelete, setTransactionIdToDelete] = useState<string | null>(null);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [transactionToEdit, setTransactionToEdit] = useState<Transaction | null>(null);
 
     const handleAddTransaction = (newTransaction: Omit<Transaction, 'id' | 'date'>) => {
         const transactionToAdd: Transaction = {
@@ -256,6 +285,30 @@ export default function AccountingPage() {
         });
     };
 
+    const handleEditTransaction = (updatedTransaction: Transaction) => {
+        setTransactions(prevTransactions => 
+            prevTransactions.map(t => 
+                t.id === updatedTransaction.id ? updatedTransaction : t
+            )
+        );
+
+        toast({
+            title: "Transaction modifiée",
+            description: `La transaction "${updatedTransaction.description}" a été mise à jour.`,
+        });
+        setTransactionToEdit(null);
+    };
+
+    const handleOpenAddDialog = () => {
+        setTransactionToEdit(null);
+        setIsDialogOpen(true);
+    };
+
+    const handleOpenEditDialog = (transaction: Transaction) => {
+        setTransactionToEdit(transaction);
+        setIsDialogOpen(true);
+    };
+
     const handleDeleteRequest = (transactionId: string) => {
         setTransactionIdToDelete(transactionId);
     };
@@ -269,6 +322,7 @@ export default function AccountingPage() {
         toast({
             title: "Transaction supprimée",
             description: `La transaction "${transactionToDelete?.description}" a été supprimée.`,
+            variant: "destructive",
         });
 
         setTransactionIdToDelete(null);
@@ -383,6 +437,15 @@ export default function AccountingPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            
+            <AddOrEditTransactionDialog 
+                isOpen={isDialogOpen}
+                setIsOpen={setIsDialogOpen}
+                onAddTransaction={handleAddTransaction}
+                onEditTransaction={handleEditTransaction}
+                transactionToEdit={transactionToEdit}
+            />
+
             <Card>
                 <CardHeader>
                     <div className="flex items-center justify-between gap-2">
@@ -392,7 +455,9 @@ export default function AccountingPage() {
                         </div>
                         <div className="flex items-center gap-2">
                              <ExportDialog onExport={handleExport} toast={toast} />
-                             <AddTransactionDialog onAddTransaction={handleAddTransaction} />
+                              <Button size="sm" onClick={handleOpenAddDialog}>
+                                <PlusCircle className="mr-2 h-4 w-4" /> Ajouter une transaction
+                            </Button>
                         </div>
                     </div>
                 </CardHeader>
@@ -403,10 +468,10 @@ export default function AccountingPage() {
                             <TabsTrigger value="expense">Dépenses</TabsTrigger>
                         </TabsList>
                         <TabsContent value="income">
-                           <TransactionTable transactions={transactions} type="income" onDelete={handleDeleteRequest} />
+                           <TransactionTable transactions={transactions} type="income" onDelete={handleDeleteRequest} onEdit={handleOpenEditDialog} />
                         </TabsContent>
                         <TabsContent value="expense">
-                           <TransactionTable transactions={transactions} type="expense" onDelete={handleDeleteRequest} />
+                           <TransactionTable transactions={transactions} type="expense" onDelete={handleDeleteRequest} onEdit={handleOpenEditDialog} />
                         </TabsContent>
                     </Tabs>
                 </CardContent>
