@@ -155,7 +155,13 @@ export default function AccountingPage() {
     const { toast } = useToast();
 
     const handleExport = (startDate?: Date, endDate?: Date) => {
-        if (!startDate || !endDate) return;
+        console.log('--- DÉBUT DU TEST D\'EXPORTATION ---');
+        console.log('Étape 1: Dates brutes reçues', { startDate, endDate });
+
+        if (!startDate || !endDate) {
+            console.error('Test échoué: Dates manquantes.');
+            return;
+        }
 
         const doc = new jsPDF();
         
@@ -169,11 +175,20 @@ export default function AccountingPage() {
 
         const end = new Date(endDate);
         end.setHours(23, 59, 59, 999);
+        
+        console.log('Étape 2: Bornes de la période ajustées', { start, end });
+
+        console.log('Étape 3: Données sources avant filtrage', mockTransactions);
 
         const filteredTransactions = mockTransactions.filter(t => {
             const transactionDate = new Date(t.date);
-            return transactionDate >= start && transactionDate <= end;
+            const isIncluded = transactionDate >= start && transactionDate <= end;
+            console.log(`-- Test de filtrage transaction ID ${t.id} -- Date: ${transactionDate.toISOString()}, Inclus: ${isIncluded}`);
+            return isIncluded;
         });
+
+        console.log('Étape 4: Données après filtrage', filteredTransactions);
+
 
         let totalIncome = 0;
         let totalExpenses = 0;
@@ -190,6 +205,18 @@ export default function AccountingPage() {
                 t.type === 'expense' ? t.amount.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF' }) : ''
             ];
         });
+
+        console.log('Étape 5: Données finales préparées pour le PDF (tableData)', tableData);
+        console.log('--- FIN DU TEST D\'EXPORTATION ---');
+
+        if (tableData.length === 0) {
+            toast({
+                variant: "destructive",
+                title: "Aucune donnée à exporter",
+                description: "Aucune transaction n'a été trouvée pour la période sélectionnée.",
+            })
+            return;
+        }
 
         (doc as any).autoTable({
             startY: 40,
