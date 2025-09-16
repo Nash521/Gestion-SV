@@ -37,7 +37,7 @@ const TransactionTable = ({ transactions, type }: { transactions: any[], type: '
                 <TableRow key={transaction.id}>
                     <TableCell className="font-medium">{transaction.description}</TableCell>
                     <TableCell>{transaction.category}</TableCell>
-                    <TableCell>{format(transaction.date, 'PPP', { locale: fr })}</TableCell>
+                    <TableCell>{format(new Date(transaction.date), 'PPP', { locale: fr })}</TableCell>
                     <TableCell className={`text-right font-semibold ${type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
                         {transaction.amount.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF' })}
                     </TableCell>
@@ -69,10 +69,6 @@ const ExportDialog = ({ onExport, toast }: { onExport: (startDate?: Date, endDat
 
     const handleExportClick = () => {
         onExport(startDate, endDate);
-        toast({
-            title: "Exportation lancée",
-            description: "La génération de votre bilan PDF va commencer."
-        });
     };
 
     return (
@@ -156,6 +152,11 @@ export default function AccountingPage() {
 
     const handleExport = (startDate?: Date, endDate?: Date) => {
         if (!startDate || !endDate) {
+            toast({
+                variant: "destructive",
+                title: "Dates requises",
+                description: "Veuillez sélectionner une date de début et de fin.",
+            })
             return;
         }
 
@@ -194,20 +195,24 @@ export default function AccountingPage() {
             if (t.type === 'expense') totalExpenses += t.amount;
 
             return [
-                format(t.date, 'dd/MM/yyyy', { locale: fr }),
+                format(new Date(t.date), 'dd/MM/yyyy', { locale: fr }),
                 t.description,
                 t.category,
-                t.type === 'income' ? t.amount.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF' }) : '',
-                t.type === 'expense' ? t.amount.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF' }) : ''
+                t.type === 'income' ? t.amount.toLocaleString('fr-FR') : '',
+                t.type === 'expense' ? t.amount.toLocaleString('fr-FR') : ''
             ];
         });
 
         (doc as any).autoTable({
             startY: 40,
-            head: [['Date', 'Description', 'Catégorie', 'Entrée', 'Dépense']],
+            head: [['Date', 'Description', 'Catégorie', 'Entrée (XOF)', 'Dépense (XOF)']],
             body: tableData,
             theme: 'grid',
             headStyles: { fillColor: [41, 128, 185] },
+            columnStyles: {
+                3: { halign: 'right' },
+                4: { halign: 'right' }
+            }
         });
         
         const finalY = (doc as any).lastAutoTable.finalY || 40;
@@ -227,6 +232,11 @@ export default function AccountingPage() {
         });
 
         doc.save(`bilan-comptable-${format(startDate, 'yyyy-MM-dd')}-${format(endDate, 'yyyy-MM-dd')}.pdf`);
+
+        toast({
+            title: "Exportation réussie",
+            description: "Votre bilan PDF a été généré.",
+        });
     };
 
     return (
