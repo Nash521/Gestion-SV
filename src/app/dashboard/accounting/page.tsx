@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { MoreHorizontal, PlusCircle, FileDown, CalendarIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,7 +22,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
-const TransactionTable = ({ transactions, type }: { transactions: any[], type: 'income' | 'expense' }) => (
+const TransactionTable = ({ transactions, type, onDelete }: { transactions: Transaction[], type: 'income' | 'expense', onDelete: (transactionId: string) => void }) => (
     <Table>
         <TableHeader>
             <TableRow>
@@ -53,7 +54,12 @@ const TransactionTable = ({ transactions, type }: { transactions: any[], type: '
                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                 <DropdownMenuItem>Modifier</DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">Supprimer</DropdownMenuItem>
+                                <DropdownMenuItem 
+                                    className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                                    onClick={() => onDelete(transaction.id)}
+                                >
+                                    Supprimer
+                                </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </TableCell>
@@ -169,7 +175,6 @@ const AddTransactionDialog = ({ onAddTransaction }: { onAddTransaction: (transac
         };
         
         onAddTransaction(newTransaction);
-        console.log('Nouvelle transaction:', newTransaction);
         
         // Reset form and close dialog
         setType('');
@@ -234,6 +239,7 @@ const AddTransactionDialog = ({ onAddTransaction }: { onAddTransaction: (transac
 export default function AccountingPage() {
     const { toast } = useToast();
     const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
+    const [transactionIdToDelete, setTransactionIdToDelete] = useState<string | null>(null);
 
     const handleAddTransaction = (newTransaction: Omit<Transaction, 'id' | 'date'>) => {
         const transactionToAdd: Transaction = {
@@ -249,6 +255,25 @@ export default function AccountingPage() {
             description: `La transaction "${transactionToAdd.description}" a été ajoutée.`,
         });
     };
+
+    const handleDeleteRequest = (transactionId: string) => {
+        setTransactionIdToDelete(transactionId);
+    };
+
+    const handleConfirmDelete = () => {
+        if (!transactionIdToDelete) return;
+
+        const transactionToDelete = transactions.find(t => t.id === transactionIdToDelete);
+        setTransactions(prevTransactions => prevTransactions.filter(t => t.id !== transactionIdToDelete));
+        
+        toast({
+            title: "Transaction supprimée",
+            description: `La transaction "${transactionToDelete?.description}" a été supprimée.`,
+        });
+
+        setTransactionIdToDelete(null);
+    };
+
 
     const handleExport = (startDate?: Date, endDate?: Date) => {
         if (!startDate || !endDate) {
@@ -343,35 +368,49 @@ export default function AccountingPage() {
     };
 
     return (
-        <Card>
-            <CardHeader>
-                <div className="flex items-center justify-between gap-2">
-                    <div>
-                        <CardTitle>Comptabilité</CardTitle>
-                        <CardDescription>Suivez vos entrées et vos dépenses.</CardDescription>
+        <>
+            <AlertDialog open={!!transactionIdToDelete} onOpenChange={(open) => !open && setTransactionIdToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Cette action est irréversible. La transaction sera définitivement supprimée.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setTransactionIdToDelete(null)}>Annuler</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleConfirmDelete}>Confirmer</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            <Card>
+                <CardHeader>
+                    <div className="flex items-center justify-between gap-2">
+                        <div>
+                            <CardTitle>Comptabilité</CardTitle>
+                            <CardDescription>Suivez vos entrées et vos dépenses.</CardDescription>
+                        </div>
+                        <div className="flex items-center gap-2">
+                             <ExportDialog onExport={handleExport} toast={toast} />
+                             <AddTransactionDialog onAddTransaction={handleAddTransaction} />
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                         <ExportDialog onExport={handleExport} toast={toast} />
-                         <AddTransactionDialog onAddTransaction={handleAddTransaction} />
-                    </div>
-                </div>
-            </CardHeader>
-            <CardContent>
-                <Tabs defaultValue="income">
-                    <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="income">Entrées</TabsTrigger>
-                        <TabsTrigger value="expense">Dépenses</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="income">
-                       <TransactionTable transactions={transactions} type="income" />
-                    </TabsContent>
-                    <TabsContent value="expense">
-                       <TransactionTable transactions={transactions} type="expense" />
-                    </TabsContent>
-                </Tabs>
-            </CardContent>
-        </Card>
+                </CardHeader>
+                <CardContent>
+                    <Tabs defaultValue="income">
+                        <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="income">Entrées</TabsTrigger>
+                            <TabsTrigger value="expense">Dépenses</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="income">
+                           <TransactionTable transactions={transactions} type="income" onDelete={handleDeleteRequest} />
+                        </TabsContent>
+                        <TabsContent value="expense">
+                           <TransactionTable transactions={transactions} type="expense" onDelete={handleDeleteRequest} />
+                        </TabsContent>
+                    </Tabs>
+                </CardContent>
+            </Card>
+        </>
     );
 }
-
-    
