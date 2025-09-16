@@ -24,14 +24,18 @@ const generateDeliveryLineItems = (count: number): Omit<LineItem, 'price'>[] => 
     }));
 };
 
+const getCurrentYear = () => new Date().getFullYear();
+const currentYear = getCurrentYear();
+const lastYear = currentYear - 1;
+
 export const mockInvoices: Invoice[] = [
   {
     id: 'INV-001',
     client: mockClients[0],
     lineItems: generateLineItems(2),
     status: 'Paid',
-    issueDate: new Date('2023-10-15'),
-    dueDate: new Date('2023-11-14'),
+    issueDate: new Date(`${lastYear}-10-15`),
+    dueDate: new Date(`${lastYear}-11-14`),
     taxRate: 10,
   },
   {
@@ -39,8 +43,8 @@ export const mockInvoices: Invoice[] = [
     client: mockClients[1],
     lineItems: generateLineItems(3),
     status: 'Sent',
-    issueDate: new Date('2023-11-01'),
-    dueDate: new Date('2023-12-01'),
+    issueDate: new Date(`${lastYear}-11-01`),
+    dueDate: new Date(`${lastYear}-12-01`),
     taxRate: 8,
     notes: 'Please pay promptly.'
   },
@@ -49,8 +53,8 @@ export const mockInvoices: Invoice[] = [
     client: mockClients[2],
     lineItems: generateLineItems(1),
     status: 'Overdue',
-    issueDate: new Date('2023-09-20'),
-    dueDate: new Date('2023-10-20'),
+    issueDate: new Date(`${lastYear}-09-20`),
+    dueDate: new Date(`${lastYear}-10-20`),
     taxRate: 20,
   },
   {
@@ -67,8 +71,8 @@ export const mockInvoices: Invoice[] = [
     client: mockClients[0],
     lineItems: generateLineItems(1),
     status: 'Paid',
-    issueDate: new Date('2023-11-05'),
-    dueDate: new Date('2023-12-05'),
+    issueDate: new Date(`${lastYear}-11-05`),
+    dueDate: new Date(`${lastYear}-12-05`),
     taxRate: 10,
   },
 ];
@@ -79,16 +83,16 @@ export const mockPurchaseOrders: PurchaseOrder[] = [
         client: mockClients[1],
         lineItems: generateLineItems(4),
         status: 'Approved',
-        issueDate: new Date('2023-11-10'),
-        deliveryDate: new Date('2023-12-10'),
+        issueDate: new Date(`${currentYear}-01-10`),
+        deliveryDate: new Date(`${currentYear}-02-10`),
     },
     {
         id: 'BC-002',
         client: mockClients[3],
         lineItems: generateLineItems(2),
         status: 'Sent',
-        issueDate: new Date('2023-11-20'),
-        deliveryDate: new Date('2023-12-20'),
+        issueDate: new Date(`${currentYear}-02-20`),
+        deliveryDate: new Date(`${currentYear}-03-20`),
         notes: 'Urgent order'
     },
      {
@@ -108,7 +112,7 @@ export const mockDeliveryNotes: DeliveryNote[] = [
         invoiceId: 'INV-002',
         lineItems: generateDeliveryLineItems(3),
         status: 'Delivered',
-        deliveryDate: new Date('2023-11-25'),
+        deliveryDate: new Date(`${lastYear}-11-25`),
     },
     {
         id: 'BL-002',
@@ -122,14 +126,14 @@ export const mockDeliveryNotes: DeliveryNote[] = [
 
 
 export const mockTransactions: Transaction[] = [
-    { id: '1', type: 'expense', description: 'Office Supplies', category: 'Office', amount: 15000, date: new Date('2023-11-10') },
-    { id: '2', type: 'expense', description: 'Cloud Server Hosting', category: 'Software', amount: 75000, date: new Date('2023-11-01') },
-    { id: '3', type: 'expense', description: 'Client Lunch', category: 'Meals', amount: 25000, date: new Date('2023-10-28') },
-    { id: '4', type: 'expense', description: 'Domain Name Renewal', category: 'Software', amount: 20000, date: new Date('2023-11-15') },
-    { id: '5', type: 'expense', description: 'Travel to Conference', category: 'Travel', amount: 120000, date: new Date('2023-10-20') },
-    { id: '6', type: 'income', description: 'Payment from Stark Industries', category: 'Payments', amount: 1200000, date: new Date('2023-11-05') },
-    { id: '7', type: 'income', description: 'Project Alpha - Milestone 1', category: 'Projects', amount: 550000, date: new Date('2023-11-20') },
-    { id: '8', type: 'income', description: 'Consulting services', category: 'Services', amount: 250000, date: new Date('2023-11-22') },
+    { id: '1', type: 'expense', description: 'Office Supplies', category: 'Office', amount: 15000, date: new Date(`${currentYear}-01-10`) },
+    { id: '2', type: 'expense', description: 'Cloud Server Hosting', category: 'Software', amount: 75000, date: new Date(`${currentYear}-01-15`) },
+    { id: '3', type: 'expense', description: 'Client Lunch', category: 'Meals', amount: 25000, date: new Date(`${currentYear}-02-05`) },
+    { id: '4', type: 'expense', description: 'Domain Name Renewal', category: 'Software', amount: 20000, date: new Date(`${currentYear}-02-20`) },
+    { id: '5', type: 'expense', description: 'Travel to Conference', category: 'Travel', amount: 120000, date: new Date(`${lastYear}-12-20`) },
+    { id: '6', type: 'income', description: 'Payment from Stark Industries', category: 'Payments', amount: 1200000, date: new Date(`${currentYear}-01-25`) },
+    { id: '7', type: 'income', description: 'Project Alpha - Milestone 1', category: 'Projects', amount: 550000, date: new Date(`${currentYear}-02-18`) },
+    { id: '8', type: 'income', description: 'Consulting services', category: 'Services', amount: 250000, date: new Date(`${currentYear}-03-01`) },
 ];
 
 export const getInvoiceTotal = (invoice: Invoice | PurchaseOrder): number => {
