@@ -279,7 +279,7 @@ export default function AccountingPage() {
                 <Tabs defaultValue="income">
                     <TabsList className="grid w-full grid-cols-2">
                         <TabsTrigger value="income">Entrées</TabsTrigger>
- <TabsTrigger value="expense">Dépenses</TabsTrigger>
+                        <TabsTrigger value="expense">Dépenses</TabsTrigger>
                     </TabsList>
                     <TabsContent value="income">
                        <TransactionTable transactions={mockTransactions} type="income" />
