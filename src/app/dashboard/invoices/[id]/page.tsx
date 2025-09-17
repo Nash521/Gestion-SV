@@ -23,9 +23,18 @@ const companyInfo = {
     legalFooter: 'N°RCCM: CI-TDI-22-Mo-742 - N°CC2242970-A. Régime d\'imposition: TEE - Direction régionale des impôts de Yamoussoukro\nBP: 1538 Yamoussoukro - Côte d\'Ivoire\nCel: 07 59 72 52 72 - smartvisuel1@gmail.com'
 };
 
-const logoBase64 = 'data:image/jpeg;base64,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';
+async function imageTo-data-url(url: string): Promise<string> {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+    });
+}
 
-function exportInvoiceToPDF(invoice: Invoice) {
+async function exportInvoiceToPDF(invoice: Invoice) {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
@@ -36,7 +45,17 @@ function exportInvoiceToPDF(invoice: Invoice) {
     doc.rect(0, 0, pageWidth, 40, 'F');
     
     // Logo
-    doc.addImage(logoBase64, 'JPEG', margin, 5, 50, 30);
+    try {
+        const logoDataUrl = await imageTo-data-url('/logo-proforma.jpg');
+        doc.addImage(logoDataUrl, 'JPEG', margin, 5, 50, 30);
+    } catch (error) {
+        console.error("Erreur lors du chargement du logo:", error);
+        // Fallback simple si le logo ne se charge pas
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(10);
+        doc.text("Logo", margin + 5, 20);
+    }
+
 
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(28);
@@ -233,3 +252,5 @@ export default function InvoiceDetailPage({ params }: { params: { id: string } }
         </div>
     );
 }
+
+    
