@@ -23,7 +23,7 @@ const companyInfo = {
     legalFooter: 'N°RCCM: CI-TDI-22-Mo-742 - N°CC2242970-A. Régime d\'imposition: TEE - Direction régionale des impôts de Yamoussoukro\nBP: 1538 Yamoussoukro - Côte d\'Ivoire\nCel: 07 59 72 52 72 - smartvisuel1@gmail.com'
 };
 
-async function imageTo-data-url(url: string): Promise<string> {
+async function imageToDataUrl(url: string): Promise<string> {
     const response = await fetch(url);
     const blob = await response.blob();
     return new Promise((resolve, reject) => {
@@ -46,7 +46,7 @@ async function exportInvoiceToPDF(invoice: Invoice) {
     
     // Logo
     try {
-        const logoDataUrl = await imageTo-data-url('/logo-proforma.jpg');
+        const logoDataUrl = await imageToDataUrl('/logo-proforma.jpg');
         doc.addImage(logoDataUrl, 'JPEG', margin, 5, 50, 30);
     } catch (error) {
         console.error("Erreur lors du chargement du logo:", error);
@@ -252,5 +252,3 @@ export default function InvoiceDetailPage({ params }: { params: { id: string } }
         </div>
     );
 }
-
-    
