@@ -36,9 +36,8 @@ function exportInvoiceToPDF(invoice: Invoice) {
         
         // Logo
         if (logoImage) {
-            doc.addImage(logoImage, 'JPG', margin, 5, 50, 30);
+            doc.addImage(logoImage, 'JPEG', margin, 5, 50, 30);
         } else {
-            console.error("Le logo n'a pas pu être chargé.");
             // Fallback if logo fails
             doc.setTextColor(255, 255, 255);
             doc.setFontSize(10);
@@ -147,7 +146,7 @@ NB: Veuillez libeller tout paiement par chèque ou virement à l'ordre de ${comp
 
     const img = new Image();
     img.crossOrigin = 'Anonymous';
-    img.src = '/logo-proforma.jpg';
+    img.src = '/logo.jpeg'; 
 
     img.onload = () => {
         generatePdfContent(img);
