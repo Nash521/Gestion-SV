@@ -50,10 +50,9 @@ async function exportInvoiceToPDF(invoice: Invoice) {
         doc.addImage(logoDataUrl, 'JPEG', margin, 5, 50, 30);
     } catch (error) {
         console.error("Erreur lors du chargement du logo:", error);
-        // Fallback simple si le logo ne se charge pas
         doc.setTextColor(255, 255, 255);
         doc.setFontSize(10);
-        doc.text("Logo", margin + 5, 20);
+        doc.text("Logo non chargé", margin + 5, 20);
     }
 
 
