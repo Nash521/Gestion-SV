@@ -46,7 +46,7 @@ async function exportInvoiceToPDF(invoice: Invoice) {
     
     // Logo
     try {
-        const logoDataUrl = await imageToDataUrl('/logo-proforma.jpg');
+        const logoDataUrl = await imageToDataUrl('/logo-proforma.jpeg');
         doc.addImage(logoDataUrl, 'JPEG', margin, 5, 50, 30);
     } catch (error) {
         console.error("Erreur lors du chargement du logo:", error);
