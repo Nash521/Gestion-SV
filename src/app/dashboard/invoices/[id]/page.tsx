@@ -1,5 +1,5 @@
 "use client"
-import React from 'react';
+import React, { use } from 'react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { notFound } from 'next/navigation';
@@ -46,7 +46,7 @@ async function exportInvoiceToPDF(invoice: Invoice) {
     
     // Logo
     try {
-        const logoDataUrl = await imageToDataUrl('/logo-proforma.jpeg');
+        const logoDataUrl = await imageToDataUrl('/logo-proforma.jpg');
         doc.addImage(logoDataUrl, 'JPEG', margin, 5, 50, 30);
     } catch (error) {
         console.error("Erreur lors du chargement du logo:", error);
@@ -157,8 +157,9 @@ NB: Veuillez libeller tout paiement par chèque ou virement à l'ordre de ${comp
     doc.save(`proforma-${invoice.id}.pdf`);
 }
 
-export default function InvoiceDetailPage({ params }: { params: { id: string } }) {
-    const invoice = mockInvoices.find(inv => inv.id === params.id);
+export default function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = use(params);
+    const invoice = mockInvoices.find(inv => inv.id === id);
 
     if (!invoice) {
         notFound();
