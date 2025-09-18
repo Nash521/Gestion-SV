@@ -23,137 +23,140 @@ const companyInfo = {
     legalFooter: 'N°RCCM: CI-TDI-22-Mo-742 - N°CC2242970-A. Régime d\'imposition: TEE - Direction régionale des impôts de Yamoussoukro\nBP: 1538 Yamoussoukro - Côte d\'Ivoire\nCel: 07 59 72 52 72 - smartvisuel1@gmail.com'
 };
 
-async function imageToDataUrl(url: string): Promise<string> {
-    const response = await fetch(url);
-    const blob = await response.blob();
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-    });
-}
-
-async function exportInvoiceToPDF(invoice: Invoice) {
+function exportInvoiceToPDF(invoice: Invoice) {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
     const margin = 15;
 
-    // Header
-    doc.setFillColor(76, 81, 191);
-    doc.rect(0, 0, pageWidth, 40, 'F');
-    
-    // Logo
-    try {
-        const logoDataUrl = await imageToDataUrl('/logo-proforma.jpg');
-        doc.addImage(logoDataUrl, 'JPEG', margin, 5, 50, 30);
-    } catch (error) {
-        console.error("Erreur lors du chargement du logo:", error);
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(10);
-        doc.text("Logo non chargé", margin + 5, 20);
-    }
-
-
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(28);
-    doc.setFont('helvetica', 'bold');
-    doc.text('PROFORMA', pageWidth - margin, 18, { align: 'right' });
-    
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`N° ${invoice.id}`, pageWidth - margin, 26, { align: 'right' });
-    doc.text(`Date: ${format(invoice.issueDate, 'dd/MM/yyyy', { locale: fr })}`, pageWidth - margin, 32, { align: 'right' });
-
-    // Client Info Section
-    doc.setTextColor(51, 51, 51);
-    doc.setFontSize(10);
-    const clientInfoY = 50;
-    
-    doc.setFont('helvetica', 'bold');
-    doc.text('De :', margin, clientInfoY);
-    doc.setFont('helvetica', 'normal');
-    doc.text(companyInfo.name, margin, clientInfoY + 5);
-    doc.text(companyInfo.address, margin, clientInfoY + 10, { maxWidth: 80 });
-    doc.text(`Tél: ${companyInfo.phone}`, margin, clientInfoY + 20);
-    doc.text(`Email: ${companyInfo.email}`, margin, clientInfoY + 25);
-    
-    doc.setFont('helvetica', 'bold');
-    doc.text('Facture pour :', pageWidth / 2 + 10, clientInfoY);
-    doc.setFont('helvetica', 'normal');
-    doc.text(invoice.client.name, pageWidth / 2 + 10, clientInfoY + 5);
-    doc.text(invoice.client.phone || '', pageWidth / 2 + 10, clientInfoY + 10);
-    doc.text(invoice.client.address, pageWidth / 2 + 10, clientInfoY + 15);
-
-    // Table
-    const tableData = invoice.lineItems.map((item, index) => ([
-        index + 1,
-        item.description,
-        item.quantity,
-        `${item.price.toLocaleString('fr-FR')} XOF`,
-        `${(item.price * item.quantity).toLocaleString('fr-FR')} XOF`
-    ]));
-
-    (doc as any).autoTable({
-        startY: clientInfoY + 40,
-        head: [['N°', 'DESCRIPTION', 'QTY', 'PRIX UNITAIRE', 'TOTAL']],
-        body: tableData,
-        theme: 'grid',
-        headStyles: {
-            fillColor: [76, 81, 191],
-            textColor: 255,
-            fontSize: 10,
-        },
-        styles: {
-            fontSize: 9,
-        },
-        columnStyles: {
-            0: { cellWidth: 10 },
-            2: { halign: 'right', cellWidth: 15 },
-            3: { halign: 'right', cellWidth: 30 },
-            4: { halign: 'right', cellWidth: 30 },
+    const generatePdfContent = (logoImage: HTMLImageElement | null) => {
+        // Header
+        doc.setFillColor(76, 81, 191); // Dark blue header
+        doc.rect(0, 0, pageWidth, 40, 'F');
+        
+        // Logo
+        if (logoImage) {
+            doc.addImage(logoImage, 'JPEG', margin, 5, 50, 30);
+        } else {
+            console.error("Le logo n'a pas pu être chargé.");
+            // Fallback if logo fails
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(10);
+            doc.text("Logo non chargé", margin + 5, 20);
         }
-    });
 
-    // Totals
-    const finalY = (doc as any).lastAutoTable.finalY || pageHeight - 100;
-    const subtotal = invoice.lineItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const tax = subtotal * (invoice.taxRate / 100);
-    const total = subtotal + tax;
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(28);
+        doc.setFont('helvetica', 'bold');
+        doc.text('PROFORMA', pageWidth - margin, 18, { align: 'right' });
+        
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`N° ${invoice.id}`, pageWidth - margin, 26, { align: 'right' });
+        doc.text(`Date: ${format(invoice.issueDate, 'dd/MM/yyyy', { locale: fr })}`, pageWidth - margin, 32, { align: 'right' });
 
-    doc.setFontSize(10);
-    doc.text('Sous-total :', pageWidth - margin - 50, finalY + 10, { align: 'left' });
-    doc.text(`${subtotal.toLocaleString('fr-FR')} XOF`, pageWidth - margin, finalY + 10, { align: 'right' });
-    
-    doc.text(`Taxe (${invoice.taxRate}%) :`, pageWidth - margin - 50, finalY + 17, { align: 'left' });
-    doc.text(`${tax.toLocaleString('fr-FR')} XOF`, pageWidth - margin, finalY + 17, { align: 'right' });
-    
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('NET À PAYER :', pageWidth - margin - 50, finalY + 27, { align: 'left' });
-    doc.text(`${total.toLocaleString('fr-FR')} XOF`, pageWidth - margin, finalY + 27, { align: 'right' });
+        // Client Info Section
+        doc.setTextColor(51, 51, 51);
+        doc.setFontSize(10);
+        const clientInfoY = 50;
+        
+        doc.setFont('helvetica', 'bold');
+        doc.text('De :', margin, clientInfoY);
+        doc.setFont('helvetica', 'normal');
+        doc.text(companyInfo.name, margin, clientInfoY + 5);
+        doc.text(companyInfo.address, margin, clientInfoY + 10, { maxWidth: 80 });
+        doc.text(`Tél: ${companyInfo.phone}`, margin, clientInfoY + 20);
+        doc.text(`Email: ${companyInfo.email}`, margin, clientInfoY + 25);
+        
+        doc.setFont('helvetica', 'bold');
+        doc.text('Facture pour :', pageWidth / 2 + 10, clientInfoY);
+        doc.setFont('helvetica', 'normal');
+        doc.text(invoice.client.name, pageWidth / 2 + 10, clientInfoY + 5);
+        doc.text(invoice.client.phone || '', pageWidth / 2 + 10, clientInfoY + 10);
+        doc.text(invoice.client.address, pageWidth / 2 + 10, clientInfoY + 15);
 
-    // Footer notes
-    const footerY = finalY + 40;
-    doc.setFillColor(245, 247, 255);
-    doc.rect(margin, footerY, pageWidth - (margin * 2), 30, 'F');
-    doc.setTextColor(51, 51, 51);
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    const paymentNotes = `Arrêter la présente facture proforma à la somme de [montant en lettres] XOF
+        // Table
+        const tableData = invoice.lineItems.map((item, index) => ([
+            index + 1,
+            item.description,
+            item.quantity,
+            `${item.price.toLocaleString('fr-FR')} XOF`,
+            `${(item.price * item.quantity).toLocaleString('fr-FR')} XOF`
+        ]));
+
+        (doc as any).autoTable({
+            startY: clientInfoY + 40,
+            head: [['N°', 'DESCRIPTION', 'QTY', 'PRIX UNITAIRE', 'TOTAL']],
+            body: tableData,
+            theme: 'grid',
+            headStyles: {
+                fillColor: [76, 81, 191],
+                textColor: 255,
+                fontSize: 10,
+            },
+            styles: {
+                fontSize: 9,
+            },
+            columnStyles: {
+                0: { cellWidth: 10 },
+                2: { halign: 'right', cellWidth: 15 },
+                3: { halign: 'right', cellWidth: 30 },
+                4: { halign: 'right', cellWidth: 30 },
+            }
+        });
+
+        // Totals
+        const finalY = (doc as any).lastAutoTable.finalY || pageHeight - 100;
+        const subtotal = invoice.lineItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        const tax = subtotal * (invoice.taxRate / 100);
+        const total = subtotal + tax;
+
+        doc.setFontSize(10);
+        doc.text('Sous-total :', pageWidth - margin - 50, finalY + 10, { align: 'left' });
+        doc.text(`${subtotal.toLocaleString('fr-FR')} XOF`, pageWidth - margin, finalY + 10, { align: 'right' });
+        
+        doc.text(`Taxe (${invoice.taxRate}%) :`, pageWidth - margin - 50, finalY + 17, { align: 'left' });
+        doc.text(`${tax.toLocaleString('fr-FR')} XOF`, pageWidth - margin, finalY + 17, { align: 'right' });
+        
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text('NET À PAYER :', pageWidth - margin - 50, finalY + 27, { align: 'left' });
+        doc.text(`${total.toLocaleString('fr-FR')} XOF`, pageWidth - margin, finalY + 27, { align: 'right' });
+
+        // Footer notes
+        const footerY = finalY + 40;
+        doc.setFillColor(245, 247, 255);
+        doc.rect(margin, footerY, pageWidth - (margin * 2), 30, 'F');
+        doc.setTextColor(51, 51, 51);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        const paymentNotes = `Arrêter la présente facture proforma à la somme de [montant en lettres] XOF
 70% à la commande 30% à la livraison
 Proforma valable: 07 Jours
 Veuillez notifier la commande par un bon numérique ou physique
 NB: Veuillez libeller tout paiement par chèque ou virement à l'ordre de ${companyInfo.legalName}`;
-    doc.text(paymentNotes, margin + 5, footerY + 5, { maxWidth: pageWidth - (margin * 2) - 10 });
-    
-    // Legal footer
-    doc.setFontSize(7);
-    doc.setTextColor(100);
-    doc.text(companyInfo.legalFooter, margin, pageHeight - 20, { maxWidth: pageWidth - (margin * 2) });
-    
-    doc.save(`proforma-${invoice.id}.pdf`);
+        doc.text(paymentNotes, margin + 5, footerY + 5, { maxWidth: pageWidth - (margin * 2) - 10 });
+        
+        // Legal footer
+        doc.setFontSize(7);
+        doc.setTextColor(100);
+        doc.text(companyInfo.legalFooter, margin, pageHeight - 20, { maxWidth: pageWidth - (margin * 2) });
+        
+        doc.save(`proforma-${invoice.id}.pdf`);
+    };
+
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.src = '/logo-proforma.jpg';
+
+    img.onload = () => {
+        generatePdfContent(img);
+    };
+
+    img.onerror = (err) => {
+        console.error('Failed to load image', err);
+        generatePdfContent(null);
+    };
 }
 
 export default function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
