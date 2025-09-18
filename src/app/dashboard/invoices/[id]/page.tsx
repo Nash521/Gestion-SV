@@ -31,12 +31,12 @@ function exportInvoiceToPDF(invoice: Invoice) {
 
     const generatePdfContent = (logoImage: HTMLImageElement | null) => {
         // Header
-        doc.setFillColor(76, 81, 191); // Dark blue header
+        doc.setFillColor(76, 81, 191);
         doc.rect(0, 0, pageWidth, 40, 'F');
         
         // Logo
         if (logoImage) {
-            doc.addImage(logoImage, 'JPEG', margin, 5, 50, 30);
+            doc.addImage(logoImage, 'JPG', margin, 5, 50, 30);
         } else {
             console.error("Le logo n'a pas pu être chargé.");
             // Fallback if logo fails
