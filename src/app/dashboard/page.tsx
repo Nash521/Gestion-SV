@@ -1,8 +1,9 @@
+"use client";
 import React from 'react';
-import { mockInvoices, mockTransactions, getInvoiceTotal } from '@/lib/data';
+import { mockInvoices, mockTransactions, getInvoiceTotal, mockCashRegisters } from '@/lib/data';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowUpRight, DollarSign, Users, FileText } from 'lucide-react';
+import { ArrowUpRight, DollarSign, Users, FileText, Wallet } from 'lucide-react';
 import Link from 'next/link';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { StatusBadge } from '@/components/shared/status-badge';
@@ -16,6 +17,16 @@ export default function DashboardPage() {
     const totalIncome = mockTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
     const totalExpenses = mockTransactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
     const totalRevenue = totalIncome - totalExpenses;
+    
+    const petiteCaisseId = mockCashRegisters.find(cr => cr.name === 'Petite caisse')?.id;
+    const petiteCaisseTotal = mockTransactions
+        .filter(t => t.cashRegisterId === petiteCaisseId)
+        .reduce((acc, t) => {
+            if (t.type === 'income') return acc + t.amount;
+            if (t.type === 'expense') return acc - t.amount;
+            return acc;
+        }, 0);
+
 
   return (
     <div className="grid gap-6">
@@ -27,7 +38,17 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl font-bold">{totalRevenue.toLocaleString('fr-FR', {style: 'currency', currency: 'XOF'})}</div>
-                    <p className="text-xs text-muted-foreground">Basé sur les entrées et les dépenses</p>
+                    <p className="text-xs text-muted-foreground">Basé sur toutes les caisses</p>
+                </CardContent>
+            </Card>
+             <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Solde Petite Caisse</CardTitle>
+                    <Wallet className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{petiteCaisseTotal.toLocaleString('fr-FR', {style: 'currency', currency: 'XOF'})}</div>
+                    <p className="text-xs text-muted-foreground">Solde de la petite caisse uniquement</p>
                 </CardContent>
             </Card>
             <Card>

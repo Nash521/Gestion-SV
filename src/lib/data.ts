@@ -10,7 +10,6 @@ export const mockClients: Client[] = [
 export const mockCashRegisters: CashRegister[] = [
   { id: 'caisse-1', name: 'Caisse principale' },
   { id: 'caisse-2', name: 'Petite caisse' },
-  { id: 'caisse-3', name: 'Caisse mobile' },
 ];
 
 const generateLineItems = (count: number): LineItem[] => {
