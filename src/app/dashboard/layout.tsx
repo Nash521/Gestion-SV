@@ -9,9 +9,11 @@ import {
   Sidebar,
   SidebarHeader,
   SidebarContent,
-  SidebarInset,
+  SidebarGroup,
+  SidebarGroupLabel,
   SidebarFooter,
   SidebarTrigger,
+  SidebarInset,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,7 +31,7 @@ export default function DashboardLayout({
     <SidebarProvider>
       <Sidebar>
         <SidebarHeader>
-          <div className="flex items-center gap-2 p-2">
+          <div className="flex items-center gap-2 p-2 justify-center">
             <Briefcase className="size-6 text-primary" />
             <span className="text-xl font-semibold font-headline">
               <span>Gestio</span>
@@ -38,12 +40,15 @@ export default function DashboardLayout({
           </div>
         </SidebarHeader>
         <SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupLabel>MENU</SidebarGroupLabel>
             <SidebarNav />
+          </SidebarGroup>
         </SidebarContent>
         <SidebarFooter>
              <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <div className="flex items-center gap-3 p-2 cursor-pointer hover:bg-sidebar-accent rounded-md">
+                    <div className="flex items-center gap-3 p-2 cursor-pointer hover:bg-muted rounded-md">
                         <Avatar className="h-9 w-9">
                             <AvatarImage src="https://picsum.photos/seed/user/100/100" data-ai-hint="profile avatar" alt="User" />
                             <AvatarFallback>U</AvatarFallback>
@@ -87,7 +92,7 @@ export default function DashboardLayout({
                 </Button>
             </div>
         </header>
-        <main className="flex-1 p-4 md:p-6 bg-background/50">
+        <main className="flex-1 p-4 md:p-6">
           {children}
         </main>
       </SidebarInset>
