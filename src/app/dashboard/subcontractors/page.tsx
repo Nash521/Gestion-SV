@@ -216,10 +216,47 @@ const AddSubcontractorDialog = ({ onAdd }: { onAdd: (data: SubcontractorFormValu
     );
 };
 
+const MapDialog = ({ isOpen, setIsOpen, subcontractor }: { isOpen: boolean, setIsOpen: (open: boolean) => void, subcontractor: Subcontractor | null }) => {
+    if (!subcontractor) return null;
+
+    const mapSrc = `https://maps.google.com/maps?q=${encodeURIComponent(subcontractor.address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogContent className="sm:max-w-[725px]">
+                <DialogHeader>
+                    <DialogTitle>Géolocalisation de {subcontractor.name}</DialogTitle>
+                    <DialogDescription>
+                        {subcontractor.address}
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="aspect-video w-full rounded-md overflow-hidden border">
+                    <iframe
+                        width="100%"
+                        height="100%"
+                        frameBorder="0"
+                        scrolling="no"
+                        marginHeight={0}
+                        marginWidth={0}
+                        src={mapSrc}
+                        title={`Carte pour ${subcontractor.name}`}
+                    ></iframe>
+                </div>
+                 <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>Fermer</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
 
 export default function SubcontractorsPage() {
     const { toast } = useToast();
     const [subcontractors, setSubcontractors] = useState<Subcontractor[]>(mockSubcontractors);
+    const [isMapOpen, setIsMapOpen] = useState(false);
+    const [selectedSubcontractor, setSelectedSubcontractor] = useState<Subcontractor | null>(null);
+
 
     const handleAddSubcontractor = (data: SubcontractorFormValues) => {
         const newSubcontractor: Subcontractor = {
@@ -236,91 +273,101 @@ export default function SubcontractorsPage() {
         });
     };
     
-    return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold">Sous-traitants</h1>
-                    <p className="text-muted-foreground">Gérez votre réseau de partenaires et sous-traitants.</p>
-                </div>
-                <AddSubcontractorDialog onAdd={handleAddSubcontractor} />
-            </div>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                {subcontractors.map(subcontractor => (
-                    <Card key={subcontractor.id} className="flex flex-col bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/50 dark:via-indigo-950/50 dark:to-purple-950/50">
-                        <CardHeader>
-                             <div className="flex items-start justify-between">
-                                <div>
-                                    <CardTitle>{subcontractor.name}</CardTitle>
-                                    <Badge variant="secondary" className="mt-2">{subcontractor.domain}</Badge>
-                                </div>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" className="h-8 w-8 p-0">
-                                            <span className="sr-only">Ouvrir le menu</span>
-                                            <MoreHorizontal className="h-4 w-4" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                        <DropdownMenuItem>Modifier</DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">Supprimer</DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </div>
-                            <div className="pt-2">
-                                <a href={`tel:${subcontractor.phone}`} className="text-sm text-muted-foreground flex items-center hover:text-primary transition-colors">
-                                    <Phone className="mr-2 h-4 w-4 flex-shrink-0" />
-                                    {subcontractor.phone}
-                                </a>
-                                <p className="text-sm text-muted-foreground flex items-center mt-2">
-                                    <MapPin className="mr-2 h-4 w-4 flex-shrink-0" />
-                                    {subcontractor.address}
-                                </p>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="flex-grow">
-                            <h4 className="font-semibold mb-2 text-sm">Grille Tarifaire</h4>
-                             <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Service</TableHead>
-                                        <TableHead className="text-right">Prix</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {subcontractor.services.map(service => (
-                                        <TableRow key={service.id}>
-                                            <TableCell className="text-xs">
-                                                {service.description}
-                                                <span className="text-muted-foreground ml-1">({service.unit})</span>
-                                            </TableCell>
-                                            <TableCell className="text-right font-semibold text-xs">
-                                                {service.price.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF', minimumFractionDigits: 0 })}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </CardContent>
-                        <CardFooter>
-                           <Button asChild variant="outline" className="w-full">
-                                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(subcontractor.address)}`} target="_blank" rel="noopener noreferrer">
-                                    <Globe className="mr-2 h-4 w-4" /> Géolocaliser
-                                </a>
-                            </Button>
-                        </CardFooter>
-                    </Card>
-                ))}
-            </div>
+     const handleOpenMap = (subcontractor: Subcontractor) => {
+        setSelectedSubcontractor(subcontractor);
+        setIsMapOpen(true);
+    };
 
-            {subcontractors.length === 0 && (
-                <div className="text-center py-20 text-muted-foreground border-2 border-dashed rounded-lg">
-                    Aucun sous-traitant trouvé.
+    return (
+        <>
+            <MapDialog
+                isOpen={isMapOpen}
+                setIsOpen={setIsMapOpen}
+                subcontractor={selectedSubcontractor}
+            />
+            <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-2xl font-bold">Sous-traitants</h1>
+                        <p className="text-muted-foreground">Gérez votre réseau de partenaires et sous-traitants.</p>
+                    </div>
+                    <AddSubcontractorDialog onAdd={handleAddSubcontractor} />
                 </div>
-            )}
-        </div>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {subcontractors.map(subcontractor => (
+                        <Card key={subcontractor.id} className="flex flex-col bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/50 dark:via-indigo-950/50 dark:to-purple-950/50">
+                            <CardHeader>
+                                <div className="flex items-start justify-between">
+                                    <div>
+                                        <CardTitle>{subcontractor.name}</CardTitle>
+                                        <Badge variant="secondary" className="mt-2">{subcontractor.domain}</Badge>
+                                    </div>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                                <span className="sr-only">Ouvrir le menu</span>
+                                                <MoreHorizontal className="h-4 w-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                            <DropdownMenuItem>Modifier</DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">Supprimer</DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </div>
+                                <div className="pt-2">
+                                    <a href={`tel:${subcontractor.phone}`} className="text-sm text-muted-foreground flex items-center hover:text-primary transition-colors">
+                                        <Phone className="mr-2 h-4 w-4 flex-shrink-0" />
+                                        {subcontractor.phone}
+                                    </a>
+                                    <p className="text-sm text-muted-foreground flex items-center mt-2">
+                                        <MapPin className="mr-2 h-4 w-4 flex-shrink-0" />
+                                        {subcontractor.address}
+                                    </p>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="flex-grow">
+                                <h4 className="font-semibold mb-2 text-sm">Grille Tarifaire</h4>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Service</TableHead>
+                                            <TableHead className="text-right">Prix</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {subcontractor.services.map(service => (
+                                            <TableRow key={service.id}>
+                                                <TableCell className="text-xs">
+                                                    {service.description}
+                                                    <span className="text-muted-foreground ml-1">({service.unit})</span>
+                                                </TableCell>
+                                                <TableCell className="text-right font-semibold text-xs">
+                                                    {service.price.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF', minimumFractionDigits: 0 })}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
+                            <CardFooter>
+                                <Button variant="outline" className="w-full" onClick={() => handleOpenMap(subcontractor)}>
+                                    <Globe className="mr-2 h-4 w-4" /> Géolocaliser
+                                </Button>
+                            </CardFooter>
+                        </Card>
+                    ))}
+                </div>
+
+                {subcontractors.length === 0 && (
+                    <div className="text-center py-20 text-muted-foreground border-2 border-dashed rounded-lg">
+                        Aucun sous-traitant trouvé.
+                    </div>
+                )}
+            </div>
+        </>
     );
 }
