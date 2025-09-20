@@ -9,7 +9,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { StatusBadge } from '@/components/shared/status-badge';
 import { RevenueChart } from '@/components/dashboard/revenue-chart';
 import { ExpenseChart } from '@/components/dashboard/expense-chart';
-import { RevenueComparisonChart } from '@/components/dashboard/revenue-comparison-chart';
 
 
 export default function DashboardPage() {
@@ -74,25 +73,15 @@ export default function DashboardPage() {
                 </CardContent>
             </Card>
         </div>
-        
-        <Card>
-            <CardHeader>
-                <CardTitle>Aperçu des revenus</CardTitle>
-                <CardDescription>Evolution des revenus sur les 6 derniers mois.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <RevenueChart />
-            </CardContent>
-        </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
           <Card className="lg:col-span-3">
               <CardHeader>
-                  <CardTitle>Revenus vs Dépenses</CardTitle>
+                  <CardTitle>Revenus et Dépenses Mensuels</CardTitle>
                   <CardDescription>Comparaison des revenus et dépenses sur les 6 derniers mois.</CardDescription>
               </CardHeader>
               <CardContent className="pl-2">
-                   <RevenueComparisonChart />
+                   <RevenueChart />
               </CardContent>
           </Card>
           <Card className="lg:col-span-2">
