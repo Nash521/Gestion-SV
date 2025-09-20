@@ -3,7 +3,6 @@
 import React from 'react';
 import { usePathname } from 'next/navigation';
 import {
-  Settings,
   Briefcase,
 } from 'lucide-react';
 import {
@@ -23,6 +22,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { SidebarNav } from '@/components/layout/sidebar-nav';
 import { PageHeader } from '@/components/layout/page-header';
 import { SearchBar } from '@/components/layout/search-bar';
+import { SettingsSheet } from '@/components/layout/settings-sheet';
 
 const searchablePages = [
     '/dashboard/invoices',
@@ -53,7 +53,7 @@ export default function DashboardLayout({
           </div>
         </SidebarHeader>
         <SidebarContent>
-          <SidebarGroup>
+           <SidebarGroup>
             <SidebarGroupLabel>MENU</SidebarGroupLabel>
             <SidebarNav />
           </SidebarGroup>
@@ -95,9 +95,7 @@ export default function DashboardLayout({
                         <SearchBar />
                     </div>
                 )}
-                <Button variant="outline" size="icon" className="h-9 w-9 flex-shrink-0">
-                    <Settings className="h-5 w-5"/>
-                </Button>
+                <SettingsSheet />
             </div>
         </header>
         <main className="flex-1 p-4 md:p-6 animate-fade-in-up">

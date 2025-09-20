@@ -18,7 +18,7 @@ body {
 
 @layer base {
   :root {
-    --background: 220 20% 96%;
+    --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
@@ -98,5 +98,14 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
   }
+}
+
+@layer components {
+    .transition-all {
+        @apply transition-all duration-200;
+    }
 }
