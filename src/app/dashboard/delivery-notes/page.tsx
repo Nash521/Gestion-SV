@@ -1,16 +1,35 @@
-import React from 'react';
+"use client"
+
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { mockDeliveryNotes } from '@/lib/data';
+import type { DeliveryNote } from '@/lib/definitions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuPortal } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, PlusCircle } from 'lucide-react';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { useToast } from '@/hooks/use-toast';
+
+const deliveryNoteStatuses: DeliveryNote['status'][] = ['Draft', 'Delivered', 'Canceled'];
 
 export default function DeliveryNotesPage() {
+  const { toast } = useToast();
+  const [deliveryNotes, setDeliveryNotes] = useState<DeliveryNote[]>(mockDeliveryNotes);
+
+  const handleStatusChange = (noteId: string, newStatus: DeliveryNote['status']) => {
+    setDeliveryNotes(notes => notes.map(note => 
+      note.id === noteId ? { ...note, status: newStatus } : note
+    ));
+    toast({
+      title: "Statut mis à jour",
+      description: `Le bon de livraison ${noteId} est maintenant "${newStatus}".`,
+    });
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -39,7 +58,7 @@ export default function DeliveryNotesPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {mockDeliveryNotes.map((note) => (
+            {deliveryNotes.map((note) => (
               <TableRow key={note.id}>
                 <TableCell className="font-medium">{note.id}</TableCell>
                 <TableCell>{note.client.name}</TableCell>
@@ -61,7 +80,22 @@ export default function DeliveryNotesPage() {
                              <DropdownMenuItem asChild>
                                 <Link href={`/dashboard/delivery-notes/${note.id}`}>Voir les détails</Link>
                             </DropdownMenuItem>
-                            <DropdownMenuItem>Marquer comme livré</DropdownMenuItem>
+                            <DropdownMenuSub>
+                                <DropdownMenuSubTrigger>Changer le statut</DropdownMenuSubTrigger>
+                                <DropdownMenuPortal>
+                                    <DropdownMenuSubContent>
+                                        {deliveryNoteStatuses.map(status => (
+                                            <DropdownMenuItem 
+                                                key={status} 
+                                                onClick={() => handleStatusChange(note.id, status)}
+                                                disabled={note.status === status}
+                                            >
+                                                {status}
+                                            </DropdownMenuItem>
+                                        ))}
+                                    </DropdownMenuSubContent>
+                                </DropdownMenuPortal>
+                            </DropdownMenuSub>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">Supprimer</DropdownMenuItem>
                         </DropdownMenuContent>

@@ -1,16 +1,35 @@
-import React from 'react';
+"use client"
+
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { mockInvoices, getInvoiceTotal } from '@/lib/data';
+import type { Invoice } from '@/lib/definitions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuPortal, DropdownMenuSubContent } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, PlusCircle } from 'lucide-react';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { useToast } from '@/hooks/use-toast';
+
+const invoiceStatuses: Invoice['status'][] = ['Draft', 'Sent', 'Paid', 'Overdue'];
 
 export default function InvoicesPage() {
+  const { toast } = useToast();
+  const [invoices, setInvoices] = useState<Invoice[]>(mockInvoices);
+
+  const handleStatusChange = (invoiceId: string, newStatus: Invoice['status']) => {
+    setInvoices(invs => invs.map(inv => 
+      inv.id === invoiceId ? { ...inv, status: newStatus } : inv
+    ));
+    toast({
+      title: "Statut mis à jour",
+      description: `La proforma ${invoiceId} est maintenant "${newStatus}".`,
+    });
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -39,7 +58,7 @@ export default function InvoicesPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {mockInvoices.map((invoice) => (
+            {invoices.map((invoice) => (
               <TableRow key={invoice.id}>
                 <TableCell className="font-medium">{invoice.id}</TableCell>
                 <TableCell>{invoice.client.name}</TableCell>
@@ -61,7 +80,22 @@ export default function InvoicesPage() {
                              <DropdownMenuItem asChild>
                                 <Link href={`/dashboard/invoices/${invoice.id}`}>Voir les détails</Link>
                             </DropdownMenuItem>
-                            <DropdownMenuItem>Marquer comme payée</DropdownMenuItem>
+                            <DropdownMenuSub>
+                                <DropdownMenuSubTrigger>Changer le statut</DropdownMenuSubTrigger>
+                                <DropdownMenuPortal>
+                                    <DropdownMenuSubContent>
+                                        {invoiceStatuses.map(status => (
+                                            <DropdownMenuItem 
+                                                key={status} 
+                                                onClick={() => handleStatusChange(invoice.id, status)}
+                                                disabled={invoice.status === status}
+                                            >
+                                                {status}
+                                            </DropdownMenuItem>
+                                        ))}
+                                    </DropdownMenuSubContent>
+                                </DropdownMenuPortal>
+                            </DropdownMenuSub>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">Supprimer</DropdownMenuItem>
                         </DropdownMenuContent>
