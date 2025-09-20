@@ -8,7 +8,7 @@ export const mockClients: Client[] = [
 ];
 
 export const mockCollaborators: Collaborator[] = [
-  { id: 'user-1', name: 'Utilisateur Démo', email: 'user@gestiosv.com', role: 'Admin' },
+  { id: 'user-1', name: 'Nash Gone', email: 'nashgone@gmail.com', role: 'Admin' },
   { id: 'user-2', name: 'Alice', email: 'alice@example.com', role: 'Employee' },
   { id: 'user-3', name: 'Bob', email: 'bob@example.com', role: 'Employee' },
 ];
