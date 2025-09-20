@@ -2,8 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'AndroidAssassins';
+  src: url('/fonts/android-assassins.woff2') format('woff2'),
+       url('/fonts/android-assassins.woff') format('woff'),
+       url('/fonts/android-assassins.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 body {
-  font-family: 'PT Sans', sans-serif;
+  font-family: 'Century Gothic', 'PT Sans', sans-serif;
 }
 
 @layer base {

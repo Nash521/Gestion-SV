@@ -31,7 +31,10 @@ export default function DashboardLayout({
         <SidebarHeader>
           <div className="flex items-center gap-2 p-2">
             <Briefcase className="size-6 text-primary" />
-            <span className="text-xl font-semibold font-headline">GestioSV</span>
+            <span className="text-xl font-semibold font-headline">
+              <span>Gestio</span>
+              <span className="font-android-assassins text-primary">SV</span>
+            </span>
           </div>
         </SidebarHeader>
         <SidebarContent>

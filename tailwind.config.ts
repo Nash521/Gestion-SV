@@ -20,6 +20,7 @@ export default {
         body: ['"Century Gothic"', 'PT Sans', 'sans-serif'],
         headline: ['"Century Gothic"', 'PT Sans', 'sans-serif'],
         code: ['monospace'],
+        'android-assassins': ['AndroidAssassins', 'sans-serif'],
       },
       colors: {
         background: 'hsl(var(--background))',
