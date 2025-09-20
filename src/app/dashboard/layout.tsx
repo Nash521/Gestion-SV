@@ -48,7 +48,7 @@ export default function DashboardLayout({
         <SidebarFooter>
              <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <div className="flex items-center gap-3 p-2 cursor-pointer hover:bg-muted rounded-md">
+                    <div className="flex items-center gap-3 p-2 cursor-pointer hover:bg-muted rounded-md transition-colors">
                         <Avatar className="h-9 w-9">
                             <AvatarImage src="https://picsum.photos/seed/user/100/100" data-ai-hint="profile avatar" alt="User" />
                             <AvatarFallback>U</AvatarFallback>
@@ -92,7 +92,7 @@ export default function DashboardLayout({
                 </Button>
             </div>
         </header>
-        <main className="flex-1 p-4 md:p-6">
+        <main className="flex-1 p-4 md:p-6 animate-fade-in-up">
           {children}
         </main>
       </SidebarInset>

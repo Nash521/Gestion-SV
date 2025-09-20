@@ -33,7 +33,7 @@ export default function DashboardPage() {
   return (
     <div className="grid gap-6">
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-             <Card>
+             <Card className="transition-transform transform hover:-translate-y-1">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Revenu Total</CardTitle>
                     <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -43,7 +43,7 @@ export default function DashboardPage() {
                     <p className="text-xs text-muted-foreground">Basé sur toutes les caisses</p>
                 </CardContent>
             </Card>
-             <Card>
+             <Card className="transition-transform transform hover:-translate-y-1">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Solde Petite Caisse</CardTitle>
                     <Wallet className="h-4 w-4 text-muted-foreground" />
@@ -53,7 +53,7 @@ export default function DashboardPage() {
                     <p className="text-xs text-muted-foreground">Solde de la petite caisse uniquement</p>
                 </CardContent>
             </Card>
-            <Card>
+            <Card className="transition-transform transform hover:-translate-y-1">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Proformas en Retard</CardTitle>
                     <FileText className="h-4 w-4 text-muted-foreground" />
@@ -63,7 +63,7 @@ export default function DashboardPage() {
                     <p className="text-xs text-muted-foreground">Total des proformas impayées</p>
                 </CardContent>
             </Card>
-            <Card>
+            <Card className="transition-transform transform hover:-translate-y-1">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Nouveaux Clients</CardTitle>
                     <Users className="h-4 w-4 text-muted-foreground" />
