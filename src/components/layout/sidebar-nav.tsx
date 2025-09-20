@@ -11,6 +11,7 @@ import {
   FilePieChart,
   ShoppingCart,
   Truck,
+  UsersRound,
 } from 'lucide-react';
 import {
   SidebarMenu,
@@ -24,6 +25,7 @@ const navItems = [
     { href: '/dashboard/purchase-orders', icon: <ShoppingCart />, label: 'Bons de commande' },
     { href: '/dashboard/delivery-notes', icon: <Truck />, label: 'Bons de livraison' },
     { href: '/dashboard/clients', icon: <Users />, label: 'Clients' },
+    { href: '/dashboard/collaborators', icon: <UsersRound />, label: 'Collaborateurs' },
     { href: '/dashboard/accounting', icon: <Wallet />, label: 'Comptabilité' },
     { href: '/dashboard/reporting', icon: <FilePieChart />, label: 'Rapports' },
 ];

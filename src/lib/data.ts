@@ -1,10 +1,16 @@
-import { Client, Invoice, Transaction, LineItem, PurchaseOrder, DeliveryNote, CashRegister } from '@/lib/definitions';
+import { Client, Invoice, Transaction, LineItem, PurchaseOrder, DeliveryNote, CashRegister, Collaborator } from '@/lib/definitions';
 
 export const mockClients: Client[] = [
   { id: '1', name: 'Stark Industries', email: 'contact@stark.com', address: '10880 Malibu Point, 90265, Malibu', phone: '+12223334444' },
   { id: '2', name: 'Wayne Enterprises', email: 'info@wayne.com', address: '1007 Mountain Drive, Gotham', phone: '+15556667777' },
   { id: '3', name: 'Cyberdyne Systems', email: 'hr@cyberdyne.com', address: '2144 Kramer Street, Los Angeles', phone: '+18889990000' },
   { id: '4', name: 'Ollivanders', email: 'sales@ollivanders.co.uk', address: 'Diagon Alley, London', phone: '+442071234567' },
+];
+
+export const mockCollaborators: Collaborator[] = [
+  { id: 'user-1', name: 'Utilisateur Démo', email: 'user@gestiosv.com', role: 'Admin' },
+  { id: 'user-2', name: 'Alice', email: 'alice@example.com', role: 'Employee' },
+  { id: 'user-3', name: 'Bob', email: 'bob@example.com', role: 'Employee' },
 ];
 
 export const mockCashRegisters: CashRegister[] = [

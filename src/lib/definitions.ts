@@ -58,3 +58,12 @@ export type CashRegister = {
     id: string;
     name: string;
 }
+
+export type CollaboratorRole = 'Admin' | 'Employee';
+
+export type Collaborator = {
+  id: string;
+  name: string;
+  email: string;
+  role: CollaboratorRole;
+};
