@@ -13,25 +13,27 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/auth-context';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '@/lib/firebase/client';
 
-// In a real app, this would come from your authentication context
-const currentUserRole: CollaboratorRole = 'Admin'; // Change to 'Employee' to test
 
-const AddCollaboratorDialog = ({ isOpen, setIsOpen, onAdd }: { isOpen: boolean, setIsOpen: (open: boolean) => void, onAdd: (collaborator: Omit<Collaborator, 'id'>) => void }) => {
+const AddCollaboratorDialog = ({ isOpen, setIsOpen, onAdd }: { isOpen: boolean, setIsOpen: (open: boolean) => void, onAdd: (collaborator: Omit<Collaborator, 'id'>, password: string) => Promise<void> }) => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
     const [role, setRole] = useState<CollaboratorRole | ''>('');
 
-    const handleSubmit = () => {
-        if (!name || !email || !role) {
+    const handleSubmit = async () => {
+        if (!name || !email || !role || !password) {
             alert('Veuillez remplir tous les champs.');
             return;
         }
-        onAdd({ name, email, role: role as CollaboratorRole });
+        await onAdd({ name, email, role: role as CollaboratorRole }, password);
         setIsOpen(false);
         setName('');
         setEmail('');
+        setPassword('');
         setRole('');
     };
 
@@ -52,6 +54,10 @@ const AddCollaboratorDialog = ({ isOpen, setIsOpen, onAdd }: { isOpen: boolean, 
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="email" className="text-right">Email</Label>
                         <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="col-span-3" />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="password" className="text-right">Mot de passe</Label>
+                        <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="col-span-3" />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="role" className="text-right">Rôle</Label>
@@ -96,33 +102,41 @@ function AccessDenied() {
 
 export default function CollaboratorsPage() {
     const { toast } = useToast();
-    const router = useRouter();
+    const { currentUser } = useAuth();
     const [collaborators, setCollaborators] = useState<Collaborator[]>(mockCollaborators);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-    // This is a client-side protection mechanism.
-    // In a real app, this should be enforced on the server as well.
-    useEffect(() => {
-        if (currentUserRole !== 'Admin') {
-            // Redirect or show an access denied message
-            // router.push('/dashboard'); // Option 1: Redirect
-        }
-    }, [router]);
-
-    if (currentUserRole !== 'Admin') {
+    if (currentUser?.role !== 'Admin') {
         return <AccessDenied />;
     }
 
-    const handleAddCollaborator = (newCollaborator: Omit<Collaborator, 'id'>) => {
-        const collaboratorToAdd: Collaborator = {
-            id: `user-${Date.now()}`,
-            ...newCollaborator
-        };
-        setCollaborators(prev => [...prev, collaboratorToAdd]);
-        toast({
-            title: "Collaborateur ajouté",
-            description: `Une invitation a été envoyée à ${collaboratorToAdd.email}.`,
-        });
+    const handleAddCollaborator = async (newCollaborator: Omit<Collaborator, 'id'>, password: string) => {
+        try {
+            // In a real app, you would have a backend function to create user
+            // to avoid exposing auth logic on the client.
+            // This is a simplified example.
+            const userCredential = await createUserWithEmailAndPassword(auth, newCollaborator.email, password);
+            
+            // You would then save the user's role and other info in Firestore
+            // associated with their userCredential.user.uid
+            const collaboratorToAdd: Collaborator = {
+                id: userCredential.user.uid,
+                ...newCollaborator
+            };
+
+            setCollaborators(prev => [...prev, collaboratorToAdd]);
+            toast({
+                title: "Collaborateur ajouté",
+                description: `Le compte pour ${collaboratorToAdd.email} a été créé.`,
+            });
+        } catch (error: any) {
+            console.error("Error creating user:", error);
+            toast({
+                variant: "destructive",
+                title: "Erreur lors de la création",
+                description: error.message,
+            });
+        }
     };
     
     const roleTranslations: Record<CollaboratorRole, string> = {
@@ -169,7 +183,7 @@ export default function CollaboratorsPage() {
                                     <TableCell className="text-right">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" className="h-8 w-8 p-0" disabled={collaborator.role === 'Admin'}>
+                                                <Button variant="ghost" className="h-8 w-8 p-0" disabled={collaborator.id === currentUser?.id || collaborator.role === 'Admin'}>
                                                     <span className="sr-only">Ouvrir le menu</span>
                                                     <MoreHorizontal className="h-4 w-4" />
                                                 </Button>

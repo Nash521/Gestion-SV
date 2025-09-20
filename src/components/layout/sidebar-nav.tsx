@@ -31,8 +31,12 @@ const navItems = [
     { href: '/dashboard/reporting', icon: <FilePieChart />, label: 'Rapports', requiredRole: ['Admin', 'Employee'] },
 ];
 
-export function SidebarNav({ currentUserRole }: { currentUserRole: CollaboratorRole }) {
+export function SidebarNav({ currentUserRole }: { currentUserRole?: CollaboratorRole }) {
   const pathname = usePathname();
+
+  if (!currentUserRole) {
+    return null; // or a loading state
+  }
 
   const accessibleNavItems = navItems.filter(item => item.requiredRole.includes(currentUserRole));
 

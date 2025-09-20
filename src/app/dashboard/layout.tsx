@@ -1,9 +1,10 @@
 "use client";
 
-import React from 'react';
-import { usePathname } from 'next/navigation';
+import React, { useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Briefcase,
+  Loader2,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -23,7 +24,8 @@ import { SidebarNav } from '@/components/layout/sidebar-nav';
 import { PageHeader } from '@/components/layout/page-header';
 import { SearchBar } from '@/components/layout/search-bar';
 import { SettingsSheet } from '@/components/layout/settings-sheet';
-import type { Collaborator } from '@/lib/definitions';
+import { useAuth } from '@/contexts/auth-context';
+
 
 const searchablePages = [
     '/dashboard/invoices',
@@ -33,14 +35,6 @@ const searchablePages = [
     '/dashboard/accounting',
 ];
 
-// In a real app, this would come from your authentication context
-const currentUser: Collaborator = {
-  id: 'user-1',
-  name: 'Utilisateur Démo',
-  email: 'user@gestiosv.com',
-  role: 'Admin' // Change to 'Employee' to test restrictions
-};
-
 
 export default function DashboardLayout({
   children,
@@ -48,7 +42,34 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { currentUser, loading, logout } = useAuth();
   const isSearchable = searchablePages.some(page => pathname.startsWith(page));
+
+  useEffect(() => {
+    if (!loading && !currentUser) {
+      router.push('/login');
+    }
+  }, [currentUser, loading, router]);
+
+
+  if (loading || !currentUser) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      router.push('/login');
+    } catch (error) {
+      console.error('Failed to log out', error);
+    }
+  }
+
 
   return (
     <SidebarProvider>
@@ -88,7 +109,7 @@ export default function DashboardLayout({
                     <DropdownMenuItem>Profil</DropdownMenuItem>
                     <DropdownMenuItem>Paramètres</DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem>Déconnexion</DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleLogout}>Déconnexion</DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
         </SidebarFooter>
