@@ -78,8 +78,8 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card>
                 <CardHeader>
-                    <CardTitle>Revenus et Dépenses Mensuels</CardTitle>
-                    <CardDescription>Comparaison des revenus et dépenses des 6 derniers mois.</CardDescription>
+                    <CardTitle>Revenus Mensuels</CardTitle>
+                    <CardDescription>Aperçu des revenus des 6 derniers mois.</CardDescription>
                 </CardHeader>
                 <CardContent className="pl-2">
                     <RevenueChart />
