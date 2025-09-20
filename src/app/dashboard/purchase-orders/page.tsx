@@ -80,6 +80,7 @@ export default function PurchaseOrdersPage() {
                             <DropdownMenuItem asChild>
                                 <Link href={`/dashboard/purchase-orders/${order.id}`}>Voir les détails</Link>
                             </DropdownMenuItem>
+                            <DropdownMenuItem disabled>Modifier</DropdownMenuItem>
                             <DropdownMenuSub>
                                 <DropdownMenuSubTrigger>Changer le statut</DropdownMenuSubTrigger>
                                 <DropdownMenuPortal>

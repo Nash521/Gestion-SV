@@ -23,6 +23,8 @@ export function PageHeader() {
     let title = 'GestioSV';
     if (titles[pathname]) {
         title = titles[pathname];
+    } else if (pathname.match(/^\/dashboard\/invoices\/.*\/edit$/)) {
+        title = 'Modifier la Proforma';
     } else if (pathname.startsWith('/dashboard/invoices/')) {
         title = 'Détails de la Proforma';
     } else if (pathname.startsWith('/dashboard/purchase-orders/')) {

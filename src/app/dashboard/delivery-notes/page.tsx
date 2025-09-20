@@ -7,7 +7,7 @@ import type { DeliveryNote } from '@/lib/definitions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuPortal } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuPortal, DropdownMenuSubContent } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, PlusCircle } from 'lucide-react';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { format } from 'date-fns';
@@ -80,6 +80,7 @@ export default function DeliveryNotesPage() {
                              <DropdownMenuItem asChild>
                                 <Link href={`/dashboard/delivery-notes/${note.id}`}>Voir les détails</Link>
                             </DropdownMenuItem>
+                            <DropdownMenuItem disabled>Modifier</DropdownMenuItem>
                             <DropdownMenuSub>
                                 <DropdownMenuSubTrigger>Changer le statut</DropdownMenuSubTrigger>
                                 <DropdownMenuPortal>

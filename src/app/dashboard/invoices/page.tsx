@@ -80,6 +80,9 @@ export default function InvoicesPage() {
                              <DropdownMenuItem asChild>
                                 <Link href={`/dashboard/invoices/${invoice.id}`}>Voir les détails</Link>
                             </DropdownMenuItem>
+                             <DropdownMenuItem asChild>
+                                <Link href={`/dashboard/invoices/${invoice.id}/edit`}>Modifier</Link>
+                            </DropdownMenuItem>
                             <DropdownMenuSub>
                                 <DropdownMenuSubTrigger>Changer le statut</DropdownMenuSubTrigger>
                                 <DropdownMenuPortal>
