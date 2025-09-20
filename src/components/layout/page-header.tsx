@@ -18,7 +18,19 @@ const titles: { [key: string]: string } = {
 
 export function PageHeader() {
     const pathname = usePathname();
-    const title = titles[pathname] || 'GestioSV';
+    
+    // Handle dynamic routes like /dashboard/invoices/[id]
+    let title = 'GestioSV';
+    if (titles[pathname]) {
+        title = titles[pathname];
+    } else if (pathname.startsWith('/dashboard/invoices/')) {
+        title = 'Détails de la Proforma';
+    } else if (pathname.startsWith('/dashboard/purchase-orders/')) {
+        title = 'Détails du Bon de commande';
+    } else if (pathname.startsWith('/dashboard/delivery-notes/')) {
+        title = 'Détails du Bon de livraison';
+    }
+
 
     return (
         <div className="flex items-center gap-2">
