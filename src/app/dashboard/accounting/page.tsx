@@ -1,5 +1,6 @@
 "use client"
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { mockTransactions, mockCashRegisters } from '@/lib/data';
@@ -30,52 +31,59 @@ const TransactionTable = ({ transactions, type, onDelete, onEdit, cashRegisters 
     };
 
     return (
-    <Table>
-        <TableHeader>
-            <TableRow>
-                <TableHead>Description</TableHead>
-                <TableHead>Catégorie</TableHead>
-                <TableHead>Caisse</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead className="text-right">Montant</TableHead>
-                <TableHead className="w-[50px] text-right">Actions</TableHead>
-            </TableRow>
-        </TableHeader>
-        <TableBody>
-            {transactions.filter(t => t.type === type).map((transaction) => (
-                <TableRow key={transaction.id}>
-                    <TableCell className="font-medium">{transaction.description}</TableCell>
-                    <TableCell>{transaction.category}</TableCell>
-                    <TableCell>{getCashRegisterName(transaction.cashRegisterId)}</TableCell>
-                    <TableCell>{format(new Date(transaction.date), 'PPP', { locale: fr })}</TableCell>
-                    <TableCell className={`text-right font-semibold ${type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                        {transaction.amount.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF' })}
-                    </TableCell>
-                    <TableCell className="text-right">
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                    <span className="sr-only">Ouvrir le menu</span>
-                                    <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                <DropdownMenuItem onClick={() => onEdit(transaction)}>Modifier</DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem 
-                                    className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                                    onClick={() => onDelete(transaction.id)}
-                                >
-                                    Supprimer
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </TableCell>
+    <>
+        <Table>
+            <TableHeader>
+                <TableRow>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Catégorie</TableHead>
+                    <TableHead>Caisse</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead className="text-right">Montant</TableHead>
+                    <TableHead className="w-[50px] text-right">Actions</TableHead>
                 </TableRow>
-            ))}
-        </TableBody>
-    </Table>
+            </TableHeader>
+            <TableBody>
+                {transactions.filter(t => t.type === type).map((transaction) => (
+                    <TableRow key={transaction.id}>
+                        <TableCell className="font-medium">{transaction.description}</TableCell>
+                        <TableCell>{transaction.category}</TableCell>
+                        <TableCell>{getCashRegisterName(transaction.cashRegisterId)}</TableCell>
+                        <TableCell>{format(new Date(transaction.date), 'PPP', { locale: fr })}</TableCell>
+                        <TableCell className={`text-right font-semibold ${type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                            {transaction.amount.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF' })}
+                        </TableCell>
+                        <TableCell className="text-right">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" className="h-8 w-8 p-0">
+                                        <span className="sr-only">Ouvrir le menu</span>
+                                        <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                    <DropdownMenuItem onClick={() => onEdit(transaction)}>Modifier</DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem 
+                                        className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                                        onClick={() => onDelete(transaction.id)}
+                                    >
+                                        Supprimer
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </TableCell>
+                    </TableRow>
+                ))}
+            </TableBody>
+        </Table>
+        {transactions.filter(t => t.type === type).length === 0 && (
+            <div className="text-center py-10 text-muted-foreground">
+                Aucune transaction de type "{type === 'income' ? 'entrée' : 'dépense'}" trouvée.
+            </div>
+        )}
+    </>
 )};
 
 const ExportDialog = ({ onExport, toast }: { onExport: (startDate?: Date, endDate?: Date) => void; toast: any }) => {
@@ -291,6 +299,7 @@ const AddOrEditTransactionDialog = ({
 
 export default function AccountingPage() {
     const { toast } = useToast();
+    const searchParams = useSearchParams();
     const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
     const [transactionIdToDelete, setTransactionIdToDelete] = useState<string | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -450,9 +459,24 @@ export default function AccountingPage() {
         });
     };
     
-    const displayedTransactions = selectedCashRegister === 'all'
-        ? transactions
-        : transactions.filter(t => t.cashRegisterId === selectedCashRegister);
+    const searchQuery = searchParams.get('q')?.toLowerCase() || '';
+
+    const filteredTransactions = useMemo(() => {
+        let items = transactions;
+
+        if (selectedCashRegister !== 'all') {
+            items = items.filter(t => t.cashRegisterId === selectedCashRegister);
+        }
+
+        if (searchQuery) {
+            items = items.filter(t =>
+                t.description.toLowerCase().includes(searchQuery) ||
+                t.category.toLowerCase().includes(searchQuery)
+            );
+        }
+
+        return items;
+    }, [transactions, selectedCashRegister, searchQuery]);
 
     return (
         <>
@@ -516,10 +540,10 @@ export default function AccountingPage() {
                             <TabsTrigger value="expense">Dépenses</TabsTrigger>
                         </TabsList>
                         <TabsContent value="income">
-                           <TransactionTable transactions={displayedTransactions} type="income" onDelete={handleDeleteRequest} onEdit={handleOpenEditDialog} cashRegisters={cashRegisters} />
+                           <TransactionTable transactions={filteredTransactions} type="income" onDelete={handleDeleteRequest} onEdit={handleOpenEditDialog} cashRegisters={cashRegisters} />
                         </TabsContent>
                         <TabsContent value="expense">
-                           <TransactionTable transactions={displayedTransactions} type="expense" onDelete={handleDeleteRequest} onEdit={handleOpenEditDialog} cashRegisters={cashRegisters} />
+                           <TransactionTable transactions={filteredTransactions} type="expense" onDelete={handleDeleteRequest} onEdit={handleOpenEditDialog} cashRegisters={cashRegisters} />
                         </TabsContent>
                     </Tabs>
                 </CardContent>

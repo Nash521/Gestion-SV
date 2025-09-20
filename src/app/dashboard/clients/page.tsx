@@ -1,5 +1,6 @@
 "use client"
-import React from 'react';
+import React, { useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { mockClients } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +12,19 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 export default function ClientsPage() {
+  const searchParams = useSearchParams();
+  const searchQuery = searchParams.get('q')?.toLowerCase() || '';
+
+  const filteredClients = useMemo(() => {
+    if (!searchQuery) return mockClients;
+
+    return mockClients.filter(client =>
+      client.name.toLowerCase().includes(searchQuery) ||
+      client.email.toLowerCase().includes(searchQuery)
+    );
+  }, [searchQuery]);
+
+
   return (
     <Card>
       <CardHeader>
@@ -69,7 +83,7 @@ export default function ClientsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {mockClients.map((client) => (
+            {filteredClients.map((client) => (
               <TableRow key={client.id}>
                 <TableCell className="font-medium">{client.name}</TableCell>
                 <TableCell>{client.email}</TableCell>
@@ -110,6 +124,11 @@ export default function ClientsPage() {
             ))}
           </TableBody>
         </Table>
+         {filteredClients.length === 0 && (
+          <div className="text-center py-10 text-muted-foreground">
+            Aucun client trouvé.
+          </div>
+        )}
       </CardContent>
     </Card>
   );

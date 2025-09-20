@@ -1,7 +1,8 @@
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { mockDeliveryNotes } from '@/lib/data';
 import type { DeliveryNote } from '@/lib/definitions';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,7 @@ const deliveryNoteStatuses: DeliveryNote['status'][] = ['Draft', 'Delivered', 'C
 
 export default function DeliveryNotesPage() {
   const { toast } = useToast();
+  const searchParams = useSearchParams();
   const [deliveryNotes, setDeliveryNotes] = useState<DeliveryNote[]>(mockDeliveryNotes);
 
   const handleStatusChange = (noteId: string, newStatus: DeliveryNote['status']) => {
@@ -29,6 +31,19 @@ export default function DeliveryNotesPage() {
       description: `Le bon de livraison ${noteId} est maintenant "${newStatus}".`,
     });
   };
+
+  const searchQuery = searchParams.get('q')?.toLowerCase() || '';
+
+  const filteredDeliveryNotes = useMemo(() => {
+    if (!searchQuery) return deliveryNotes;
+
+    return deliveryNotes.filter(note =>
+      note.id.toLowerCase().includes(searchQuery) ||
+      note.client.name.toLowerCase().includes(searchQuery) ||
+      (note.invoiceId && note.invoiceId.toLowerCase().includes(searchQuery))
+    );
+  }, [deliveryNotes, searchQuery]);
+
 
   return (
     <Card>
@@ -58,7 +73,7 @@ export default function DeliveryNotesPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {deliveryNotes.map((note) => (
+            {filteredDeliveryNotes.map((note) => (
               <TableRow key={note.id}>
                 <TableCell className="font-medium">{note.id}</TableCell>
                 <TableCell>{note.client.name}</TableCell>
@@ -106,6 +121,11 @@ export default function DeliveryNotesPage() {
             ))}
           </TableBody>
         </Table>
+         {filteredDeliveryNotes.length === 0 && (
+          <div className="text-center py-10 text-muted-foreground">
+            Aucun bon de livraison trouvé.
+          </div>
+        )}
       </CardContent>
     </Card>
   );

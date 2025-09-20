@@ -1,8 +1,10 @@
+"use client";
+
 import React from 'react';
+import { usePathname } from 'next/navigation';
 import {
   Settings,
   Briefcase,
-  Search,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -16,17 +18,28 @@ import {
   SidebarInset,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { SidebarNav } from '@/components/layout/sidebar-nav';
 import { PageHeader } from '@/components/layout/page-header';
+import { SearchBar } from '@/components/layout/search-bar';
+
+const searchablePages = [
+    '/dashboard/invoices',
+    '/dashboard/purchase-orders',
+    '/dashboard/delivery-notes',
+    '/dashboard/clients',
+    '/dashboard/accounting',
+];
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  const isSearchable = searchablePages.some(page => pathname.startsWith(page));
+
   return (
     <SidebarProvider>
       <Sidebar>
@@ -77,16 +90,7 @@ export default function DashboardLayout({
                 <PageHeader />
             </div>
             <div className="flex w-full max-w-sm items-center gap-4 md:ml-auto md:gap-2 lg:gap-4">
-                <form className="ml-auto flex-1 sm:flex-initial">
-                    <div className="relative">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            type="search"
-                            placeholder="Rechercher..."
-                            className="pl-8 sm:w-[300px] md:w-[200px] lg:w-[300px]"
-                        />
-                    </div>
-                </form>
+                {isSearchable && <SearchBar />}
                 <Button variant="outline" size="icon" className="h-9 w-9">
                     <Settings className="h-5 w-5"/>
                 </Button>

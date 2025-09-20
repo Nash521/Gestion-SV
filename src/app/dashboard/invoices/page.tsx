@@ -1,7 +1,8 @@
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { mockInvoices, getInvoiceTotal } from '@/lib/data';
 import type { Invoice } from '@/lib/definitions';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,7 @@ const invoiceStatuses: Invoice['status'][] = ['Draft', 'Sent', 'Paid', 'Overdue'
 
 export default function InvoicesPage() {
   const { toast } = useToast();
+  const searchParams = useSearchParams();
   const [invoices, setInvoices] = useState<Invoice[]>(mockInvoices);
 
   const handleStatusChange = (invoiceId: string, newStatus: Invoice['status']) => {
@@ -29,6 +31,17 @@ export default function InvoicesPage() {
       description: `La proforma ${invoiceId} est maintenant "${newStatus}".`,
     });
   };
+
+  const searchQuery = searchParams.get('q')?.toLowerCase() || '';
+
+  const filteredInvoices = useMemo(() => {
+    if (!searchQuery) return invoices;
+
+    return invoices.filter(invoice =>
+      invoice.id.toLowerCase().includes(searchQuery) ||
+      invoice.client.name.toLowerCase().includes(searchQuery)
+    );
+  }, [invoices, searchQuery]);
 
   return (
     <Card>
@@ -58,7 +71,7 @@ export default function InvoicesPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {invoices.map((invoice) => (
+            {filteredInvoices.map((invoice) => (
               <TableRow key={invoice.id}>
                 <TableCell className="font-medium">{invoice.id}</TableCell>
                 <TableCell>{invoice.client.name}</TableCell>
@@ -108,6 +121,11 @@ export default function InvoicesPage() {
             ))}
           </TableBody>
         </Table>
+         {filteredInvoices.length === 0 && (
+          <div className="text-center py-10 text-muted-foreground">
+            Aucune proforma trouvée.
+          </div>
+        )}
       </CardContent>
     </Card>
   );

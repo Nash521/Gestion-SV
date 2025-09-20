@@ -1,7 +1,8 @@
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { mockPurchaseOrders, getInvoiceTotal } from '@/lib/data';
 import type { PurchaseOrder } from '@/lib/definitions';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,7 @@ const purchaseOrderStatuses: PurchaseOrder['status'][] = ['Draft', 'Sent', 'Appr
 
 export default function PurchaseOrdersPage() {
   const { toast } = useToast();
+  const searchParams = useSearchParams();
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>(mockPurchaseOrders);
 
   const handleStatusChange = (orderId: string, newStatus: PurchaseOrder['status']) => {
@@ -29,6 +31,17 @@ export default function PurchaseOrdersPage() {
       description: `Le bon de commande ${orderId} est maintenant "${newStatus}".`,
     });
   };
+
+  const searchQuery = searchParams.get('q')?.toLowerCase() || '';
+
+  const filteredPurchaseOrders = useMemo(() => {
+    if (!searchQuery) return purchaseOrders;
+
+    return purchaseOrders.filter(order =>
+      order.id.toLowerCase().includes(searchQuery) ||
+      order.client.name.toLowerCase().includes(searchQuery)
+    );
+  }, [purchaseOrders, searchQuery]);
 
   return (
     <Card>
@@ -58,7 +71,7 @@ export default function PurchaseOrdersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {purchaseOrders.map((order) => (
+            {filteredPurchaseOrders.map((order) => (
               <TableRow key={order.id}>
                 <TableCell className="font-medium">{order.id}</TableCell>
                 <TableCell>{order.client.name}</TableCell>
@@ -106,6 +119,11 @@ export default function PurchaseOrdersPage() {
             ))}
           </TableBody>
         </Table>
+         {filteredPurchaseOrders.length === 0 && (
+          <div className="text-center py-10 text-muted-foreground">
+            Aucun bon de commande trouvé.
+          </div>
+        )}
       </CardContent>
     </Card>
   );
