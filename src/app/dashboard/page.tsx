@@ -76,7 +76,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <Card>
+            <Card className="bg-sidebar">
                 <CardHeader>
                     <CardTitle>Revenus Mensuels</CardTitle>
                     <CardDescription>Aperçu des revenus des 6 derniers mois.</CardDescription>
@@ -85,7 +85,7 @@ export default function DashboardPage() {
                     <RevenueChart />
                 </CardContent>
             </Card>
-            <Card>
+            <Card className="bg-sidebar">
                 <CardHeader>
                     <CardTitle>Répartition des Dépenses</CardTitle>
                     <CardDescription>Dépenses par catégorie ce mois-ci.</CardDescription>
@@ -96,7 +96,7 @@ export default function DashboardPage() {
             </Card>
         </div>
 
-        <Card>
+        <Card className="bg-sidebar">
             <CardHeader>
                 <CardTitle>Comparaison Revenus vs. Dépenses</CardTitle>
                 <CardDescription>Vue d'ensemble de la rentabilité mensuelle.</CardDescription>
@@ -106,7 +106,7 @@ export default function DashboardPage() {
             </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-sidebar">
             <CardHeader className="flex flex-row items-center">
                 <div className="grid gap-2">
                     <CardTitle>Proformas Récentes</CardTitle>
