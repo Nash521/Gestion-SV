@@ -219,7 +219,8 @@ const Sidebar = React.forwardRef<
           "peer hidden md:fixed md:top-0 md:flex md:h-screen flex-col text-sidebar-foreground",
           "group-data-[collapsible=icon]:w-[--sidebar-width-icon]",
           "group-data-[state=expanded]:w-[--sidebar-width]",
-          "transition-all duration-200"
+          "transition-all duration-200",
+          className
         )}
         data-state={state}
         data-collapsible={state === "collapsed" ? collapsible : ""}
