@@ -129,7 +129,7 @@ export default function DashboardLayout({
                 <SettingsSheet />
             </div>
         </header>
-        <main className="flex-1 p-4 md:p-6 animate-fade-in-up">
+        <main className="flex-1 p-4 md:p-6 animate-fade-in-up bg-gradient-to-b from-background to-muted/40">
           {children}
         </main>
       </SidebarInset>
