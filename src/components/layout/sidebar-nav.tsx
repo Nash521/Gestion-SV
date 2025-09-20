@@ -12,6 +12,7 @@ import {
   ShoppingCart,
   Truck,
   UsersRound,
+  HardHat,
 } from 'lucide-react';
 import {
   SidebarMenu,
@@ -26,6 +27,7 @@ const navItems = [
     { href: '/dashboard/purchase-orders', icon: <ShoppingCart />, label: 'Bons de commande', requiredRole: ['Admin', 'Employee'] },
     { href: '/dashboard/delivery-notes', icon: <Truck />, label: 'Bons de livraison', requiredRole: ['Admin', 'Employee'] },
     { href: '/dashboard/clients', icon: <Users />, label: 'Clients', requiredRole: ['Admin', 'Employee'] },
+    { href: '/dashboard/subcontractors', icon: <HardHat />, label: 'Sous-traitants', requiredRole: ['Admin', 'Employee'] },
     { href: '/dashboard/collaborators', icon: <UsersRound />, label: 'Collaborateurs', requiredRole: ['Admin'] },
     { href: '/dashboard/accounting', icon: <Wallet />, label: 'Comptabilité', requiredRole: ['Admin', 'Employee'] },
     { href: '/dashboard/reporting', icon: <FilePieChart />, label: 'Rapports', requiredRole: ['Admin', 'Employee'] },

@@ -67,3 +67,17 @@ export type Collaborator = {
   email: string;
   role: CollaboratorRole;
 };
+
+export type Subcontractor = {
+  id: string;
+  name: string;
+  domain: string;
+  rate: number;
+  rateType: 'hourly' | 'daily' | 'fixed';
+  address: string;
+  phone: string;
+  location: {
+    lat: number;
+    lng: number;
+  };
+};

@@ -1,4 +1,4 @@
-import { Client, Invoice, Transaction, LineItem, PurchaseOrder, DeliveryNote, CashRegister, Collaborator } from '@/lib/definitions';
+import { Client, Invoice, Transaction, LineItem, PurchaseOrder, DeliveryNote, CashRegister, Collaborator, Subcontractor } from '@/lib/definitions';
 
 export const mockClients: Client[] = [
   { id: '1', name: 'Stark Industries', email: 'contact@stark.com', address: '10880 Malibu Point, 90265, Malibu', phone: '+12223334444' },
@@ -8,9 +8,9 @@ export const mockClients: Client[] = [
 ];
 
 export const mockCollaborators: Collaborator[] = [
-  { id: 'user-1', name: 'Nash Gone', email: 'nashgone@gmail.com', role: 'Admin' },
-  { id: 'user-2', name: 'Alice', email: 'alice@example.com', role: 'Employee' },
-  { id: 'user-3', name: 'Bob', email: 'bob@example.com', role: 'Employee' },
+    { id: 'user-1', name: 'Nash Gone', email: 'nashgone@gmail.com', role: 'Admin' },
+    { id: 'user-2', name: 'Alice', email: 'alice@example.com', role: 'Employee' },
+    { id: 'user-3', name: 'Bob', email: 'bob@example.com', role: 'Employee' },
 ];
 
 export const mockCashRegisters: CashRegister[] = [
@@ -145,6 +145,39 @@ export const mockTransactions: Transaction[] = [
     { id: '6', type: 'income', description: 'Payment from Stark Industries', category: 'Payments', amount: 1200000, date: new Date(`${currentYear}-01-25`), cashRegisterId: 'caisse-1' },
     { id: '7', type: 'income', description: 'Project Alpha - Milestone 1', category: 'Projects', amount: 550000, date: new Date(`${currentYear}-02-18`), cashRegisterId: 'caisse-1' },
     { id: '8', type: 'income', description: 'Consulting services', category: 'Services', amount: 250000, date: new Date(`${currentYear}-03-01`), cashRegisterId: 'caisse-2' },
+];
+
+export const mockSubcontractors: Subcontractor[] = [
+  {
+    id: 'sub-1',
+    name: 'Alpha Plomberie',
+    domain: 'Plomberie',
+    rate: 25000,
+    rateType: 'hourly',
+    address: 'Abidjan, Cocody',
+    phone: '+2250102030405',
+    location: { lat: 5.359952, lng: -4.008256 },
+  },
+  {
+    id: 'sub-2',
+    name: 'Elec-Pro Services',
+    domain: 'Électricité',
+    rate: 300000,
+    rateType: 'fixed',
+    address: 'Yamoussoukro, Quartier 2000',
+    phone: '+2250506070809',
+    location: { lat: 6.82055, lng: -5.27677 },
+  },
+  {
+    id: 'sub-3',
+    name: 'Froid Express',
+    domain: 'Climatisation',
+    rate: 150000,
+    rateType: 'daily',
+    address: 'Bouaké, Centre-ville',
+    phone: '+2250908070605',
+    location: { lat: 7.68916, lng: -5.03032 },
+  },
 ];
 
 export const getInvoiceTotal = (invoice: Invoice | PurchaseOrder): number => {
