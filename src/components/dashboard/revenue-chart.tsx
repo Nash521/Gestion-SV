@@ -5,18 +5,17 @@ import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent
+  ChartConfig,
 } from "@/components/ui/chart";
-import { AreaChart, Area, CartesianGrid, XAxis, YAxis } from "recharts";
+import { BarChart, Bar, CartesianGrid, XAxis, YAxis } from "recharts";
 
 const chartData = [
-  { month: "Janvier", revenue: 18600, expenses: 12000 },
-  { month: "Février", revenue: 30500, expenses: 18000 },
-  { month: "Mars", revenue: 23700, expenses: 20000 },
-  { month: "Avril", revenue: 7300, expenses: 9000 },
-  { month: "Mai", revenue: 20900, expenses: 15000 },
-  { month: "Juin", revenue: 21400, expenses: 17000 },
+  { month: "Janvier", revenue: 18600 },
+  { month: "Février", revenue: 30500 },
+  { month: "Mars", revenue: 23700 },
+  { month: "Avril", revenue: 7300 },
+  { month: "Mai", revenue: 20900 },
+  { month: "Juin", revenue: 21400 },
 ];
 
 const chartConfig = {
@@ -24,16 +23,12 @@ const chartConfig = {
     label: "Revenu",
     color: "hsl(var(--chart-1))",
   },
-  expenses: {
-    label: "Dépenses",
-    color: "hsl(var(--chart-2))",
-  },
-};
+} satisfies ChartConfig;
 
 export function RevenueChart() {
     return (
-        <ChartContainer config={chartConfig} className="h-[300px] w-full">
-            <AreaChart accessibilityLayer data={chartData}>
+        <ChartContainer config={chartConfig} className="h-[250px] w-full">
+            <BarChart accessibilityLayer data={chartData}>
                 <CartesianGrid vertical={false} />
                 <XAxis
                     dataKey="month"
@@ -59,34 +54,8 @@ export function RevenueChart() {
                         }}
                     />} 
                 />
-                <ChartLegend content={<ChartLegendContent />} />
-                <defs>
-                    <linearGradient id="fillRevenue" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="var(--color-revenue)" stopOpacity={0.8} />
-                        <stop offset="95%" stopColor="var(--color-revenue)" stopOpacity={0.1} />
-                    </linearGradient>
-                    <linearGradient id="fillExpenses" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="var(--color-expenses)" stopOpacity={0.8} />
-                        <stop offset="95%" stopColor="var(--color-expenses)" stopOpacity={0.1} />
-                    </linearGradient>
-                </defs>
-                <Area
-                    dataKey="revenue"
-                    type="natural"
-                    fill="url(#fillRevenue)"
-                    fillOpacity={0.4}
-                    stroke="var(--color-revenue)"
-                    stackId="a"
-                />
-                 <Area
-                    dataKey="expenses"
-                    type="natural"
-                    fill="url(#fillExpenses)"
-                    fillOpacity={0.4}
-                    stroke="var(--color-expenses)"
-                    stackId="b"
-                />
-            </AreaChart>
+                <Bar dataKey="revenue" fill="var(--color-revenue)" radius={4} />
+            </BarChart>
         </ChartContainer>
     );
 }
