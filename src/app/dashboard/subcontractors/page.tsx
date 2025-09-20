@@ -1,5 +1,5 @@
 "use client"
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { mockSubcontractors } from '@/lib/data';
 import type { Subcontractor, SubcontractorService } from '@/lib/definitions';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 
 
 const serviceSchema = z.object({
+  id: z.string().optional(), // Important for editing
   description: z.string().min(1, 'La description est requise.'),
   price: z.coerce.number().min(0, 'Le prix doit être positif.'),
   unit: z.enum(['par heure', 'par jour', 'forfait', 'par m²', 'par unité'], {
@@ -38,8 +39,19 @@ const subcontractorSchema = z.object({
 
 type SubcontractorFormValues = z.infer<typeof subcontractorSchema>;
 
-const AddSubcontractorDialog = ({ onAdd }: { onAdd: (data: SubcontractorFormValues) => void }) => {
-    const [isOpen, setIsOpen] = useState(false);
+const SubcontractorFormDialog = ({ 
+    mode,
+    isOpen,
+    setIsOpen,
+    onSubmit,
+    subcontractor
+}: { 
+    mode: 'add' | 'edit',
+    isOpen: boolean,
+    setIsOpen: (open: boolean) => void,
+    onSubmit: (data: SubcontractorFormValues) => void,
+    subcontractor?: Subcontractor | null 
+}) => {
     
     const form = useForm<SubcontractorFormValues>({
         resolver: zodResolver(subcontractorSchema),
@@ -51,34 +63,57 @@ const AddSubcontractorDialog = ({ onAdd }: { onAdd: (data: SubcontractorFormValu
             services: [{ description: '', price: 0, unit: 'forfait' }],
         },
     });
+    
+    useEffect(() => {
+        if (mode === 'edit' && subcontractor && isOpen) {
+            form.reset({
+                name: subcontractor.name,
+                domain: subcontractor.domain,
+                address: subcontractor.address,
+                phone: subcontractor.phone,
+                services: subcontractor.services,
+            });
+        } else if (mode === 'add' && isOpen) {
+            form.reset({
+                 name: '',
+                domain: '',
+                address: '',
+                phone: '',
+                services: [{ description: '', price: 0, unit: 'forfait' }],
+            });
+        }
+    }, [isOpen, mode, subcontractor, form]);
 
     const { fields, append, remove } = useFieldArray({
         control: form.control,
         name: 'services',
     });
 
-    const onSubmit = (data: SubcontractorFormValues) => {
-        onAdd(data);
+    const handleFormSubmit = (data: SubcontractorFormValues) => {
+        onSubmit(data);
         form.reset();
         setIsOpen(false);
     };
+    
+    const title = mode === 'add' ? 'Ajouter un nouveau sous-traitant' : `Modifier ${subcontractor?.name}`;
+    const description = mode === 'add' ? 'Remplissez les informations et la grille tarifaire du nouveau partenaire.' : 'Mettez à jour les informations du partenaire.';
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogTrigger asChild>
-                 <Button size="sm">
-                    <PlusCircle className="mr-2 h-4 w-4" /> Ajouter un sous-traitant
-                </Button>
-            </DialogTrigger>
+             {mode === 'add' && (
+                <DialogTrigger asChild>
+                    <Button size="sm">
+                        <PlusCircle className="mr-2 h-4 w-4" /> Ajouter un sous-traitant
+                    </Button>
+                </DialogTrigger>
+            )}
             <DialogContent className="sm:max-w-[625px]">
                  <DialogHeader>
-                    <DialogTitle>Ajouter un nouveau sous-traitant</DialogTitle>
-                    <DialogDescription>
-                        Remplissez les informations et la grille tarifaire du nouveau partenaire.
-                    </DialogDescription>
+                    <DialogTitle>{title}</DialogTitle>
+                    <DialogDescription>{description}</DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4 max-h-[80vh] overflow-y-auto pr-4">
                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                              <FormField
                                 control={form.control}
@@ -205,8 +240,8 @@ const AddSubcontractorDialog = ({ onAdd }: { onAdd: (data: SubcontractorFormValu
                                 Ajouter un service
                             </Button>
                         </div>
-                         <DialogFooter className="pt-4">
-                            <DialogClose asChild><Button type="button" variant="outline">Annuler</Button></DialogClose>
+                         <DialogFooter className="pt-4 sticky bottom-0 bg-background py-4 -mx-4 px-6 border-t">
+                            <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>Annuler</Button>
                             <Button type="submit">Enregistrer</Button>
                         </DialogFooter>
                     </form>
@@ -256,7 +291,9 @@ export default function SubcontractorsPage() {
     const [subcontractors, setSubcontractors] = useState<Subcontractor[]>(mockSubcontractors);
     const [isMapOpen, setIsMapOpen] = useState(false);
     const [selectedSubcontractor, setSelectedSubcontractor] = useState<Subcontractor | null>(null);
-
+    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [subcontractorToEdit, setSubcontractorToEdit] = useState<Subcontractor | null>(null);
 
     const handleAddSubcontractor = (data: SubcontractorFormValues) => {
         const newSubcontractor: Subcontractor = {
@@ -273,7 +310,32 @@ export default function SubcontractorsPage() {
         });
     };
     
-     const handleOpenMap = (subcontractor: Subcontractor) => {
+    const handleEditSubcontractor = (data: SubcontractorFormValues) => {
+        if (!subcontractorToEdit) return;
+
+        const updatedSubcontractor: Subcontractor = {
+            ...subcontractorToEdit,
+            ...data,
+            services: data.services.map((s, i) => ({ 
+                ...s, 
+                id: s.id || `s-edited-${Date.now()}-${i}` 
+            }))
+        };
+        
+        setSubcontractors(prev => prev.map(sub => sub.id === subcontractorToEdit.id ? updatedSubcontractor : sub));
+
+        toast({
+            title: "Sous-traitant modifié",
+            description: `Les informations de ${data.name} ont été mises à jour.`,
+        });
+    };
+    
+    const handleOpenEditDialog = (subcontractor: Subcontractor) => {
+        setSubcontractorToEdit(subcontractor);
+        setIsEditDialogOpen(true);
+    };
+
+    const handleOpenMap = (subcontractor: Subcontractor) => {
         setSelectedSubcontractor(subcontractor);
         setIsMapOpen(true);
     };
@@ -285,13 +347,31 @@ export default function SubcontractorsPage() {
                 setIsOpen={setIsMapOpen}
                 subcontractor={selectedSubcontractor}
             />
+            
+             <SubcontractorFormDialog 
+                mode="add"
+                isOpen={isAddDialogOpen}
+                setIsOpen={setIsAddDialogOpen}
+                onSubmit={handleAddSubcontractor}
+            />
+
+            <SubcontractorFormDialog 
+                mode="edit"
+                isOpen={isEditDialogOpen}
+                setIsOpen={setIsEditDialogOpen}
+                onSubmit={handleEditSubcontractor}
+                subcontractor={subcontractorToEdit}
+            />
+
             <div className="space-y-6">
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-2xl font-bold">Sous-traitants</h1>
                         <p className="text-muted-foreground">Gérez votre réseau de partenaires et sous-traitants.</p>
                     </div>
-                    <AddSubcontractorDialog onAdd={handleAddSubcontractor} />
+                    <Button size="sm" onClick={() => setIsAddDialogOpen(true)}>
+                        <PlusCircle className="mr-2 h-4 w-4" /> Ajouter un sous-traitant
+                    </Button>
                 </div>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -312,7 +392,9 @@ export default function SubcontractorsPage() {
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
                                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                            <DropdownMenuItem>Modifier</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleOpenEditDialog(subcontractor)}>
+                                                Modifier
+                                            </DropdownMenuItem>
                                             <DropdownMenuSeparator />
                                             <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">Supprimer</DropdownMenuItem>
                                         </DropdownMenuContent>
