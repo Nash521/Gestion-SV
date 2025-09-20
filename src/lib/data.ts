@@ -152,31 +152,40 @@ export const mockSubcontractors: Subcontractor[] = [
     id: 'sub-1',
     name: 'Alpha Plomberie',
     domain: 'Plomberie',
-    rate: 25000,
-    rateType: 'hourly',
     address: 'Abidjan, Cocody',
     phone: '+2250102030405',
     location: { lat: 5.359952, lng: -4.008256 },
+    services: [
+        { id: 's1-1', description: 'Réparation de fuite simple', price: 15000, unit: 'forfait' },
+        { id: 's1-2', description: 'Débouchage de canalisation', price: 25000, unit: 'forfait' },
+        { id: 's1-3', description: 'Taux horaire général', price: 20000, unit: 'par heure' },
+    ]
   },
   {
     id: 'sub-2',
     name: 'Elec-Pro Services',
     domain: 'Électricité',
-    rate: 300000,
-    rateType: 'fixed',
     address: 'Yamoussoukro, Quartier 2000',
     phone: '+2250506070809',
     location: { lat: 6.82055, lng: -5.27677 },
+    services: [
+        { id: 's2-1', description: 'Installation prise électrique', price: 10000, unit: 'par unité' },
+        { id: 's2-2', description: 'Diagnostic panne électrique', price: 20000, unit: 'forfait' },
+        { id: 's2-3', description: 'Mise à la terre', price: 75000, unit: 'forfait' },
+    ]
   },
   {
     id: 'sub-3',
     name: 'Froid Express',
     domain: 'Climatisation',
-    rate: 150000,
-    rateType: 'daily',
     address: 'Bouaké, Centre-ville',
     phone: '+2250908070605',
     location: { lat: 7.68916, lng: -5.03032 },
+    services: [
+        { id: 's3-1', description: 'Entretien climatiseur', price: 25000, unit: 'par unité' },
+        { id: 's3-2', description: 'Recharge de gaz', price: 45000, unit: 'par unité' },
+        { id: 's3-3', description: 'Installation nouveau split', price: 60000, unit: 'par unité' },
+    ]
   },
 ];
 

@@ -68,16 +68,22 @@ export type Collaborator = {
   role: CollaboratorRole;
 };
 
+export type SubcontractorService = {
+  id: string;
+  description: string;
+  price: number;
+  unit: 'par heure' | 'par jour' | 'forfait' | 'par m²' | 'par unité';
+};
+
 export type Subcontractor = {
   id: string;
   name: string;
   domain: string;
-  rate: number;
-  rateType: 'hourly' | 'daily' | 'fixed';
   address: string;
   phone: string;
   location: {
     lat: number;
     lng: number;
   };
+  services: SubcontractorService[];
 };

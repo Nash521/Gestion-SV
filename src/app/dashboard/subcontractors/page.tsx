@@ -10,15 +10,7 @@ import { MoreHorizontal, PlusCircle, Phone, MapPin, Globe } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-
-const getRateLabel = (rateType: Subcontractor['rateType']) => {
-    const labels = {
-        hourly: '/ heure',
-        daily: '/ jour',
-        fixed: 'Forfait'
-    };
-    return labels[rateType];
-}
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const LocationDialog = ({ subcontractor }: { subcontractor: Subcontractor }) => {
     const mapUrl = `https://picsum.photos/seed/${subcontractor.id}/800/600`;
@@ -74,7 +66,7 @@ export default function SubcontractorsPage() {
                 </Button>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                 {subcontractors.map(subcontractor => (
                     <Card key={subcontractor.id} className="flex flex-col">
                         <CardHeader>
@@ -98,22 +90,40 @@ export default function SubcontractorsPage() {
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             </div>
-                        </CardHeader>
-                        <CardContent className="flex-grow space-y-4">
-                            <div className="text-3xl font-bold text-primary">
-                                {subcontractor.rate.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF', minimumFractionDigits: 0 })}
-                                <span className="text-sm font-normal text-muted-foreground ml-1">{getRateLabel(subcontractor.rateType)}</span>
+                            <div className="pt-2">
+                                <a href={`tel:${subcontractor.phone}`} className="text-sm text-muted-foreground flex items-center hover:text-primary transition-colors">
+                                    <Phone className="mr-2 h-4 w-4 flex-shrink-0" />
+                                    {subcontractor.phone}
+                                </a>
+                                <p className="text-sm text-muted-foreground flex items-center mt-2">
+                                    <MapPin className="mr-2 h-4 w-4 flex-shrink-0" />
+                                    {subcontractor.address}
+                                </p>
                             </div>
-                            
-                            <p className="text-sm text-muted-foreground flex items-center">
-                                <MapPin className="mr-2 h-4 w-4 flex-shrink-0" />
-                                {subcontractor.address}
-                            </p>
-                             <a href={`tel:${subcontractor.phone}`} className="text-sm text-muted-foreground flex items-center hover:text-primary transition-colors">
-                                <Phone className="mr-2 h-4 w-4 flex-shrink-0" />
-                                {subcontractor.phone}
-                            </a>
-
+                        </CardHeader>
+                        <CardContent className="flex-grow">
+                            <h4 className="font-semibold mb-2 text-sm">Grille Tarifaire</h4>
+                             <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Service</TableHead>
+                                        <TableHead className="text-right">Prix</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {subcontractor.services.map(service => (
+                                        <TableRow key={service.id}>
+                                            <TableCell className="text-xs">
+                                                {service.description}
+                                                <span className="text-muted-foreground ml-1">({service.unit})</span>
+                                            </TableCell>
+                                            <TableCell className="text-right font-semibold text-xs">
+                                                {service.price.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF', minimumFractionDigits: 0 })}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
                         </CardContent>
                         <CardFooter>
                             <LocationDialog subcontractor={subcontractor} />
