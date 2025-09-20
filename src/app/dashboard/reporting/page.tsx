@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 export default function ReportingPage() {
   return (
     <div className="max-w-3xl mx-auto">
-      <Card>
+      <Card className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/50 dark:via-indigo-950/50 dark:to-purple-950/50">
         <CardHeader>
           <CardTitle>Assistant de Reporting IA</CardTitle>
           <CardDescription>

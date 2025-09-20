@@ -248,7 +248,7 @@ export default function SubcontractorsPage() {
             
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                 {subcontractors.map(subcontractor => (
-                    <Card key={subcontractor.id} className="flex flex-col">
+                    <Card key={subcontractor.id} className="flex flex-col bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/50 dark:via-indigo-950/50 dark:to-purple-950/50">
                         <CardHeader>
                              <div className="flex items-start justify-between">
                                 <div>
