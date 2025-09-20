@@ -103,9 +103,3 @@ body {
     transition-duration: 150ms;
   }
 }
-
-@layer components {
-    .transition-all {
-        @apply transition-all duration-200;
-    }
-}
