@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { StatusBadge } from '@/components/shared/status-badge';
 import { RevenueChart } from '@/components/dashboard/revenue-chart';
 import { ExpenseChart } from '@/components/dashboard/expense-chart';
+import { RevenueComparisonChart } from '@/components/dashboard/revenue-comparison-chart';
 
 
 export default function DashboardPage() {
@@ -74,26 +75,36 @@ export default function DashboardPage() {
             </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-          <Card className="lg:col-span-3">
-              <CardHeader>
-                  <CardTitle>Revenus et Dépenses Mensuels</CardTitle>
-                  <CardDescription>Comparaison des revenus et dépenses sur les 6 derniers mois.</CardDescription>
-              </CardHeader>
-              <CardContent className="pl-2">
-                   <RevenueChart />
-              </CardContent>
-          </Card>
-          <Card className="lg:col-span-2">
-              <CardHeader>
-                  <CardTitle>Répartition des Dépenses</CardTitle>
-                  <CardDescription>Vue d'ensemble des dépenses par catégorie ce mois-ci.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                   <ExpenseChart />
-              </CardContent>
-          </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Revenus Mensuels</CardTitle>
+                    <CardDescription>Revenus des 6 derniers mois.</CardDescription>
+                </CardHeader>
+                <CardContent className="pl-2">
+                    <RevenueChart />
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Répartition des Dépenses</CardTitle>
+                    <CardDescription>Dépenses par catégorie ce mois-ci.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ExpenseChart />
+                </CardContent>
+            </Card>
         </div>
+
+        <Card>
+            <CardHeader>
+                <CardTitle>Comparaison Revenus vs. Dépenses</CardTitle>
+                <CardDescription>Vue d'ensemble de la rentabilité mensuelle.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <RevenueComparisonChart />
+            </CardContent>
+        </Card>
 
         <Card>
             <CardHeader className="flex flex-row items-center">

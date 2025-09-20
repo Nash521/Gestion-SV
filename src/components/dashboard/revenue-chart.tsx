@@ -5,29 +5,23 @@ import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent,
   ChartConfig,
 } from "@/components/ui/chart";
 import { BarChart, Bar, CartesianGrid, XAxis, YAxis } from "recharts";
 
 const chartData = [
-  { month: "Janvier", revenue: 18600, expenses: 12000 },
-  { month: "Février", revenue: 30500, expenses: 18000 },
-  { month: "Mars", revenue: 23700, expenses: 20000 },
-  { month: "Avril", revenue: 7300, expenses: 9000 },
-  { month: "Mai", revenue: 20900, expenses: 15000 },
-  { month: "Juin", revenue: 21400, expenses: 17000 },
+  { month: "Janvier", revenue: 18600 },
+  { month: "Février", revenue: 30500 },
+  { month: "Mars", revenue: 23700 },
+  { month: "Avril", revenue: 7300 },
+  { month: "Mai", revenue: 20900 },
+  { month: "Juin", revenue: 21400 },
 ];
 
 const chartConfig = {
   revenue: {
     label: "Revenu",
     color: "hsl(var(--chart-1))",
-  },
-  expenses: {
-    label: "Dépenses",
-    color: "hsl(var(--chart-2))",
   },
 } satisfies ChartConfig;
 
@@ -60,9 +54,13 @@ export function RevenueChart() {
                         }}
                     />} 
                 />
-                <ChartLegend content={<ChartLegendContent />} />
-                <Bar dataKey="revenue" fill="var(--color-revenue)" radius={4} />
-                <Bar dataKey="expenses" fill="var(--color-expenses)" radius={4} />
+                 <defs>
+                    <linearGradient id="fillRevenue" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="var(--color-revenue)" stopOpacity={0.8} />
+                        <stop offset="95%" stopColor="var(--color-revenue)" stopOpacity={0.1} />
+                    </linearGradient>
+                </defs>
+                <Bar dataKey="revenue" fill="url(#fillRevenue)" radius={4} />
             </BarChart>
         </ChartContainer>
     );
