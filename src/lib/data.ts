@@ -152,7 +152,7 @@ export const mockSubcontractors: Subcontractor[] = [
     id: 'sub-1',
     name: 'Alpha Plomberie',
     domain: 'Plomberie',
-    address: 'Abidjan, Cocody, Riviera Palmeraie',
+    address: 'Boulevard de la paix, Cocody, Abidjan, Côte d\'Ivoire',
     phone: '+2250102030405',
     services: [
         { id: 's1-1', description: 'Réparation de fuite simple', price: 15000, unit: 'forfait' },
@@ -164,7 +164,7 @@ export const mockSubcontractors: Subcontractor[] = [
     id: 'sub-2',
     name: 'Elec-Pro Services',
     domain: 'Électricité',
-    address: 'Yamoussoukro, Quartier 2000 Logements',
+    address: 'Rue des Jardins, II Plateaux, Abidjan, Côte d\'Ivoire',
     phone: '+2250506070809',
     services: [
         { id: 's2-1', description: 'Installation prise électrique', price: 10000, unit: 'par unité' },
@@ -176,7 +176,7 @@ export const mockSubcontractors: Subcontractor[] = [
     id: 'sub-3',
     name: 'Froid Express',
     domain: 'Climatisation',
-    address: 'Bouaké, Centre-ville, près du grand marché',
+    address: 'Rue du Commerce, Grand-Bassam, Côte d\'Ivoire',
     phone: '+2250908070605',
     services: [
         { id: 's3-1', description: 'Entretien climatiseur', price: 25000, unit: 'par unité' },
