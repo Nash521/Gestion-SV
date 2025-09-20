@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { RevenueChart } from '@/components/dashboard/revenue-chart';
+import { ExpenseChart } from '@/components/dashboard/expense-chart';
 
 
 export default function DashboardPage() {
@@ -73,58 +74,68 @@ export default function DashboardPage() {
             </Card>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-            <Card className="lg:col-span-4">
-                <CardHeader>
-                    <CardTitle>Aperçu des revenus</CardTitle>
-                    <CardDescription>Un résumé de vos revenus sur les 6 derniers mois.</CardDescription>
-                </CardHeader>
-                <CardContent className="pl-2">
-                     <RevenueChart />
-                </CardContent>
-            </Card>
-            <Card className="lg:col-span-3">
-                <CardHeader className="flex flex-row items-center">
-                    <div className="grid gap-2">
-                        <CardTitle>Proformas Récentes</CardTitle>
-                        <CardDescription>Vos proformas les plus récentes.</CardDescription>
-                    </div>
-                    <Button asChild size="sm" className="ml-auto gap-1">
-                        <Link href="/dashboard/invoices">
-                            Voir tout
-                            <ArrowUpRight className="h-4 w-4" />
-                        </Link>
-                    </Button>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Client</TableHead>
-                                <TableHead className="hidden sm:table-cell">Statut</TableHead>
-                                <TableHead className="text-right">Montant</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {recentInvoices.map((invoice) => (
-                                <TableRow key={invoice.id}>
-                                    <TableCell>
-                                        <div className="font-medium">{invoice.client.name}</div>
-                                        <div className="hidden text-sm text-muted-foreground md:inline">
-                                            {invoice.id}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="hidden sm:table-cell">
-                                        <StatusBadge status={invoice.status} />
-                                    </TableCell>
-                                    <TableCell className="text-right">{getInvoiceTotal(invoice).toLocaleString('fr-FR', {style: 'currency', currency: 'XOF'})}</TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+          <Card className="lg:col-span-3">
+              <CardHeader>
+                  <CardTitle>Revenus vs Dépenses</CardTitle>
+                  <CardDescription>Comparaison des revenus et dépenses sur les 6 derniers mois.</CardDescription>
+              </CardHeader>
+              <CardContent className="pl-2">
+                   <RevenueChart />
+              </CardContent>
+          </Card>
+          <Card className="lg:col-span-2">
+              <CardHeader>
+                  <CardTitle>Répartition des Dépenses</CardTitle>
+                  <CardDescription>Vue d'ensemble des dépenses par catégorie ce mois-ci.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                   <ExpenseChart />
+              </CardContent>
+          </Card>
         </div>
+
+        <Card>
+            <CardHeader className="flex flex-row items-center">
+                <div className="grid gap-2">
+                    <CardTitle>Proformas Récentes</CardTitle>
+                    <CardDescription>Vos proformas les plus récentes.</CardDescription>
+                </div>
+                <Button asChild size="sm" className="ml-auto gap-1">
+                    <Link href="/dashboard/invoices">
+                        Voir tout
+                        <ArrowUpRight className="h-4 w-4" />
+                    </Link>
+                </Button>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Client</TableHead>
+                            <TableHead className="hidden sm:table-cell">Statut</TableHead>
+                            <TableHead className="text-right">Montant</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {recentInvoices.map((invoice) => (
+                            <TableRow key={invoice.id}>
+                                <TableCell>
+                                    <div className="font-medium">{invoice.client.name}</div>
+                                    <div className="hidden text-sm text-muted-foreground md:inline">
+                                        {invoice.id}
+                                    </div>
+                                </TableCell>
+                                <TableCell className="hidden sm:table-cell">
+                                    <StatusBadge status={invoice.status} />
+                                </TableCell>
+                                <TableCell className="text-right">{getInvoiceTotal(invoice).toLocaleString('fr-FR', {style: 'currency', currency: 'XOF'})}</TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
     </div>
   );
 }
