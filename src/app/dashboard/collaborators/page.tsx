@@ -1,5 +1,5 @@
 "use client"
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { mockCollaborators } from '@/lib/data';
 import type { Collaborator, CollaboratorRole } from '@/lib/definitions';
 import { Button } from '@/components/ui/button';
@@ -7,12 +7,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { MoreHorizontal, PlusCircle, ShieldCheck, User } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, ShieldCheck, User, ShieldAlert } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useRouter } from 'next/navigation';
+
+// In a real app, this would come from your authentication context
+const currentUserRole: CollaboratorRole = 'Admin'; // Change to 'Employee' to test
 
 const AddCollaboratorDialog = ({ isOpen, setIsOpen, onAdd }: { isOpen: boolean, setIsOpen: (open: boolean) => void, onAdd: (collaborator: Omit<Collaborator, 'id'>) => void }) => {
     const [name, setName] = useState('');
@@ -71,10 +75,43 @@ const AddCollaboratorDialog = ({ isOpen, setIsOpen, onAdd }: { isOpen: boolean, 
     );
 };
 
+function AccessDenied() {
+    return (
+        <Card className="w-full max-w-md mx-auto">
+            <CardHeader className="text-center">
+                 <ShieldAlert className="mx-auto h-12 w-12 text-destructive" />
+                <CardTitle className="text-2xl mt-4">Accès Refusé</CardTitle>
+                <CardDescription>
+                    Vous n'avez pas les permissions nécessaires pour accéder à cette page. Veuillez contacter un administrateur.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Button className="w-full" asChild>
+                    <a href="/dashboard">Retour au tableau de bord</a>
+                </Button>
+            </CardContent>
+        </Card>
+    );
+}
+
 export default function CollaboratorsPage() {
     const { toast } = useToast();
+    const router = useRouter();
     const [collaborators, setCollaborators] = useState<Collaborator[]>(mockCollaborators);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+    // This is a client-side protection mechanism.
+    // In a real app, this should be enforced on the server as well.
+    useEffect(() => {
+        if (currentUserRole !== 'Admin') {
+            // Redirect or show an access denied message
+            // router.push('/dashboard'); // Option 1: Redirect
+        }
+    }, [router]);
+
+    if (currentUserRole !== 'Admin') {
+        return <AccessDenied />;
+    }
 
     const handleAddCollaborator = (newCollaborator: Omit<Collaborator, 'id'>) => {
         const collaboratorToAdd: Collaborator = {

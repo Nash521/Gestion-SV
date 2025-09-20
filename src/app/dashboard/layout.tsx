@@ -23,6 +23,7 @@ import { SidebarNav } from '@/components/layout/sidebar-nav';
 import { PageHeader } from '@/components/layout/page-header';
 import { SearchBar } from '@/components/layout/search-bar';
 import { SettingsSheet } from '@/components/layout/settings-sheet';
+import type { Collaborator } from '@/lib/definitions';
 
 const searchablePages = [
     '/dashboard/invoices',
@@ -31,6 +32,15 @@ const searchablePages = [
     '/dashboard/clients',
     '/dashboard/accounting',
 ];
+
+// In a real app, this would come from your authentication context
+const currentUser: Collaborator = {
+  id: 'user-1',
+  name: 'Utilisateur Démo',
+  email: 'user@gestiosv.com',
+  role: 'Admin' // Change to 'Employee' to test restrictions
+};
+
 
 export default function DashboardLayout({
   children,
@@ -55,7 +65,7 @@ export default function DashboardLayout({
         <SidebarContent>
            <SidebarGroup>
             <SidebarGroupLabel>MENU</SidebarGroupLabel>
-            <SidebarNav />
+            <SidebarNav currentUserRole={currentUser.role} />
           </SidebarGroup>
         </SidebarContent>
         <SidebarFooter>
@@ -64,11 +74,11 @@ export default function DashboardLayout({
                     <div className="flex items-center gap-3 p-2 cursor-pointer hover:bg-muted rounded-md transition-colors">
                         <Avatar className="h-9 w-9">
                             <AvatarImage src="https://picsum.photos/seed/user/100/100" data-ai-hint="profile avatar" alt="User" />
-                            <AvatarFallback>U</AvatarFallback>
+                            <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <div className="flex flex-col text-sm text-left">
-                            <span className="font-semibold">Utilisateur Démo</span>
-                            <span className="text-muted-foreground text-xs">user@gestiosv.com</span>
+                            <span className="font-semibold">{currentUser.name}</span>
+                            <span className="text-muted-foreground text-xs">{currentUser.email}</span>
                         </div>
                     </div>
                 </DropdownMenuTrigger>
