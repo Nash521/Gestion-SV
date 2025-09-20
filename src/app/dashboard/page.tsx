@@ -33,7 +33,7 @@ export default function DashboardPage() {
   return (
     <div className="grid gap-6">
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-             <Card className="transition-transform transform hover:-translate-y-1">
+             <Card className="transition-transform transform hover:-translate-y-1 bg-gradient-to-br from-cyan-50 via-sky-100 to-blue-100 dark:from-cyan-900/50 dark:via-sky-950/50 dark:to-blue-950/50">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Revenu Total</CardTitle>
                     <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -43,7 +43,7 @@ export default function DashboardPage() {
                     <p className="text-xs text-muted-foreground">Basé sur toutes les caisses</p>
                 </CardContent>
             </Card>
-             <Card className="transition-transform transform hover:-translate-y-1">
+             <Card className="transition-transform transform hover:-translate-y-1 bg-gradient-to-br from-violet-50 via-purple-100 to-indigo-100 dark:from-violet-900/50 dark:via-purple-950/50 dark:to-indigo-950/50">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Solde Petite Caisse</CardTitle>
                     <Wallet className="h-4 w-4 text-muted-foreground" />
@@ -53,7 +53,7 @@ export default function DashboardPage() {
                     <p className="text-xs text-muted-foreground">Solde de la petite caisse uniquement</p>
                 </CardContent>
             </Card>
-            <Card className="transition-transform transform hover:-translate-y-1">
+            <Card className="transition-transform transform hover:-translate-y-1 bg-gradient-to-br from-rose-50 via-red-100 to-orange-100 dark:from-rose-900/50 dark:via-red-950/50 dark:to-orange-950/50">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Proformas en Retard</CardTitle>
                     <FileText className="h-4 w-4 text-muted-foreground" />
@@ -63,7 +63,7 @@ export default function DashboardPage() {
                     <p className="text-xs text-muted-foreground">Total des proformas impayées</p>
                 </CardContent>
             </Card>
-            <Card className="transition-transform transform hover:-translate-y-1">
+            <Card className="transition-transform transform hover:-translate-y-1 bg-gradient-to-br from-emerald-50 via-green-100 to-lime-100 dark:from-emerald-900/50 dark:via-green-950/50 dark:to-lime-950/50">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Nouveaux Clients</CardTitle>
                     <Users className="h-4 w-4 text-muted-foreground" />
@@ -78,8 +78,8 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card>
                 <CardHeader>
-                    <CardTitle>Revenus Mensuels</CardTitle>
-                    <CardDescription>Revenus des 6 derniers mois.</CardDescription>
+                    <CardTitle>Revenus et Dépenses Mensuels</CardTitle>
+                    <CardDescription>Comparaison des revenus et dépenses des 6 derniers mois.</CardDescription>
                 </CardHeader>
                 <CardContent className="pl-2">
                     <RevenueChart />
