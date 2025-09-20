@@ -51,4 +51,10 @@ export type Transaction = {
     category: string;
     amount: number;
     date: Date;
+    cashRegisterId?: string;
+}
+
+export type CashRegister = {
+    id: string;
+    name: string;
 }

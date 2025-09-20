@@ -1,10 +1,16 @@
-import { Client, Invoice, Transaction, LineItem, PurchaseOrder, DeliveryNote } from '@/lib/definitions';
+import { Client, Invoice, Transaction, LineItem, PurchaseOrder, DeliveryNote, CashRegister } from '@/lib/definitions';
 
 export const mockClients: Client[] = [
   { id: '1', name: 'Stark Industries', email: 'contact@stark.com', address: '10880 Malibu Point, 90265, Malibu', phone: '+12223334444' },
   { id: '2', name: 'Wayne Enterprises', email: 'info@wayne.com', address: '1007 Mountain Drive, Gotham', phone: '+15556667777' },
   { id: '3', name: 'Cyberdyne Systems', email: 'hr@cyberdyne.com', address: '2144 Kramer Street, Los Angeles', phone: '+18889990000' },
   { id: '4', name: 'Ollivanders', email: 'sales@ollivanders.co.uk', address: 'Diagon Alley, London', phone: '+442071234567' },
+];
+
+export const mockCashRegisters: CashRegister[] = [
+  { id: 'caisse-1', name: 'Caisse principale' },
+  { id: 'caisse-2', name: 'Petite caisse' },
+  { id: 'caisse-3', name: 'Caisse mobile' },
 ];
 
 const generateLineItems = (count: number): LineItem[] => {
@@ -126,14 +132,14 @@ export const mockDeliveryNotes: DeliveryNote[] = [
 
 
 export const mockTransactions: Transaction[] = [
-    { id: '1', type: 'expense', description: 'Office Supplies', category: 'Office', amount: 15000, date: new Date(`${currentYear}-01-10`) },
-    { id: '2', type: 'expense', description: 'Cloud Server Hosting', category: 'Software', amount: 75000, date: new Date(`${currentYear}-01-15`) },
-    { id: '3', type: 'expense', description: 'Client Lunch', category: 'Meals', amount: 25000, date: new Date(`${currentYear}-02-05`) },
-    { id: '4', type: 'expense', description: 'Domain Name Renewal', category: 'Software', amount: 20000, date: new Date(`${currentYear}-02-20`) },
-    { id: '5', type: 'expense', description: 'Travel to Conference', category: 'Travel', amount: 120000, date: new Date(`${lastYear}-12-20`) },
-    { id: '6', type: 'income', description: 'Payment from Stark Industries', category: 'Payments', amount: 1200000, date: new Date(`${currentYear}-01-25`) },
-    { id: '7', type: 'income', description: 'Project Alpha - Milestone 1', category: 'Projects', amount: 550000, date: new Date(`${currentYear}-02-18`) },
-    { id: '8', type: 'income', description: 'Consulting services', category: 'Services', amount: 250000, date: new Date(`${currentYear}-03-01`) },
+    { id: '1', type: 'expense', description: 'Office Supplies', category: 'Office', amount: 15000, date: new Date(`${currentYear}-01-10`), cashRegisterId: 'caisse-1' },
+    { id: '2', type: 'expense', description: 'Cloud Server Hosting', category: 'Software', amount: 75000, date: new Date(`${currentYear}-01-15`), cashRegisterId: 'caisse-1' },
+    { id: '3', type: 'expense', description: 'Client Lunch', category: 'Meals', amount: 25000, date: new Date(`${currentYear}-02-05`), cashRegisterId: 'caisse-2' },
+    { id: '4', type: 'expense', description: 'Domain Name Renewal', category: 'Software', amount: 20000, date: new Date(`${currentYear}-02-20`), cashRegisterId: 'caisse-1' },
+    { id: '5', type: 'expense', description: 'Travel to Conference', category: 'Travel', amount: 120000, date: new Date(`${lastYear}-12-20`), cashRegisterId: 'caisse-1' },
+    { id: '6', type: 'income', description: 'Payment from Stark Industries', category: 'Payments', amount: 1200000, date: new Date(`${currentYear}-01-25`), cashRegisterId: 'caisse-1' },
+    { id: '7', type: 'income', description: 'Project Alpha - Milestone 1', category: 'Projects', amount: 550000, date: new Date(`${currentYear}-02-18`), cashRegisterId: 'caisse-1' },
+    { id: '8', type: 'income', description: 'Consulting services', category: 'Services', amount: 250000, date: new Date(`${currentYear}-03-01`), cashRegisterId: 'caisse-2' },
 ];
 
 export const getInvoiceTotal = (invoice: Invoice | PurchaseOrder): number => {

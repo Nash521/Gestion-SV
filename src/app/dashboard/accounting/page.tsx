@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import { mockTransactions } from '@/lib/data';
-import type { Transaction } from '@/lib/definitions';
+import { mockTransactions, mockCashRegisters } from '@/lib/data';
+import type { Transaction, CashRegister } from '@/lib/definitions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -22,12 +22,20 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
-const TransactionTable = ({ transactions, type, onDelete, onEdit }: { transactions: Transaction[], type: 'income' | 'expense', onDelete: (transactionId: string) => void, onEdit: (transaction: Transaction) => void }) => (
+const TransactionTable = ({ transactions, type, onDelete, onEdit, cashRegisters }: { transactions: Transaction[], type: 'income' | 'expense', onDelete: (transactionId: string) => void, onEdit: (transaction: Transaction) => void, cashRegisters: CashRegister[] }) => {
+    
+    const getCashRegisterName = (id?: string) => {
+        if (!id) return 'N/A';
+        return cashRegisters.find(c => c.id === id)?.name || 'Inconnue';
+    };
+
+    return (
     <Table>
         <TableHeader>
             <TableRow>
                 <TableHead>Description</TableHead>
                 <TableHead>Catégorie</TableHead>
+                <TableHead>Caisse</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead className="text-right">Montant</TableHead>
                 <TableHead className="w-[50px] text-right">Actions</TableHead>
@@ -38,6 +46,7 @@ const TransactionTable = ({ transactions, type, onDelete, onEdit }: { transactio
                 <TableRow key={transaction.id}>
                     <TableCell className="font-medium">{transaction.description}</TableCell>
                     <TableCell>{transaction.category}</TableCell>
+                    <TableCell>{getCashRegisterName(transaction.cashRegisterId)}</TableCell>
                     <TableCell>{format(new Date(transaction.date), 'PPP', { locale: fr })}</TableCell>
                     <TableCell className={`text-right font-semibold ${type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
                         {transaction.amount.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF' })}
@@ -67,7 +76,7 @@ const TransactionTable = ({ transactions, type, onDelete, onEdit }: { transactio
             ))}
         </TableBody>
     </Table>
-);
+)};
 
 const ExportDialog = ({ onExport, toast }: { onExport: (startDate?: Date, endDate?: Date) => void; toast: any }) => {
     const [startDate, setStartDate] = useState<Date | undefined>();
@@ -158,18 +167,21 @@ const AddOrEditTransactionDialog = ({
     setIsOpen, 
     onAddTransaction, 
     onEditTransaction,
-    transactionToEdit 
+    transactionToEdit,
+    cashRegisters
 }: { 
     isOpen: boolean;
     setIsOpen: (isOpen: boolean) => void;
     onAddTransaction: (transaction: Omit<Transaction, 'id' | 'date'>) => void;
     onEditTransaction: (transaction: Transaction) => void;
     transactionToEdit?: Transaction | null;
+    cashRegisters: CashRegister[];
 }) => {
     const [type, setType] = useState<'income' | 'expense' | ''>('');
     const [description, setDescription] = useState('');
     const [category, setCategory] = useState('');
     const [amount, setAmount] = useState('');
+    const [cashRegisterId, setCashRegisterId] = useState<string | undefined>('');
     
     const isEditMode = !!transactionToEdit;
 
@@ -179,18 +191,20 @@ const AddOrEditTransactionDialog = ({
             setDescription(transactionToEdit.description);
             setCategory(transactionToEdit.category);
             setAmount(String(transactionToEdit.amount));
+            setCashRegisterId(transactionToEdit.cashRegisterId);
         } else {
             // Reset form for "add" mode
             setType('');
             setDescription('');
             setCategory('');
             setAmount('');
+            setCashRegisterId(cashRegisters[0]?.id || '');
         }
-    }, [transactionToEdit, isEditMode, isOpen]);
+    }, [transactionToEdit, isEditMode, isOpen, cashRegisters]);
 
 
     const handleSubmit = () => {
-        if (!type || !description || !category || !amount) {
+        if (!type || !description || !category || !amount || !cashRegisterId) {
             alert('Veuillez remplir tous les champs.');
             return;
         }
@@ -200,6 +214,7 @@ const AddOrEditTransactionDialog = ({
             description: description,
             category: category,
             amount: parseFloat(amount),
+            cashRegisterId: cashRegisterId,
         };
 
         if (isEditMode && transactionToEdit) {
@@ -238,6 +253,17 @@ const AddOrEditTransactionDialog = ({
                             </SelectContent>
                         </Select>
                     </div>
+                     <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="cash-register" className="text-right">Caisse</Label>
+                        <Select onValueChange={setCashRegisterId} value={cashRegisterId}>
+                            <SelectTrigger className="col-span-3">
+                                <SelectValue placeholder="Sélectionnez une caisse" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {cashRegisters.map(cr => <SelectItem key={cr.id} value={cr.id}>{cr.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="description" className="text-right">Description</Label>
                         <Input id="description" placeholder="Ex: Fournitures de bureau" className="col-span-3" value={description} onChange={(e) => setDescription(e.target.value)} />
@@ -269,6 +295,9 @@ export default function AccountingPage() {
     const [transactionIdToDelete, setTransactionIdToDelete] = useState<string | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [transactionToEdit, setTransactionToEdit] = useState<Transaction | null>(null);
+    const [selectedCashRegister, setSelectedCashRegister] = useState<string>('all');
+    
+    const cashRegisters = mockCashRegisters;
 
     const handleAddTransaction = (newTransaction: Omit<Transaction, 'id' | 'date'>) => {
         const transactionToAdd: Transaction = {
@@ -420,6 +449,10 @@ export default function AccountingPage() {
             description: "Votre bilan PDF a été généré.",
         });
     };
+    
+    const displayedTransactions = selectedCashRegister === 'all'
+        ? transactions
+        : transactions.filter(t => t.cashRegisterId === selectedCashRegister);
 
     return (
         <>
@@ -444,6 +477,7 @@ export default function AccountingPage() {
                 onAddTransaction={handleAddTransaction}
                 onEditTransaction={handleEditTransaction}
                 transactionToEdit={transactionToEdit}
+                cashRegisters={cashRegisters}
             />
 
             <Card>
@@ -460,6 +494,20 @@ export default function AccountingPage() {
                             </Button>
                         </div>
                     </div>
+                    <div className="mt-4">
+                        <Label>Filtrer par caisse</Label>
+                        <Select value={selectedCashRegister} onValueChange={setSelectedCashRegister}>
+                            <SelectTrigger className="w-[280px]">
+                                <SelectValue placeholder="Sélectionner une caisse" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Toutes les caisses</SelectItem>
+                                {cashRegisters.map(cr => (
+                                    <SelectItem key={cr.id} value={cr.id}>{cr.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <Tabs defaultValue="income">
@@ -468,10 +516,10 @@ export default function AccountingPage() {
                             <TabsTrigger value="expense">Dépenses</TabsTrigger>
                         </TabsList>
                         <TabsContent value="income">
-                           <TransactionTable transactions={transactions} type="income" onDelete={handleDeleteRequest} onEdit={handleOpenEditDialog} />
+                           <TransactionTable transactions={displayedTransactions} type="income" onDelete={handleDeleteRequest} onEdit={handleOpenEditDialog} cashRegisters={cashRegisters} />
                         </TabsContent>
                         <TabsContent value="expense">
-                           <TransactionTable transactions={transactions} type="expense" onDelete={handleDeleteRequest} onEdit={handleOpenEditDialog} />
+                           <TransactionTable transactions={displayedTransactions} type="expense" onDelete={handleDeleteRequest} onEdit={handleOpenEditDialog} cashRegisters={cashRegisters} />
                         </TabsContent>
                     </Tabs>
                 </CardContent>
