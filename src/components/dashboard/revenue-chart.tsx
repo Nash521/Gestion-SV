@@ -7,7 +7,7 @@ import {
   ChartTooltipContent,
   ChartConfig,
 } from "@/components/ui/chart";
-import { BarChart, Bar, CartesianGrid, XAxis, YAxis } from "recharts";
+import { BarChart, Bar, CartesianGrid, XAxis, YAxis, Defs, LinearGradient, Stop } from "recharts";
 
 const chartData = [
   { month: "Janvier", revenue: 18600 },
@@ -29,6 +29,20 @@ export function RevenueChart() {
     return (
         <ChartContainer config={chartConfig} className="h-[250px] w-full">
             <BarChart accessibilityLayer data={chartData}>
+                <defs>
+                    <linearGradient id="fillRevenue" x1="0" y1="0" x2="0" y2="1">
+                        <stop
+                            offset="5%"
+                            stopColor="var(--color-revenue)"
+                            stopOpacity={0.8}
+                        />
+                        <stop
+                            offset="95%"
+                            stopColor="var(--color-revenue)"
+                            stopOpacity={0.1}
+                        />
+                    </linearGradient>
+                </defs>
                 <CartesianGrid vertical={false} />
                 <XAxis
                     dataKey="month"
@@ -54,7 +68,7 @@ export function RevenueChart() {
                         }}
                     />} 
                 />
-                <Bar dataKey="revenue" fill="var(--color-revenue)" radius={4} />
+                <Bar dataKey="revenue" fill="url(#fillRevenue)" radius={4} />
             </BarChart>
         </ChartContainer>
     );
