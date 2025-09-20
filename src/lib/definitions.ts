@@ -81,9 +81,5 @@ export type Subcontractor = {
   domain: string;
   address: string;
   phone: string;
-  location: {
-    lat: number;
-    lng: number;
-  };
   services: SubcontractorService[];
 };

@@ -1,6 +1,5 @@
 "use client"
 import React, { useState } from 'react';
-import Image from 'next/image';
 import { mockSubcontractors } from '@/lib/data';
 import type { Subcontractor, SubcontractorService } from '@/lib/definitions';
 import { Button } from '@/components/ui/button';
@@ -38,44 +37,6 @@ const subcontractorSchema = z.object({
 });
 
 type SubcontractorFormValues = z.infer<typeof subcontractorSchema>;
-
-const LocationDialog = ({ subcontractor }: { subcontractor: Subcontractor }) => {
-    const mapUrl = `https://picsum.photos/seed/${subcontractor.id}/800/600`;
-    
-    return (
-        <Dialog>
-            <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="w-full">
-                    <MapPin className="mr-2 h-4 w-4" />
-                    Géolocaliser
-                </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[825px]">
-                <DialogHeader>
-                    <DialogTitle>Localisation de {subcontractor.name}</DialogTitle>
-                    <DialogDescription>{subcontractor.address}</DialogDescription>
-                </DialogHeader>
-                <div className="rounded-lg overflow-hidden border">
-                     <Image 
-                        src={mapUrl}
-                        alt={`Carte de la localisation de ${subcontractor.name}`}
-                        width={800}
-                        height={600}
-                        className="object-cover"
-                        data-ai-hint="map location"
-                    />
-                </div>
-                <DialogFooter>
-                    <Button asChild variant="secondary">
-                        <a href={`https://www.google.com/maps/search/?api=1&query=${subcontractor.location.lat},${subcontractor.location.lng}`} target="_blank" rel="noopener noreferrer">
-                            <Globe className="mr-2 h-4 w-4" /> Ouvrir dans Google Maps
-                        </a>
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    );
-};
 
 const AddSubcontractorDialog = ({ onAdd }: { onAdd: (data: SubcontractorFormValues) => void }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -264,7 +225,6 @@ export default function SubcontractorsPage() {
         const newSubcontractor: Subcontractor = {
             id: `sub-${Date.now()}`,
             ...data,
-            location: { lat: 0, lng: 0 }, // Placeholder location
             services: data.services.map((s, i) => ({ ...s, id: `s-${Date.now()}-${i}` }))
         };
 
@@ -346,7 +306,11 @@ export default function SubcontractorsPage() {
                             </Table>
                         </CardContent>
                         <CardFooter>
-                            <LocationDialog subcontractor={subcontractor} />
+                           <Button asChild variant="outline" className="w-full">
+                                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(subcontractor.address)}`} target="_blank" rel="noopener noreferrer">
+                                    <Globe className="mr-2 h-4 w-4" /> Géolocaliser
+                                </a>
+                            </Button>
                         </CardFooter>
                     </Card>
                 ))}
@@ -359,5 +323,4 @@ export default function SubcontractorsPage() {
             )}
         </div>
     );
-
-    
+}

@@ -152,9 +152,8 @@ export const mockSubcontractors: Subcontractor[] = [
     id: 'sub-1',
     name: 'Alpha Plomberie',
     domain: 'Plomberie',
-    address: 'Abidjan, Cocody',
+    address: 'Abidjan, Cocody, Riviera Palmeraie',
     phone: '+2250102030405',
-    location: { lat: 5.359952, lng: -4.008256 },
     services: [
         { id: 's1-1', description: 'Réparation de fuite simple', price: 15000, unit: 'forfait' },
         { id: 's1-2', description: 'Débouchage de canalisation', price: 25000, unit: 'forfait' },
@@ -165,26 +164,24 @@ export const mockSubcontractors: Subcontractor[] = [
     id: 'sub-2',
     name: 'Elec-Pro Services',
     domain: 'Électricité',
-    address: 'Yamoussoukro, Quartier 2000',
+    address: 'Yamoussoukro, Quartier 2000 Logements',
     phone: '+2250506070809',
-    location: { lat: 6.82055, lng: -5.27677 },
     services: [
         { id: 's2-1', description: 'Installation prise électrique', price: 10000, unit: 'par unité' },
         { id: 's2-2', description: 'Diagnostic panne électrique', price: 20000, unit: 'forfait' },
-        { id: 's2-3', description: 'Mise à la terre', price: 75000, unit: 'forfait' },
+        { id: 's2-3', description: 'Mise à la terre complète', price: 75000, unit: 'forfait' },
     ]
   },
   {
     id: 'sub-3',
     name: 'Froid Express',
     domain: 'Climatisation',
-    address: 'Bouaké, Centre-ville',
+    address: 'Bouaké, Centre-ville, près du grand marché',
     phone: '+2250908070605',
-    location: { lat: 7.68916, lng: -5.03032 },
     services: [
         { id: 's3-1', description: 'Entretien climatiseur', price: 25000, unit: 'par unité' },
-        { id: 's3-2', description: 'Recharge de gaz', price: 45000, unit: 'par unité' },
-        { id: 's3-3', description: 'Installation nouveau split', price: 60000, unit: 'par unité' },
+        { id: 's3-2', description: 'Recharge de gaz (R410A)', price: 45000, unit: 'par unité' },
+        { id: 's3-3', description: 'Installation nouveau split 1.5CV', price: 60000, unit: 'par unité' },
     ]
   },
 ];
