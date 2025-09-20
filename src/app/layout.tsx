@@ -1,13 +1,6 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
-import { Inter, PT_Sans } from 'next/font/google';
-
-const ptSans = PT_Sans({
-  subsets: ['latin'],
-  weight: ['400', '700'],
-  variable: '--font-pt-sans',
-});
 
 export const metadata: Metadata = {
   title: 'GestioSV',
@@ -23,7 +16,7 @@ export default function RootLayout({
     <html lang="fr" suppressHydrationWarning>
       <head>
       </head>
-      <body className={`${ptSans.variable} font-body antialiased`}>
+      <body className={`font-body antialiased`}>
         {children}
         <Toaster />
       </body>

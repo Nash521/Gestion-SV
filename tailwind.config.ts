@@ -17,8 +17,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        body: ['var(--font-pt-sans)', 'sans-serif'],
-        headline: ['var(--font-pt-sans)', 'sans-serif'],
+        body: ['"Century Gothic"', 'PT Sans', 'sans-serif'],
+        headline: ['"Century Gothic"', 'PT Sans', 'sans-serif'],
         code: ['monospace'],
       },
       colors: {
