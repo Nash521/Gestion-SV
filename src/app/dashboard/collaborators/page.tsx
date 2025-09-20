@@ -81,6 +81,58 @@ const AddCollaboratorDialog = ({ isOpen, setIsOpen, onAdd }: { isOpen: boolean, 
     );
 };
 
+const EditRoleDialog = ({ collaborator, isOpen, setIsOpen, onUpdate }: { collaborator: Collaborator | null, isOpen: boolean, setIsOpen: (open: boolean) => void, onUpdate: (id: string, newRole: CollaboratorRole) => void }) => {
+    const [newRole, setNewRole] = useState<CollaboratorRole | ''>(collaborator?.role || '');
+    
+    useEffect(() => {
+        if (collaborator) {
+            setNewRole(collaborator.role);
+        }
+    }, [collaborator]);
+
+    if (!collaborator) return null;
+
+    const handleUpdate = () => {
+        if (!newRole) {
+            alert('Veuillez sélectionner un rôle.');
+            return;
+        }
+        onUpdate(collaborator.id, newRole as CollaboratorRole);
+        setIsOpen(false);
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>Modifier le rôle</DialogTitle>
+                    <DialogDescription>
+                        Changer le rôle de <span className="font-semibold">{collaborator.name}</span>.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="role" className="text-right">Nouveau Rôle</Label>
+                        <Select onValueChange={(value: CollaboratorRole) => setNewRole(value)} value={newRole}>
+                            <SelectTrigger className="col-span-3">
+                                <SelectValue placeholder="Sélectionner un rôle" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="Admin">Administrateur</SelectItem>
+                                <SelectItem value="Employee">Employé</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>Annuler</Button>
+                    <Button onClick={handleUpdate}>Mettre à jour</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
 function AccessDenied() {
     return (
         <Card className="w-full max-w-md mx-auto">
@@ -104,7 +156,9 @@ export default function CollaboratorsPage() {
     const { toast } = useToast();
     const { currentUser } = useAuth();
     const [collaborators, setCollaborators] = useState<Collaborator[]>(mockCollaborators);
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [collaboratorToEdit, setCollaboratorToEdit] = useState<Collaborator | null>(null);
 
     if (currentUser?.role !== 'Admin') {
         return <AccessDenied />;
@@ -139,6 +193,20 @@ export default function CollaboratorsPage() {
         }
     };
     
+    const handleOpenEditDialog = (collaborator: Collaborator) => {
+        setCollaboratorToEdit(collaborator);
+        setIsEditDialogOpen(true);
+    };
+
+    const handleUpdateRole = (id: string, newRole: CollaboratorRole) => {
+        // In a real app, this would be an API call to your backend/Firebase to update the user's custom claims or role in Firestore.
+        setCollaborators(prev => prev.map(c => c.id === id ? { ...c, role: newRole } : c));
+        toast({
+            title: "Rôle mis à jour",
+            description: `Le rôle de ${collaborators.find(c => c.id === id)?.name} a été changé en ${newRole}.`,
+        });
+    };
+    
     const roleTranslations: Record<CollaboratorRole, string> = {
         'Admin': 'Administrateur',
         'Employee': 'Employé'
@@ -146,7 +214,13 @@ export default function CollaboratorsPage() {
 
     return (
         <>
-            <AddCollaboratorDialog isOpen={isDialogOpen} setIsOpen={setIsDialogOpen} onAdd={handleAddCollaborator} />
+            <AddCollaboratorDialog isOpen={isAddDialogOpen} setIsOpen={setIsAddDialogOpen} onAdd={handleAddCollaborator} />
+            <EditRoleDialog
+                collaborator={collaboratorToEdit}
+                isOpen={isEditDialogOpen}
+                setIsOpen={setIsEditDialogOpen}
+                onUpdate={handleUpdateRole}
+            />
             <Card>
                 <CardHeader>
                     <div className="flex items-center justify-between">
@@ -154,7 +228,7 @@ export default function CollaboratorsPage() {
                             <CardTitle>Collaborateurs</CardTitle>
                             <CardDescription>Gérez les membres de votre équipe et leurs permissions.</CardDescription>
                         </div>
-                        <Button size="sm" onClick={() => setIsDialogOpen(true)}>
+                        <Button size="sm" onClick={() => setIsAddDialogOpen(true)}>
                             <PlusCircle className="mr-2 h-4 w-4" /> Ajouter un collaborateur
                         </Button>
                     </div>
@@ -183,14 +257,14 @@ export default function CollaboratorsPage() {
                                     <TableCell className="text-right">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" className="h-8 w-8 p-0" disabled={collaborator.id === currentUser?.id || collaborator.role === 'Admin'}>
+                                                <Button variant="ghost" className="h-8 w-8 p-0" disabled={collaborator.id === currentUser?.id || (collaborator.role === 'Admin' && collaborator.id !== currentUser?.id)}>
                                                     <span className="sr-only">Ouvrir le menu</span>
                                                     <MoreHorizontal className="h-4 w-4" />
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
                                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                <DropdownMenuItem>Modifier le rôle</DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => handleOpenEditDialog(collaborator)}>Modifier le rôle</DropdownMenuItem>
                                                 <DropdownMenuSeparator />
                                                 <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">Supprimer</DropdownMenuItem>
                                             </DropdownMenuContent>
