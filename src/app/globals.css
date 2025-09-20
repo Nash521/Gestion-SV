@@ -45,7 +45,7 @@ body {
     --radius: 0.5rem;
     
     /* Light Theme Sidebar */
-    --sidebar-background: 240 100% 99%; /* #F9FAFF */
+    --sidebar-background: linear-gradient(180deg, hsl(230, 90%, 98%) 0%, hsl(220, 80%, 96%) 100%);
     --sidebar-foreground: 222.2 47.4% 11.2%;
     --sidebar-primary: 220 70% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
@@ -81,7 +81,7 @@ body {
     --chart-5: 27 87% 67%;
 
     /* Dark Theme Sidebar */
-    --sidebar-background: 222.2 84% 4.9%;
+    --sidebar-background: linear-gradient(180deg, hsl(222.2, 84%, 8%) 0%, hsl(222.2, 84%, 4.9%) 100%);
     --sidebar-foreground: 210 40% 98%;
     --sidebar-primary: 220 70% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
