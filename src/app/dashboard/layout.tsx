@@ -89,9 +89,13 @@ export default function DashboardLayout({
                 <SidebarTrigger className="hidden md:flex" />
                 <PageHeader />
             </div>
-            <div className="flex w-full max-w-sm items-center gap-4 md:ml-auto md:gap-2 lg:gap-4">
-                {isSearchable && <SearchBar />}
-                <Button variant="outline" size="icon" className="h-9 w-9">
+            <div className="flex flex-1 items-center justify-end gap-4">
+                {isSearchable && (
+                    <div className="w-full max-w-sm">
+                        <SearchBar />
+                    </div>
+                )}
+                <Button variant="outline" size="icon" className="h-9 w-9 flex-shrink-0">
                     <Settings className="h-5 w-5"/>
                 </Button>
             </div>
