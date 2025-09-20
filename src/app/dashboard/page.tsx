@@ -76,7 +76,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <Card className="bg-sidebar">
+            <Card className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/50 dark:via-indigo-950/50 dark:to-purple-950/50">
                 <CardHeader>
                     <CardTitle>Revenus Mensuels</CardTitle>
                     <CardDescription>Aperçu des revenus des 6 derniers mois.</CardDescription>
@@ -85,7 +85,7 @@ export default function DashboardPage() {
                     <RevenueChart />
                 </CardContent>
             </Card>
-            <Card className="bg-sidebar">
+            <Card className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/50 dark:via-indigo-950/50 dark:to-purple-950/50">
                 <CardHeader>
                     <CardTitle>Répartition des Dépenses</CardTitle>
                     <CardDescription>Dépenses par catégorie ce mois-ci.</CardDescription>
@@ -96,7 +96,7 @@ export default function DashboardPage() {
             </Card>
         </div>
 
-        <Card className="bg-sidebar">
+        <Card className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/50 dark:via-indigo-950/50 dark:to-purple-950/50">
             <CardHeader>
                 <CardTitle>Comparaison Revenus vs. Dépenses</CardTitle>
                 <CardDescription>Vue d'ensemble de la rentabilité mensuelle.</CardDescription>
@@ -106,7 +106,7 @@ export default function DashboardPage() {
             </CardContent>
         </Card>
 
-        <Card className="bg-sidebar">
+        <Card className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/50 dark:via-indigo-950/50 dark:to-purple-950/50">
             <CardHeader className="flex flex-row items-center">
                 <div className="grid gap-2">
                     <CardTitle>Proformas Récentes</CardTitle>
