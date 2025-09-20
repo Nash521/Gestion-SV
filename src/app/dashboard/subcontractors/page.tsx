@@ -2,15 +2,42 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { mockSubcontractors } from '@/lib/data';
-import type { Subcontractor } from '@/lib/definitions';
+import type { Subcontractor, SubcontractorService } from '@/lib/definitions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { MoreHorizontal, PlusCircle, Phone, MapPin, Globe } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
+import { MoreHorizontal, PlusCircle, Phone, MapPin, Globe, Trash2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useForm, useFieldArray } from 'react-hook-form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { cn } from '@/lib/utils';
+
+
+const serviceSchema = z.object({
+  description: z.string().min(1, 'La description est requise.'),
+  price: z.coerce.number().min(0, 'Le prix doit être positif.'),
+  unit: z.enum(['par heure', 'par jour', 'forfait', 'par m²', 'par unité'], {
+    required_error: "L'unité est requise.",
+  }),
+});
+
+const subcontractorSchema = z.object({
+  name: z.string().min(1, 'Le nom est requis.'),
+  domain: z.string().min(1, 'Le domaine est requis.'),
+  address: z.string().min(1, 'L\'adresse est requise.'),
+  phone: z.string().min(1, 'Le téléphone est requis.'),
+  services: z.array(serviceSchema).min(1, 'Au moins un service est requis.'),
+});
+
+type SubcontractorFormValues = z.infer<typeof subcontractorSchema>;
 
 const LocationDialog = ({ subcontractor }: { subcontractor: Subcontractor }) => {
     const mapUrl = `https://picsum.photos/seed/${subcontractor.id}/800/600`;
@@ -48,11 +75,206 @@ const LocationDialog = ({ subcontractor }: { subcontractor: Subcontractor }) => 
             </DialogContent>
         </Dialog>
     );
-}
+};
+
+const AddSubcontractorDialog = ({ onAdd }: { onAdd: (data: SubcontractorFormValues) => void }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    
+    const form = useForm<SubcontractorFormValues>({
+        resolver: zodResolver(subcontractorSchema),
+        defaultValues: {
+            name: '',
+            domain: '',
+            address: '',
+            phone: '',
+            services: [{ description: '', price: 0, unit: 'forfait' }],
+        },
+    });
+
+    const { fields, append, remove } = useFieldArray({
+        control: form.control,
+        name: 'services',
+    });
+
+    const onSubmit = (data: SubcontractorFormValues) => {
+        onAdd(data);
+        form.reset();
+        setIsOpen(false);
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                 <Button size="sm">
+                    <PlusCircle className="mr-2 h-4 w-4" /> Ajouter un sous-traitant
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[625px]">
+                 <DialogHeader>
+                    <DialogTitle>Ajouter un nouveau sous-traitant</DialogTitle>
+                    <DialogDescription>
+                        Remplissez les informations et la grille tarifaire du nouveau partenaire.
+                    </DialogDescription>
+                </DialogHeader>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                             <FormField
+                                control={form.control}
+                                name="name"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Nom</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="Nom du sous-traitant" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={form.control}
+                                name="domain"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Domaine</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="Ex: Plomberie" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                         </div>
+                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <FormField
+                                control={form.control}
+                                name="address"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Adresse</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="Adresse complète" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={form.control}
+                                name="phone"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Téléphone</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="+225 XX XX XX XX XX" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+
+                        <div className="space-y-2 pt-4">
+                            <h4 className="text-md font-medium">Grille Tarifaire</h4>
+                            {fields.map((item, index) => (
+                                <div key={item.id} className="flex items-start gap-2 p-3 border rounded-lg bg-muted/30">
+                                    <div className="grid grid-cols-12 gap-x-3 flex-1">
+                                        <FormField
+                                            control={form.control}
+                                            name={`services.${index}.description`}
+                                            render={({ field }) => (
+                                                <FormItem className="col-span-5">
+                                                    <FormLabel className={cn(index !== 0 && "sr-only")}>Description</FormLabel>
+                                                    <FormControl><Input placeholder="Description du service" {...field} /></FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name={`services.${index}.price`}
+                                            render={({ field }) => (
+                                                <FormItem className="col-span-3">
+                                                    <FormLabel className={cn(index !== 0 && "sr-only")}>Prix (XOF)</FormLabel>
+                                                    <FormControl><Input type="number" placeholder="15000" {...field} /></FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name={`services.${index}.unit`}
+                                            render={({ field }) => (
+                                                <FormItem className="col-span-4">
+                                                    <FormLabel className={cn(index !== 0 && "sr-only")}>Unité</FormLabel>
+                                                    <Select onValueChange={field.onChange} value={field.value}>
+                                                        <FormControl><SelectTrigger><SelectValue placeholder="Unité" /></SelectTrigger></FormControl>
+                                                        <SelectContent>
+                                                            <SelectItem value="forfait">Forfait</SelectItem>
+                                                            <SelectItem value="par heure">Par heure</SelectItem>
+                                                            <SelectItem value="par jour">Par jour</SelectItem>
+                                                            <SelectItem value="par m²">Par m²</SelectItem>
+                                                            <SelectItem value="par unité">Par unité</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                     <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => remove(index)}
+                                        className="mt-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                        disabled={fields.length <= 1}
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            ))}
+                             <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => append({ description: '', price: 0, unit: 'forfait' })}
+                            >
+                                Ajouter un service
+                            </Button>
+                        </div>
+                         <DialogFooter className="pt-4">
+                            <DialogClose asChild><Button type="button" variant="outline">Annuler</Button></DialogClose>
+                            <Button type="submit">Enregistrer</Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
 
 export default function SubcontractorsPage() {
     const { toast } = useToast();
     const [subcontractors, setSubcontractors] = useState<Subcontractor[]>(mockSubcontractors);
+
+    const handleAddSubcontractor = (data: SubcontractorFormValues) => {
+        const newSubcontractor: Subcontractor = {
+            id: `sub-${Date.now()}`,
+            ...data,
+            location: { lat: 0, lng: 0 }, // Placeholder location
+            services: data.services.map((s, i) => ({ ...s, id: `s-${Date.now()}-${i}` }))
+        };
+
+        setSubcontractors(prev => [newSubcontractor, ...prev]);
+
+        toast({
+            title: "Sous-traitant ajouté",
+            description: `${data.name} a été ajouté à votre liste de partenaires.`,
+        });
+    };
     
     return (
         <div className="space-y-6">
@@ -61,9 +283,7 @@ export default function SubcontractorsPage() {
                     <h1 className="text-2xl font-bold">Sous-traitants</h1>
                     <p className="text-muted-foreground">Gérez votre réseau de partenaires et sous-traitants.</p>
                 </div>
-                <Button size="sm">
-                    <PlusCircle className="mr-2 h-4 w-4" /> Ajouter un sous-traitant
-                </Button>
+                <AddSubcontractorDialog onAdd={handleAddSubcontractor} />
             </div>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -139,4 +359,5 @@ export default function SubcontractorsPage() {
             )}
         </div>
     );
-}
+
+    
