@@ -16,6 +16,9 @@ export default {
       },
     },
     extend: {
+      boxShadow: {
+        'glow-blue': '0 4px 14px 0 hsl(var(--primary) / 0.2)',
+      },
       fontFamily: {
         body: ['"Century Gothic"', 'PT Sans', 'sans-serif'],
         headline: ['"Century Gothic"', 'PT Sans', 'sans-serif'],
