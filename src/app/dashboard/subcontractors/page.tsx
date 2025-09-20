@@ -275,6 +275,7 @@ const MapDialog = ({ isOpen, setIsOpen, subcontractor }: { isOpen: boolean, setI
                         marginWidth={0}
                         src={mapSrc}
                         title={`Carte pour ${subcontractor.name}`}
+                        className="grayscale-[80%] contrast-125 opacity-90"
                     ></iframe>
                 </div>
                  <DialogFooter>
@@ -376,7 +377,7 @@ export default function SubcontractorsPage() {
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                     {subcontractors.map(subcontractor => (
-                        <Card key={subcontractor.id} className="flex flex-col bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/50 dark:via-indigo-950/50 dark:to-purple-950/50">
+                        <Card key={subcontractor.id} className="flex flex-col bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/50 dark:via-indigo-950/50 dark:to-purple-950/50 shadow-glow-blue">
                             <CardHeader>
                                 <div className="flex items-start justify-between">
                                     <div>
