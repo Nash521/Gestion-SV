@@ -2,6 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+@import 'react-big-calendar/lib/css/react-big-calendar.css';
+
 @font-face {
   font-family: 'AndroidAssassins';
   src: url('/fonts/android-assassins.woff2') format('woff2'),
@@ -14,6 +16,61 @@
 
 body {
   font-family: 'Century Gothic', 'PT Sans', sans-serif;
+}
+
+.rbc-calendar {
+    @apply h-[700px] text-sm;
+}
+
+.rbc-toolbar {
+    @apply mb-4 flex items-center gap-4;
+}
+
+.rbc-toolbar button {
+    @apply px-3 py-1.5 text-sm font-medium rounded-md border border-input bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground transition-colors;
+}
+.rbc-toolbar button.rbc-active {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90;
+}
+
+.rbc-toolbar-label {
+    @apply text-lg font-bold;
+}
+
+.rbc-header {
+    @apply p-2 text-center font-semibold border-b border-border;
+}
+
+.rbc-day-bg + .rbc-day-bg {
+    @apply border-l border-border;
+}
+
+.rbc-month-row {
+    @apply min-h-[120px];
+}
+
+.rbc-month-view {
+    @apply border border-border rounded-lg;
+}
+
+.rbc-event, .rbc-day-slot .rbc-background-event {
+    @apply p-1 rounded-md text-xs bg-primary/20 border border-primary/50 text-primary-foreground;
+}
+
+.rbc-event:focus, .rbc-day-slot .rbc-background-event:focus {
+    outline: none;
+}
+.rbc-event {
+    color: hsl(var(--primary));
+    background-color: hsla(var(--primary) / 0.1);
+}
+
+.rbc-off-range-bg {
+    background: hsl(var(--muted) / 0.5);
+}
+
+.rbc-today {
+    background-color: hsl(var(--accent));
 }
 
 @layer base {

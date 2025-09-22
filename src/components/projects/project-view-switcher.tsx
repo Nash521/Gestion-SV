@@ -1,12 +1,12 @@
 "use client"
 
 import { Button } from "@/components/ui/button";
-import { LayoutGrid, List } from "lucide-react";
+import { LayoutGrid, List, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ProjectViewSwitcherProps {
-  currentView: 'board' | 'table';
-  onViewChange: (view: 'board' | 'table') => void;
+  currentView: 'board' | 'table' | 'calendar';
+  onViewChange: (view: 'board' | 'table' | 'calendar') => void;
 }
 
 export function ProjectViewSwitcher({ currentView, onViewChange }: ProjectViewSwitcherProps) {
@@ -31,6 +31,15 @@ export function ProjectViewSwitcher({ currentView, onViewChange }: ProjectViewSw
         >
           <List className="mr-2 h-4 w-4" />
           Tableau
+        </Button>
+        <Button
+          variant={currentView === 'calendar' ? 'secondary' : 'ghost'}
+          size="sm"
+          onClick={() => onViewChange('calendar')}
+           className={cn(currentView === 'calendar' && "font-bold")}
+        >
+          <Calendar className="mr-2 h-4 w-4" />
+          Calendrier
         </Button>
       </div>
     </div>
