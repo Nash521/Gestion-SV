@@ -367,105 +367,114 @@ const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators, availabl
 
     return (
          <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogContent className="sm:max-w-lg">
+            <DialogContent className="sm:max-w-4xl">
                 <DialogHeader>
                     <DialogTitle>{isEditMode ? 'Modifier la tâche' : 'Nouvelle tâche'}</DialogTitle>
-                     <DialogDescription>
-                        {isEditMode ? 'Mettez à jour les détails de cette tâche.' : 'Remplissez les détails de la nouvelle tâche.'}
-                    </DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-6 py-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="task-title">Titre</Label>
-                        <Input id="task-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Titre de la tâche" />
-                    </div>
-                    <div className="space-y-2">
-                         <Label htmlFor="task-content">Description</Label>
-                        <Textarea id="task-content" value={content} onChange={(e) => setContent(e.target.value)} placeholder="Ajoutez une description plus détaillée..." />
-                    </div>
-                     <div className="space-y-2">
-                        <Label>Assigner à</Label>
-                        <div className="grid grid-cols-2 gap-2">
-                            {collaborators.map(c => (
-                                <div key={c.id} className="flex items-center space-x-2">
-                                    <Checkbox
-                                        id={`assignee-${c.id}`}
-                                        checked={assigneeIds.includes(c.id)}
-                                        onCheckedChange={(checked) => handleAssigneeChange(!!checked, c.id)}
-                                    />
-                                    <Label htmlFor={`assignee-${c.id}`} className="flex items-center gap-2 font-normal">
-                                        <Avatar className="h-6 w-6">
-                                            <AvatarImage src={`https://picsum.photos/seed/${c.id}/40/40`} />
-                                            <AvatarFallback>{c.name.charAt(0)}</AvatarFallback>
-                                        </Avatar>
-                                        {c.name}
-                                    </Label>
-                                </div>
-                            ))}
+                <div className="grid md:grid-cols-3 gap-8 py-4">
+                    {/* Colonne principale (gauche) */}
+                    <div className="md:col-span-2 space-y-6">
+                         <div className="space-y-2">
+                            <Label htmlFor="task-title" className="sr-only">Titre</Label>
+                            <Input id="task-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Titre de la tâche" className="text-lg font-semibold border-0 shadow-none -ml-2 focus-visible:ring-0 focus-visible:ring-offset-0" />
                         </div>
-                    </div>
-                    {isEditMode && (
-                        <div className="space-y-6">
-                           <div className="space-y-2">
-                                <Label>Étiquettes</Label>
-                                <div className="flex flex-wrap gap-2">
-                                    {availableLabels.map(label => (
-                                        <button
-                                            key={label.name}
-                                            onClick={() => handleLabelToggle(label.name)}
-                                            className={cn(
-                                                "px-3 py-1 text-xs font-semibold rounded-full transition-all border",
-                                                labels.includes(label.name)
-                                                    ? `${label.color} text-white border-transparent`
-                                                    : "bg-transparent border-border hover:border-foreground/50"
-                                            )}
-                                        >
-                                            {label.name}
-                                        </button>
-                                    ))}
+                        <div className="space-y-2">
+                            <Label htmlFor="task-content">Description</Label>
+                            <Textarea id="task-content" value={content} onChange={(e) => setContent(e.target.value)} placeholder="Ajoutez une description plus détaillée..." rows={6} />
+                        </div>
+                        
+                        {isEditMode && (
+                             <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label>Checklist</Label>
+                                    <div className="p-3 border rounded-md bg-muted/50 text-sm text-muted-foreground">Ajout de sous-tâches (bientôt disponible)</div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Pièces jointes</Label>
+                                    <div className="p-3 border rounded-md bg-muted/50 text-sm text-muted-foreground">Téléchargement de fichiers (bientôt disponible)</div>
                                 </div>
                             </div>
+                        )}
+                    </div>
+                    
+                    {/* Colonne latérale (droite) */}
+                    <div className="md:col-span-1 space-y-6">
+                        <div className="space-y-2">
+                            <Label>Assigner à</Label>
                             <div className="space-y-2">
-                                <Label>Date d'échéance</Label>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            variant={"outline"}
-                                            className={cn(
-                                            "w-full justify-start text-left font-normal",
-                                            !dueDate && "text-muted-foreground"
-                                            )}
-                                        >
-                                            <CalendarIcon className="mr-2 h-4 w-4" />
-                                            {dueDate ? format(dueDate, "PPP", { locale: fr }) : <span>Choisir une date</span>}
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0">
-                                        <CalendarComponent
-                                            mode="single"
-                                            selected={dueDate}
-                                            onSelect={setDueDate}
-                                            initialFocus
-                                            locale={fr}
+                                {collaborators.map(c => (
+                                    <div key={c.id} className="flex items-center space-x-2">
+                                        <Checkbox
+                                            id={`assignee-${c.id}`}
+                                            checked={assigneeIds.includes(c.id)}
+                                            onCheckedChange={(checked) => handleAssigneeChange(!!checked, c.id)}
                                         />
-                                    </PopoverContent>
-                                </Popover>
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Checklist</Label>
-                                <div className="p-3 border rounded-md bg-muted/50 text-sm text-muted-foreground">Ajout de sous-tâches (bientôt disponible)</div>
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Pièces jointes</Label>
-                                <div className="p-3 border rounded-md bg-muted/50 text-sm text-muted-foreground">Téléchargement de fichiers (bientôt disponible)</div>
+                                        <Label htmlFor={`assignee-${c.id}`} className="flex items-center gap-2 font-normal">
+                                            <Avatar className="h-6 w-6">
+                                                <AvatarImage src={`https://picsum.photos/seed/${c.id}/40/40`} />
+                                                <AvatarFallback>{c.name.charAt(0)}</AvatarFallback>
+                                            </Avatar>
+                                            {c.name}
+                                        </Label>
+                                    </div>
+                                ))}
                             </div>
                         </div>
-                    )}
+
+                        {isEditMode && (
+                            <>
+                                <div className="space-y-2">
+                                    <Label>Étiquettes</Label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {availableLabels.map(label => (
+                                            <button
+                                                key={label.name}
+                                                onClick={() => handleLabelToggle(label.name)}
+                                                className={cn(
+                                                    "px-3 py-1 text-xs font-semibold rounded-full transition-all border",
+                                                    labels.includes(label.name)
+                                                        ? `${label.color} text-white border-transparent`
+                                                        : "bg-transparent border-border hover:border-foreground/50"
+                                                )}
+                                            >
+                                                {label.name}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                
+                                <div className="space-y-2">
+                                    <Label>Date d'échéance</Label>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant={"outline"}
+                                                className={cn(
+                                                "w-full justify-start text-left font-normal",
+                                                !dueDate && "text-muted-foreground"
+                                                )}
+                                            >
+                                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                                {dueDate ? format(dueDate, "PPP", { locale: fr }) : <span>Choisir une date</span>}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0">
+                                            <CalendarComponent
+                                                mode="single"
+                                                selected={dueDate}
+                                                onSelect={setDueDate}
+                                                initialFocus
+                                                locale={fr}
+                                            />
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
+                            </>
+                        )}
+                    </div>
                 </div>
                 <DialogFooter>
-                    <DialogClose asChild>
-                        <Button type="button" variant="outline">Annuler</Button>
-                    </DialogClose>
+                    <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>Annuler</Button>
                     <Button onClick={handleSubmit}>Enregistrer</Button>
                 </DialogFooter>
             </DialogContent>
