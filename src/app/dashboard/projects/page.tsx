@@ -6,12 +6,13 @@ import { ProjectTableView } from '@/components/projects/project-table-view';
 import { ProjectCalendarView } from '@/components/projects/project-calendar-view';
 import { ProjectGanttView } from '@/components/projects/project-gantt-view';
 import { mockProjects, mockTaskLists, mockTasks, mockCollaborators } from '@/lib/data';
+import type { TaskList, ProjectTask } from '@/lib/definitions';
 
 export default function ProjectsPage() {
     const [view, setView] = useState<'board' | 'table' | 'calendar' | 'gantt'>('board');
-    const project = mockProjects[0];
-    const lists = mockTaskLists.filter(list => list.projectId === project.id);
-    const tasks = mockTasks.filter(task => lists.some(list => list.id === task.listId));
+    const [project] = useState(mockProjects[0]);
+    const [lists, setLists] = useState<TaskList[]>(mockTaskLists.filter(list => list.projectId === project.id));
+    const [tasks, setTasks] = useState<ProjectTask[]>(mockTasks.filter(task => lists.some(list => list.id === task.listId)));
 
     const renderView = () => {
         switch (view) {
@@ -19,8 +20,9 @@ export default function ProjectsPage() {
                 return (
                     <ProjectBoard
                         project={project}
-                        initialLists={lists}
-                        initialTasks={tasks}
+                        lists={lists}
+                        tasks={tasks}
+                        setTasks={setTasks}
                         collaborators={mockCollaborators}
                         currentView={view}
                         onViewChange={setView}

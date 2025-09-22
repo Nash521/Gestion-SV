@@ -663,18 +663,16 @@ const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators, availabl
 
 interface ProjectBoardProps {
   project: Project;
-  initialLists: TaskList[];
-  initialTasks: ProjectTask[];
+  lists: TaskList[];
+  tasks: ProjectTask[];
+  setTasks: React.Dispatch<React.SetStateAction<ProjectTask[]>>;
   collaborators: Collaborator[];
   currentView: 'board' | 'table' | 'calendar' | 'gantt';
   onViewChange: (view: 'board' | 'table' | 'calendar' | 'gantt') => void;
 }
 
-export const ProjectBoard = ({ project, initialLists, initialTasks, collaborators, currentView, onViewChange }: ProjectBoardProps) => {
+export const ProjectBoard = ({ project, lists, tasks, setTasks, collaborators, currentView, onViewChange }: ProjectBoardProps) => {
     const { toast } = useToast();
-    const [lists, setLists] = useState<TaskList[]>(initialLists.sort((a, b) => a.order - b.order));
-    const [tasks, setTasks] = useState<ProjectTask[]>(initialTasks);
-    
     const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
     const [editingTask, setEditingTask] = useState<Partial<ProjectTask> | null>(null);
     const [activeTask, setActiveTask] = useState<ProjectTask | null>(null);
@@ -746,8 +744,8 @@ export const ProjectBoard = ({ project, initialLists, initialTasks, collaborator
         if (!over) return;
         if (active.id === over.id) return;
         
-        const activeListId = active.data.current?.task.listId;
-        const overListId = over.data.current?.task?.listId || over.id;
+        const activeListId = (active.data.current?.task as ProjectTask)?.listId;
+        const overListId = (over.data.current?.task as ProjectTask)?.listId || over.id;
         
         if (activeListId === overListId) {
              setTasks((tasks) => {
