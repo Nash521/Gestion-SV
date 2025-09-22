@@ -5,7 +5,7 @@ import type { Project, ProjectTask } from '@/lib/definitions';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Button } from '../ui/button';
 import { LayoutGrid, List, Calendar as CalendarSwitchIcon, BarChartHorizontal } from 'lucide-react';
-import { format, differenceInDays, addDays, min, max } from 'date-fns';
+import { format, differenceInDays, addDays, min, max, isPast } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
