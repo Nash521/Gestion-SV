@@ -27,6 +27,16 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Calendar as CalendarComponent } from '../ui/calendar';
 import { cn } from '@/lib/utils';
 
+const availableLabels = ['Urgent', 'Design', 'Tech', 'Dev', 'Marketing', 'Bug'];
+const labelColors: { [key: string]: string } = {
+    'Urgent': 'bg-red-500',
+    'Design': 'bg-purple-500',
+    'Tech': 'bg-blue-500',
+    'Dev': 'bg-green-500',
+    'Marketing': 'bg-orange-500',
+    'Bug': 'bg-pink-500',
+};
+
 interface TaskCardProps {
   task: ProjectTask;
   collaborators: Collaborator[];
@@ -42,13 +52,6 @@ const TaskCard = ({ task, collaborators, onTaskClick }: TaskCardProps) => {
     const total = task.checklist.length;
     return { completed, total, percentage: (completed / total) * 100 };
   }, [task.checklist]);
-
-  const labelColors: { [key: string]: string } = {
-    'Urgent': 'bg-red-500',
-    'Design': 'bg-purple-500',
-    'Tech': 'bg-blue-500',
-    'Dev': 'bg-green-500',
-  };
 
   return (
     <Card 
@@ -160,6 +163,7 @@ const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators }: TaskDi
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
+    const [labels, setLabels] = useState<string[]>([]);
     const [dueDate, setDueDate] = useState<Date | undefined>();
     
     const isEditMode = !!task?.id;
@@ -170,11 +174,13 @@ const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators }: TaskDi
             setContent(task.content || '');
             setAssigneeIds(task.assigneeIds || []);
             setDueDate(task.dueDate ? new Date(task.dueDate) : undefined);
+            setLabels(task.labels || []);
         } else {
             setTitle('');
             setContent('');
             setAssigneeIds([]);
             setDueDate(undefined);
+            setLabels([]);
         }
     }, [isOpen, task]);
 
@@ -185,6 +191,7 @@ const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators }: TaskDi
             content,
             assigneeIds,
             dueDate,
+            labels,
         });
         setIsOpen(false);
     };
@@ -195,6 +202,14 @@ const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators }: TaskDi
         } else {
             setAssigneeIds(prev => prev.filter(assigneeId => assigneeId !== id));
         }
+    }
+    
+    const handleLabelToggle = (label: string) => {
+        setLabels(prev => 
+            prev.includes(label) 
+                ? prev.filter(l => l !== label)
+                : [...prev, label]
+        );
     }
 
     return (
@@ -238,9 +253,24 @@ const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators }: TaskDi
                     </div>
                     {isEditMode && (
                         <div className="space-y-6">
-                            <div className="space-y-2">
+                           <div className="space-y-2">
                                 <Label>Étiquettes</Label>
-                                <div className="p-3 border rounded-md bg-muted/50 text-sm text-muted-foreground">Gestion des étiquettes (bientôt disponible)</div>
+                                <div className="flex flex-wrap gap-2">
+                                    {availableLabels.map(label => (
+                                        <button
+                                            key={label}
+                                            onClick={() => handleLabelToggle(label)}
+                                            className={cn(
+                                                "px-3 py-1 text-xs font-semibold rounded-full transition-all border",
+                                                labels.includes(label)
+                                                    ? `${labelColors[label]} text-white border-transparent`
+                                                    : "bg-transparent border-border hover:border-foreground/50"
+                                            )}
+                                        >
+                                            {label}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                             <div className="space-y-2">
                                 <Label>Date d'échéance</Label>
