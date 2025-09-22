@@ -72,8 +72,8 @@ function exportPurchaseOrderToPDF(order: PurchaseOrder) {
             index + 1,
             item.description,
             item.quantity,
-            `${item.price.toLocaleString('fr-FR')} XOF`,
-            `${(item.price * item.quantity).toLocaleString('fr-FR')} XOF`
+            item.price.toLocaleString('fr-FR') + ' XOF',
+            (item.price * item.quantity).toLocaleString('fr-FR') + ' XOF'
         ]));
 
         (doc as any).autoTable({
@@ -81,17 +81,37 @@ function exportPurchaseOrderToPDF(order: PurchaseOrder) {
             head: [['N°', 'DESCRIPTION', 'QTY', 'PRIX UNITAIRE', 'TOTAL']],
             body: tableData,
             theme: 'grid',
-            headStyles: { fillColor: [76, 81, 191] },
+            headStyles: { fillColor: [76, 81, 191], textColor: 255, fontSize: 10 },
+            styles: { fontSize: 9 },
+            columnStyles: {
+                0: { cellWidth: 10 },
+                2: { halign: 'right', cellWidth: 15 },
+                3: { halign: 'right', cellWidth: 30 },
+                4: { halign: 'right', cellWidth: 30 },
+            }
         });
 
         // Total
         const finalY = (doc as any).lastAutoTable.finalY || 150;
         const total = order.lineItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
-        doc.text('TOTAL :', pageWidth - margin - 50, finalY + 15, { align: 'left' });
-        doc.text(`${total.toLocaleString('fr-FR')} XOF`, pageWidth - margin, finalY + 15, { align: 'right' });
+        (doc as any).autoTable({
+            startY: finalY + 5,
+            body: [
+                [{ content: 'TOTAL', styles: { fontStyle: 'bold', fontSize: 11 } }, { content: `${total.toLocaleString('fr-FR')} XOF`, styles: { fontStyle: 'bold', fontSize: 11 } }],
+            ],
+            theme: 'plain',
+            tableWidth: 'wrap',
+            margin: { left: pageWidth - margin - 80 },
+            styles: {
+                fontSize: 10,
+                cellPadding: { top: 1, right: 0, bottom: 1, left: 0 },
+            },
+            columnStyles: {
+                0: { halign: 'left' },
+                1: { halign: 'right' },
+            }
+        });
 
         doc.save(`bon-de-commande-${order.id}.pdf`);
     };

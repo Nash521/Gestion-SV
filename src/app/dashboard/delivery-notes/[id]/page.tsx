@@ -74,17 +74,22 @@ function exportDeliveryNoteToPDF(note: DeliveryNote) {
             head: [['DESCRIPTION', 'QUANTITÉ']],
             body: tableData,
             theme: 'grid',
-            headStyles: { fillColor: [76, 81, 191] },
+            headStyles: { fillColor: [76, 81, 191], textColor: 255, fontSize: 10 },
+            styles: { fontSize: 9 },
+            columnStyles: {
+                1: { halign: 'right' },
+            }
         });
 
         // Signature section
         const finalY = (doc as any).lastAutoTable.finalY || 150;
+        const signatureY = finalY + 30;
         doc.setFontSize(10);
-        doc.text('Cachet et signature du client (pour réception) :', margin, finalY + 20);
-        doc.rect(margin, finalY + 25, 80, 30); // Signature box for client
+        doc.text('Cachet et signature du client (pour réception) :', margin, signatureY);
+        doc.rect(margin, signatureY + 5, 80, 30); // Signature box for client
 
-        doc.text('Cachet et signature du fournisseur :', pageWidth - margin - 80, finalY + 20);
-        doc.rect(pageWidth - margin - 80, finalY + 25, 80, 30); // Signature box for supplier
+        doc.text('Cachet et signature du fournisseur :', pageWidth - margin - 80, signatureY);
+        doc.rect(pageWidth - margin - 80, signatureY + 5, 80, 30); // Signature box for supplier
 
 
         doc.save(`bon-de-livraison-${note.id}.pdf`);

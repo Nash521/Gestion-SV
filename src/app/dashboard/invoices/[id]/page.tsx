@@ -80,8 +80,8 @@ function exportInvoiceToPDF(invoice: Invoice) {
             index + 1,
             item.description,
             item.quantity,
-            `${item.price.toLocaleString('fr-FR')} XOF`,
-            `${(item.price * item.quantity).toLocaleString('fr-FR')} XOF`
+            item.price.toLocaleString('fr-FR') + ' XOF',
+            (item.price * item.quantity).toLocaleString('fr-FR') + ' XOF'
         ]));
 
         (doc as any).autoTable({
@@ -111,20 +111,29 @@ function exportInvoiceToPDF(invoice: Invoice) {
         const tax = subtotal * (invoice.taxRate / 100);
         const total = subtotal + tax;
 
-        doc.setFontSize(10);
-        doc.text('Sous-total :', pageWidth - margin - 50, finalY + 10, { align: 'left' });
-        doc.text(`${subtotal.toLocaleString('fr-FR')} XOF`, pageWidth - margin, finalY + 10, { align: 'right' });
-        
-        doc.text(`Taxe (${invoice.taxRate}%) :`, pageWidth - margin - 50, finalY + 17, { align: 'left' });
-        doc.text(`${tax.toLocaleString('fr-FR')} XOF`, pageWidth - margin, finalY + 17, { align: 'right' });
-        
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
-        doc.text('NET À PAYER :', pageWidth - margin - 50, finalY + 27, { align: 'left' });
-        doc.text(`${total.toLocaleString('fr-FR')} XOF`, pageWidth - margin, finalY + 27, { align: 'right' });
+        (doc as any).autoTable({
+            startY: finalY + 5,
+            body: [
+                ['Sous-total', `${subtotal.toLocaleString('fr-FR')} XOF`],
+                [`Taxe (${invoice.taxRate}%)`, `${tax.toLocaleString('fr-FR')} XOF`],
+                [{ content: 'NET À PAYER', styles: { fontStyle: 'bold', fontSize: 11 } }, { content: `${total.toLocaleString('fr-FR')} XOF`, styles: { fontStyle: 'bold', fontSize: 11 } }],
+            ],
+            theme: 'plain',
+            tableWidth: 'wrap',
+            margin: { left: pageWidth - margin - 80 },
+            styles: {
+                fontSize: 10,
+                cellPadding: { top: 1, right: 0, bottom: 1, left: 0 },
+            },
+            columnStyles: {
+                0: { halign: 'left' },
+                1: { halign: 'right' },
+            }
+        });
+
 
         // Footer notes
-        const footerY = finalY + 40;
+        const footerY = (doc as any).lastAutoTable.finalY + 15;
         doc.setFillColor(245, 247, 255);
         doc.rect(margin, footerY, pageWidth - (margin * 2), 30, 'F');
         doc.setTextColor(51, 51, 51);
