@@ -44,15 +44,13 @@ const SubcontractorFormDialog = ({
     isOpen,
     setIsOpen,
     onSubmit,
-    subcontractor,
-    children
+    subcontractor
 }: { 
     mode: 'add' | 'edit',
     isOpen: boolean,
     setIsOpen: (open: boolean) => void,
     onSubmit: (data: SubcontractorFormValues) => void,
-    subcontractor?: Subcontractor | null,
-    children?: React.ReactNode // To accept the trigger
+    subcontractor?: Subcontractor | null
 }) => {
     
     const form = useForm<SubcontractorFormValues>({
@@ -102,7 +100,6 @@ const SubcontractorFormDialog = ({
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
-             {children}
             <DialogContent className="sm:max-w-[625px]">
                  <DialogHeader>
                     <DialogTitle>{title}</DialogTitle>
@@ -350,13 +347,7 @@ export default function SubcontractorsPage() {
                 isOpen={isAddDialogOpen}
                 setIsOpen={setIsAddDialogOpen}
                 onSubmit={handleAddSubcontractor}
-            >
-                <DialogTrigger asChild>
-                    <Button size="sm" onClick={() => setIsAddDialogOpen(true)}>
-                        <PlusCircle className="mr-2 h-4 w-4" /> Ajouter un sous-traitant
-                    </Button>
-                </DialogTrigger>
-            </SubcontractorFormDialog>
+            />
 
             <SubcontractorFormDialog 
                 mode="edit"
