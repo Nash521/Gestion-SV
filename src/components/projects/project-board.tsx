@@ -367,7 +367,7 @@ const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators, availabl
 
     return (
          <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogContent className="sm:max-w-[625px]">
+            <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
                     <DialogTitle>{isEditMode ? 'Modifier la tâche' : 'Nouvelle tâche'}</DialogTitle>
                      <DialogDescription>
@@ -515,6 +515,8 @@ export const ProjectBoard = ({ project, initialLists, initialTasks, collaborator
             setTasks(currentTasks => [...currentTasks, newTask]);
             toast({ title: "Tâche ajoutée", description: `La tâche "${newTask.title}" a été créée.` });
         }
+        setEditingTask(null);
+        setIsTaskDialogOpen(false);
     };
     
     const handleLabelsChange = (newLabels: { name: string; color: string }[]) => {
