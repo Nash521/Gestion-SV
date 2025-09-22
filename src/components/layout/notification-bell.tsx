@@ -81,8 +81,8 @@ export function NotificationBell() {
             )}
         </ScrollArea>
         <div className="p-2 border-t text-center">
-            <Button variant="ghost" size="sm" className="w-full text-xs">
-                Voir toutes les notifications
+            <Button variant="ghost" size="sm" className="w-full text-xs" asChild>
+                <Link href="/dashboard/notifications">Voir toutes les notifications</Link>
             </Button>
         </div>
       </PopoverContent>

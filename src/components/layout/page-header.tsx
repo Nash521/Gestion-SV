@@ -17,6 +17,7 @@ const titles: { [key: string]: string } = {
     '/dashboard/collaborators': 'Collaborateurs',
     '/dashboard/accounting': 'Comptabilité',
     '/dashboard/reporting': 'Rapports IA',
+    '/dashboard/notifications': 'Notifications',
 };
 
 export function PageHeader() {
