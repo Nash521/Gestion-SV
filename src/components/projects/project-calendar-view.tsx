@@ -28,6 +28,7 @@ interface ProjectCalendarViewProps {
 }
 
 export function ProjectCalendarView({ tasks, currentView, onViewChange }: ProjectCalendarViewProps) {
+    const [date, setDate] = useState(new Date());
     
     const events = useMemo(() => {
         return tasks
@@ -105,6 +106,8 @@ export function ProjectCalendarView({ tasks, currentView, onViewChange }: Projec
                     defaultView={Views.MONTH}
                     messages={messages}
                     popup
+                    date={date}
+                    onNavigate={(newDate) => setDate(newDate)}
                 />
             </CardContent>
         </Card>
