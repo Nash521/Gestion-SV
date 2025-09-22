@@ -1,10 +1,10 @@
 "use client"
 
 import React, { useState, useEffect, useMemo } from 'react';
-import type { Project, TaskList, ProjectTask, Collaborator, ChecklistItem } from '@/lib/definitions';
+import type { Project, TaskList, ProjectTask, Collaborator, ChecklistItem, Attachment } from '@/lib/definitions';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Plus, Tag, X, Calendar, Paperclip, CheckSquare, CalendarIcon, Settings, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Plus, Tag, X, Calendar, Paperclip, CheckSquare, CalendarIcon, Settings, Trash2, File as FileIcon } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -320,6 +320,7 @@ const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators, availabl
     const [dueDate, setDueDate] = useState<Date | undefined>();
     const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
     const [newChecklistItemText, setNewChecklistItemText] = useState('');
+    const [attachments, setAttachments] = useState<Attachment[]>([]);
     
     const isEditMode = !!task?.id;
     
@@ -337,6 +338,7 @@ const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators, availabl
             setDueDate(task.dueDate ? new Date(task.dueDate) : undefined);
             setLabels(task.labels || []);
             setChecklist(task.checklist ? JSON.parse(JSON.stringify(task.checklist)) : []);
+            setAttachments(task.attachments ? JSON.parse(JSON.stringify(task.attachments)) : []);
             setNewChecklistItemText('');
         } else {
             setTitle('');
@@ -345,6 +347,7 @@ const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators, availabl
             setDueDate(undefined);
             setLabels([]);
             setChecklist([]);
+            setAttachments([]);
             setNewChecklistItemText('');
         }
     }, [isOpen, task]);
@@ -358,6 +361,7 @@ const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators, availabl
             dueDate,
             labels,
             checklist,
+            attachments,
         });
         setIsOpen(false);
     };
@@ -406,6 +410,21 @@ const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators, availabl
         ));
     };
 
+    const handleAddAttachment = () => {
+        // This is a simulation. In a real app, this would open a file picker.
+        const newAttachment: Attachment = {
+            id: `att-${Date.now()}`,
+            name: `document-exemple-${attachments.length + 1}.pdf`,
+            url: '#',
+            type: 'file',
+        };
+        setAttachments(prev => [...prev, newAttachment]);
+    };
+
+    const handleDeleteAttachment = (id: string) => {
+        setAttachments(prev => prev.filter(att => att.id !== id));
+    };
+
     return (
          <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogContent className="sm:max-w-4xl">
@@ -425,7 +444,7 @@ const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators, availabl
                         </div>
                         
                         {isEditMode && (
-                             <div className="space-y-4">
+                             <div className="space-y-6">
                                 <div className="space-y-4">
                                     <div className="flex items-center gap-2">
                                         <CheckSquare className="h-5 w-5" />
@@ -466,9 +485,28 @@ const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators, availabl
                                         <Button type="button" onClick={handleAddChecklistItem} variant="secondary">Ajouter</Button>
                                     </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <Label>Pièces jointes</Label>
-                                    <div className="p-3 border rounded-md bg-muted/50 text-sm text-muted-foreground">Téléchargement de fichiers (bientôt disponible)</div>
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-2">
+                                        <Paperclip className="h-5 w-5" />
+                                        <Label>Pièces jointes</Label>
+                                    </div>
+                                    <div className="space-y-3 pl-6">
+                                        {attachments.map(att => (
+                                            <div key={att.id} className="flex items-center justify-between gap-2 p-2 rounded-md border bg-muted/50 group">
+                                                <div className="flex items-center gap-3">
+                                                    <FileIcon className="h-6 w-6 text-muted-foreground"/>
+                                                    <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium hover:underline">{att.name}</a>
+                                                </div>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteAttachment(att.id)}>
+                                                    <Trash2 className="h-4 w-4"/>
+                                                </Button>
+                                            </div>
+                                        ))}
+                                        <Button type="button" onClick={handleAddAttachment} variant="outline" size="sm">
+                                            Ajouter une pièce jointe
+                                        </Button>
+                                        <p className="text-xs text-muted-foreground">La fonctionnalité de téléversement sera bientôt disponible.</p>
+                                    </div>
                                 </div>
                             </div>
                         )}
