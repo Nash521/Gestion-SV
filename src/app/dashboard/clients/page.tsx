@@ -15,6 +15,10 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
 import { useNotifications } from '@/contexts/notification-context';
+import { addClient, getClients } from '@/lib/firebase/services';
+import { onSnapshot, collection } from 'firebase/firestore';
+import { db } from '@/lib/firebase/client';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 const AddOrEditClientDialog = ({
@@ -111,10 +115,21 @@ export default function ClientsPage() {
   const { currentUser } = useAuth();
   const { addNotification } = useNotifications();
   const searchParams = useSearchParams();
-  const [clients, setClients] = useState<Client[]>(mockClients);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [clientToEdit, setClientToEdit] = useState<Client | null>(null);
   const [clientIdToDelete, setClientIdToDelete] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, "clients"), (snapshot) => {
+        const clientsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Client));
+        setClients(clientsData);
+        setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const handleOpenAddDialog = () => {
     setClientToEdit(null);
@@ -126,33 +141,36 @@ export default function ClientsPage() {
     setIsDialogOpen(true);
   };
 
-  const handleSaveClient = (clientData: Omit<Client, 'id'> | Client) => {
+  const handleSaveClient = async (clientData: Omit<Client, 'id'> | Client) => {
     if ('id' in clientData) {
-        // Edit mode
-        const updatedClient = clientData as Client;
-        setClients(prev => prev.map(c => c.id === updatedClient.id ? updatedClient : c));
-        toast({ title: 'Client modifié', description: `Les informations de ${updatedClient.name} ont été mises à jour.` });
+        // Edit mode - TODO: Implement update logic in services.ts
+        console.log("Editing not implemented yet");
+        // setClients(prev => prev.map(c => c.id === updatedClient.id ? updatedClient : c));
+        // toast({ title: 'Client modifié', description: `Les informations de ${updatedClient.name} ont été mises à jour.` });
 
-        if (currentUser?.role !== 'Admin') {
-            addNotification({
-                actorId: currentUser!.id,
-                actorName: currentUser!.name,
-                message: `a modifié le client ${updatedClient.name}.`,
-            });
-        }
+        // if (currentUser?.role !== 'Admin') {
+        //     addNotification({
+        //         actorId: currentUser!.id,
+        //         actorName: currentUser!.name,
+        //         message: `a modifié le client ${updatedClient.name}.`,
+        //     });
+        // }
 
     } else {
         // Add mode
-        const newClient = { ...clientData, id: `client-${Date.now()}` };
-        setClients(prev => [newClient, ...prev]);
-        toast({ title: 'Client ajouté', description: `${newClient.name} a été ajouté à votre liste.` });
-        
-        if (currentUser?.role !== 'Admin') {
-            addNotification({
-                actorId: currentUser!.id,
-                actorName: currentUser!.name,
-                message: `a ajouté un nouveau client : ${newClient.name}.`,
-            });
+        try {
+            await addClient(clientData);
+            toast({ title: 'Client ajouté', description: `${clientData.name} a été ajouté à votre liste.` });
+            if (currentUser?.role !== 'Admin') {
+                addNotification({
+                    actorId: currentUser!.id,
+                    actorName: currentUser!.name,
+                    message: `a ajouté un nouveau client : ${clientData.name}.`,
+                });
+            }
+        } catch (error) {
+            console.error("Error adding client: ", error);
+            toast({ variant: 'destructive', title: 'Erreur', description: "Impossible d'ajouter le client." });
         }
     }
   };
@@ -163,23 +181,25 @@ export default function ClientsPage() {
 
   const handleConfirmDelete = () => {
     if (!clientIdToDelete) return;
-    const clientToDelete = clients.find(c => c.id === clientIdToDelete);
-    if (!clientToDelete) return;
+    // TODO: Implement delete logic in services.ts
+    console.log("Deleting not implemented yet");
+    // const clientToDelete = clients.find(c => c.id === clientIdToDelete);
+    // if (!clientToDelete) return;
 
-    setClients(prev => prev.filter(c => c.id !== clientIdToDelete));
-    toast({
-        variant: 'destructive',
-        title: 'Client supprimé',
-        description: `${clientToDelete.name} a été supprimé.`,
-    });
+    // setClients(prev => prev.filter(c => c.id !== clientIdToDelete));
+    // toast({
+    //     variant: 'destructive',
+    //     title: 'Client supprimé',
+    //     description: `${clientToDelete.name} a été supprimé.`,
+    // });
     
-    if (currentUser?.role !== 'Admin') {
-        addNotification({
-            actorId: currentUser!.id,
-            actorName: currentUser!.name,
-            message: `a supprimé le client ${clientToDelete.name}.`,
-        });
-    }
+    // if (currentUser?.role !== 'Admin') {
+    //     addNotification({
+    //         actorId: currentUser!.id,
+    //         actorName: currentUser!.name,
+    //         message: `a supprimé le client ${clientToDelete.name}.`,
+    //     });
+    // }
 
     setClientIdToDelete(null);
   };
@@ -194,6 +214,20 @@ export default function ClientsPage() {
       client.email.toLowerCase().includes(searchQuery)
     );
   }, [clients, searchQuery]);
+
+  const ClientListSkeleton = () => (
+    <TableBody>
+        {[...Array(5)].map((_, i) => (
+             <TableRow key={i}>
+                <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-40" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-48" /></TableCell>
+                <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+            </TableRow>
+        ))}
+    </TableBody>
+  );
 
 
   return (
@@ -243,6 +277,7 @@ export default function ClientsPage() {
                 <TableHead className="w-[50px] text-right">Actions</TableHead>
                 </TableRow>
             </TableHeader>
+            {isLoading ? <ClientListSkeleton /> : (
             <TableBody>
                 {filteredClients.map((client) => (
                 <TableRow key={client.id}>
@@ -289,8 +324,9 @@ export default function ClientsPage() {
                 </TableRow>
                 ))}
             </TableBody>
+            )}
             </Table>
-            {filteredClients.length === 0 && (
+            {!isLoading && filteredClients.length === 0 && (
             <div className="text-center py-10 text-muted-foreground">
                 Aucun client trouvé.
             </div>
