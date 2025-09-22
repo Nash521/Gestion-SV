@@ -9,6 +9,8 @@ import { format, isPast } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
+import { Button } from '../ui/button';
+import { LayoutGrid, List, Calendar as CalendarSwitchIcon } from 'lucide-react';
 
 const initialLabels = [
     { name: 'Urgent', color: 'bg-red-500' },
@@ -23,9 +25,11 @@ interface ProjectTableViewProps {
   tasks: ProjectTask[];
   lists: TaskList[];
   collaborators: Collaborator[];
+  currentView: 'board' | 'table' | 'calendar';
+  onViewChange: (view: 'board' | 'table' | 'calendar') => void;
 }
 
-export function ProjectTableView({ tasks, lists, collaborators }: ProjectTableViewProps) {
+export function ProjectTableView({ tasks, lists, collaborators, currentView, onViewChange }: ProjectTableViewProps) {
     const listMap = useMemo(() => {
         return new Map(lists.map(list => [list.id, list.title]));
     }, [lists]);
@@ -40,9 +44,40 @@ export function ProjectTableView({ tasks, lists, collaborators }: ProjectTableVi
 
     return (
         <Card className="m-4 flex-1">
-            <CardHeader>
-                 <CardTitle>Vue Tableau</CardTitle>
-                 <CardDescription>Une vue d'ensemble de toutes les tâches du projet.</CardDescription>
+            <CardHeader className="flex-row items-center justify-between">
+                <div>
+                    <CardTitle>Vue Tableau</CardTitle>
+                    <CardDescription>Une vue d'ensemble de toutes les tâches du projet.</CardDescription>
+                </div>
+                 <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
+                    <Button
+                        variant={currentView === 'board' ? 'secondary' : 'ghost'}
+                        size="sm"
+                        onClick={() => onViewChange('board')}
+                        className="px-3 h-8"
+                        >
+                        <LayoutGrid className="mr-2 h-4 w-4" />
+                        Kanban
+                    </Button>
+                    <Button
+                        variant={currentView === 'table' ? 'secondary' : 'ghost'}
+                        size="sm"
+                        onClick={() => onViewChange('table')}
+                        className="px-3 h-8"
+                        >
+                        <List className="mr-2 h-4 w-4" />
+                        Tableau
+                    </Button>
+                    <Button
+                        variant={currentView === 'calendar' ? 'secondary' : 'ghost'}
+                        size="sm"
+                        onClick={() => onViewChange('calendar')}
+                        className="px-3 h-8"
+                        >
+                        <CalendarSwitchIcon className="mr-2 h-4 w-4" />
+                        Calendrier
+                    </Button>
+                </div>
             </CardHeader>
             <CardContent>
                 <div className="border rounded-lg overflow-hidden">

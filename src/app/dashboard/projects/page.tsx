@@ -5,7 +5,6 @@ import { ProjectBoard } from '@/components/projects/project-board';
 import { ProjectTableView } from '@/components/projects/project-table-view';
 import { ProjectCalendarView } from '@/components/projects/project-calendar-view';
 import { mockProjects, mockTaskLists, mockTasks, mockCollaborators } from '@/lib/data';
-import { ProjectViewSwitcher } from '@/components/projects/project-view-switcher';
 
 export default function ProjectsPage() {
     const [view, setView] = useState<'board' | 'table' | 'calendar'>('board');
@@ -22,6 +21,8 @@ export default function ProjectsPage() {
                         initialLists={lists}
                         initialTasks={tasks}
                         collaborators={mockCollaborators}
+                        currentView={view}
+                        onViewChange={setView}
                     />
                 );
             case 'table':
@@ -30,12 +31,16 @@ export default function ProjectsPage() {
                         tasks={tasks}
                         lists={lists}
                         collaborators={mockCollaborators}
+                        currentView={view}
+                        onViewChange={setView}
                     />
                  );
             case 'calendar':
                 return (
                     <ProjectCalendarView
                         tasks={tasks}
+                        currentView={view}
+                        onViewChange={setView}
                     />
                 );
             default:
@@ -45,7 +50,6 @@ export default function ProjectsPage() {
 
     return (
         <div className="h-full flex flex-col">
-             <ProjectViewSwitcher currentView={view} onViewChange={setView} />
              {renderView()}
         </div>
     );

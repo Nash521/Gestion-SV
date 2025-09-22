@@ -6,6 +6,8 @@ import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { ProjectTask } from '@/lib/definitions';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
+import { Button } from '../ui/button';
+import { LayoutGrid, List, Calendar as CalendarSwitchIcon } from 'lucide-react';
 
 const locales = {
   'fr': fr,
@@ -21,9 +23,11 @@ const localizer = dateFnsLocalizer({
 
 interface ProjectCalendarViewProps {
   tasks: ProjectTask[];
+  currentView: 'board' | 'table' | 'calendar';
+  onViewChange: (view: 'board' | 'table' | 'calendar') => void;
 }
 
-export function ProjectCalendarView({ tasks }: ProjectCalendarViewProps) {
+export function ProjectCalendarView({ tasks, currentView, onViewChange }: ProjectCalendarViewProps) {
     
     const events = useMemo(() => {
         return tasks
@@ -55,9 +59,40 @@ export function ProjectCalendarView({ tasks }: ProjectCalendarViewProps) {
 
     return (
         <Card className="m-4 flex-1">
-            <CardHeader>
-                 <CardTitle>Vue Calendrier</CardTitle>
-                 <CardDescription>Visualisez les échéances de vos tâches sur le mois.</CardDescription>
+            <CardHeader className="flex-row items-center justify-between">
+                <div>
+                    <CardTitle>Vue Calendrier</CardTitle>
+                    <CardDescription>Visualisez les échéances de vos tâches sur le mois.</CardDescription>
+                </div>
+                 <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
+                    <Button
+                        variant={currentView === 'board' ? 'secondary' : 'ghost'}
+                        size="sm"
+                        onClick={() => onViewChange('board')}
+                        className="px-3 h-8"
+                        >
+                        <LayoutGrid className="mr-2 h-4 w-4" />
+                        Kanban
+                    </Button>
+                    <Button
+                        variant={currentView === 'table' ? 'secondary' : 'ghost'}
+                        size="sm"
+                        onClick={() => onViewChange('table')}
+                        className="px-3 h-8"
+                        >
+                        <List className="mr-2 h-4 w-4" />
+                        Tableau
+                    </Button>
+                    <Button
+                        variant={currentView === 'calendar' ? 'secondary' : 'ghost'}
+                        size="sm"
+                        onClick={() => onViewChange('calendar')}
+                        className="px-3 h-8"
+                        >
+                        <CalendarSwitchIcon className="mr-2 h-4 w-4" />
+                        Calendrier
+                    </Button>
+                </div>
             </CardHeader>
             <CardContent>
                 <Calendar

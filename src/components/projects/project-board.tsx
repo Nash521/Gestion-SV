@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import type { Project, TaskList, ProjectTask, Collaborator, ChecklistItem, Attachment } from '@/lib/definitions';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Plus, Tag, X, Calendar, Paperclip, CheckSquare, CalendarIcon, Settings, Trash2, File as FileIcon } from 'lucide-react';
+import { MoreHorizontal, Plus, Tag, X, Calendar as CalendarSwitchIcon, Paperclip, CheckSquare, CalendarIcon, Settings, Trash2, File as FileIcon, LayoutGrid, List } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -24,7 +24,7 @@ import { Progress } from '../ui/progress';
 import { format, differenceInDays, isPast } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { Calendar as CalendarComponent } from '../ui/calendar';
+import { Calendar } from '../ui/calendar';
 import { cn } from '@/lib/utils';
 import {
   AlertDialog,
@@ -140,7 +140,7 @@ const TaskCard = ({ task, collaborators, onTaskClick, availableLabels }: TaskCar
                         "text-red-600 dark:text-red-500 font-semibold": dueDateStatus === 'overdue',
                         "text-orange-600 dark:text-orange-500 font-semibold": dueDateStatus === 'due-soon',
                     })}>
-                    <Calendar className="h-3 w-3" />
+                    <CalendarIcon className="h-3 w-3" />
                     <span>{format(new Date(task.dueDate), 'd MMM', { locale: fr })}</span>
                 </div>
             )}
@@ -638,7 +638,7 @@ const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators, availabl
                                             </Button>
                                         </PopoverTrigger>
                                         <PopoverContent className="w-auto p-0">
-                                            <CalendarComponent
+                                            <Calendar
                                                 mode="single"
                                                 selected={dueDate}
                                                 onSelect={setDueDate}
@@ -666,9 +666,11 @@ interface ProjectBoardProps {
   initialLists: TaskList[];
   initialTasks: ProjectTask[];
   collaborators: Collaborator[];
+  currentView: 'board' | 'table' | 'calendar';
+  onViewChange: (view: 'board' | 'table' | 'calendar') => void;
 }
 
-export const ProjectBoard = ({ project, initialLists, initialTasks, collaborators }: ProjectBoardProps) => {
+export const ProjectBoard = ({ project, initialLists, initialTasks, collaborators, currentView, onViewChange }: ProjectBoardProps) => {
     const { toast } = useToast();
     const [lists, setLists] = useState<TaskList[]>(initialLists.sort((a, b) => a.order - b.order));
     const [tasks, setTasks] = useState<ProjectTask[]>(initialTasks);
@@ -816,7 +818,36 @@ export const ProjectBoard = ({ project, initialLists, initialTasks, collaborator
                 <h1 className="text-xl font-bold">{project.name}</h1>
                 {project.description && <p className="text-sm text-muted-foreground mt-1">{project.description}</p>}
               </div>
-              <div>
+              <div className="flex items-center gap-4">
+                 <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
+                    <Button
+                        variant={currentView === 'board' ? 'secondary' : 'ghost'}
+                        size="sm"
+                        onClick={() => onViewChange('board')}
+                        className="px-3 h-8"
+                        >
+                        <LayoutGrid className="mr-2 h-4 w-4" />
+                        Kanban
+                    </Button>
+                    <Button
+                        variant={currentView === 'table' ? 'secondary' : 'ghost'}
+                        size="sm"
+                        onClick={() => onViewChange('table')}
+                        className="px-3 h-8"
+                        >
+                        <List className="mr-2 h-4 w-4" />
+                        Tableau
+                    </Button>
+                    <Button
+                        variant={currentView === 'calendar' ? 'secondary' : 'ghost'}
+                        size="sm"
+                        onClick={() => onViewChange('calendar')}
+                        className="px-3 h-8"
+                        >
+                        <CalendarSwitchIcon className="mr-2 h-4 w-4" />
+                        Calendrier
+                    </Button>
+                </div>
                 <Button variant="outline" size="sm" onClick={() => setIsLabelManagerOpen(true)}>
                     <Tag className="mr-2 h-4 w-4" />
                     Gérer les étiquettes
