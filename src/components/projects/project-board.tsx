@@ -21,7 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
 import { Progress } from '../ui/progress';
-import { format } from 'date-fns';
+import { format, differenceInDays, isPast } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Calendar as CalendarComponent } from '../ui/calendar';
@@ -91,6 +91,18 @@ const TaskCard = ({ task, collaborators, onTaskClick, availableLabels }: TaskCar
     return { completed, total, percentage: total > 0 ? (completed / total) * 100 : 0 };
   }, [task.checklist]);
 
+  const dueDateStatus = useMemo(() => {
+    if (!task.dueDate) return null;
+    const today = new Date();
+    const dueDate = new Date(task.dueDate);
+    const daysDiff = differenceInDays(dueDate, today);
+
+    if (isPast(dueDate) && daysDiff < 0) return 'overdue';
+    if (daysDiff <= 3 && daysDiff >= 0) return 'due-soon';
+    return null;
+  }, [task.dueDate]);
+
+
   if (isDragging) {
     return (
         <div
@@ -124,9 +136,12 @@ const TaskCard = ({ task, collaborators, onTaskClick, availableLabels }: TaskCar
             
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
             {task.dueDate && (
-                <div className="flex items-center gap-1">
-                <Calendar className="h-3 w-3" />
-                <span>{format(new Date(task.dueDate), 'd MMM', { locale: fr })}</span>
+                 <div className={cn("flex items-center gap-1", {
+                        "text-red-600 dark:text-red-500 font-semibold": dueDateStatus === 'overdue',
+                        "text-orange-600 dark:text-orange-500 font-semibold": dueDateStatus === 'due-soon',
+                    })}>
+                    <Calendar className="h-3 w-3" />
+                    <span>{format(new Date(task.dueDate), 'd MMM', { locale: fr })}</span>
                 </div>
             )}
             {checklistProgress && checklistProgress.total > 0 && (
@@ -757,8 +772,9 @@ export const ProjectBoard = ({ project, initialLists, initialTasks, collaborator
                 const overIndex = tasks.findIndex((t) => t.id === over.id);
 
                 if (tasks[activeIndex].listId !== tasks[overIndex].listId) {
-                    tasks[activeIndex].listId = tasks[overIndex].listId;
-                    return arrayMove(tasks, activeIndex, overIndex - 1);
+                    const newItems = [...tasks];
+                    newItems[activeIndex].listId = tasks[overIndex].listId;
+                    return arrayMove(newItems, activeIndex, overIndex - 1);
                 }
                 
                 return arrayMove(tasks, activeIndex, overIndex);
@@ -770,8 +786,9 @@ export const ProjectBoard = ({ project, initialLists, initialTasks, collaborator
         if (isActiveATask && isOverAList) {
              setTasks((tasks) => {
                 const activeIndex = tasks.findIndex((t) => t.id === active.id);
-                tasks[activeIndex].listId = over.id as string;
-                return arrayMove(tasks, activeIndex, activeIndex);
+                const newItems = [...tasks];
+                newItems[activeIndex].listId = over.id as string;
+                return arrayMove(newItems, activeIndex, activeIndex);
             });
         }
     }
