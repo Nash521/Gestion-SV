@@ -1,10 +1,10 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import type { Project, TaskList, ProjectTask, Collaborator } from '@/lib/definitions';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Plus, Tag, X } from 'lucide-react';
+import { MoreHorizontal, Plus, Tag, X, Calendar, Paperclip, CheckSquare } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -20,6 +20,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
+import { Progress } from '../ui/progress';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 interface TaskCardProps {
   task: ProjectTask;
@@ -30,6 +33,13 @@ interface TaskCardProps {
 const TaskCard = ({ task, collaborators, onTaskClick }: TaskCardProps) => {
   const assignees = collaborators.filter(c => task.assigneeIds?.includes(c.id));
   
+  const checklistProgress = useMemo(() => {
+    if (!task.checklist || task.checklist.length === 0) return null;
+    const completed = task.checklist.filter(item => item.completed).length;
+    const total = task.checklist.length;
+    return { completed, total, percentage: (completed / total) * 100 };
+  }, [task.checklist]);
+
   const labelColors: { [key: string]: string } = {
     'Urgent': 'bg-red-500',
     'Design': 'bg-purple-500',
@@ -42,9 +52,9 @@ const TaskCard = ({ task, collaborators, onTaskClick }: TaskCardProps) => {
       className="mb-4 bg-background/80 backdrop-blur-sm hover:shadow-lg transition-shadow duration-200 cursor-pointer"
       onClick={() => onTaskClick(task)}
     >
-      <CardContent className="p-3">
+      <CardContent className="p-3 space-y-3">
         {task.labels && task.labels.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-2">
+          <div className="flex flex-wrap gap-1">
             {task.labels.map(label => (
               <span key={label} className={`px-2 py-0.5 text-xs font-semibold text-white rounded-full ${labelColors[label] || 'bg-gray-400'}`}>
                 {label}
@@ -52,11 +62,34 @@ const TaskCard = ({ task, collaborators, onTaskClick }: TaskCardProps) => {
             ))}
           </div>
         )}
-        <p className="font-medium text-sm mb-2">{task.title}</p>
-        {task.content && (
-            <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{task.content}</p>
+        <p className="font-medium text-sm">{task.title}</p>
+        
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
+          {task.dueDate && (
+            <div className="flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
+              <span>{format(task.dueDate, 'd MMM', { locale: fr })}</span>
+            </div>
+          )}
+          {checklistProgress && (
+             <div className="flex items-center gap-1">
+                <CheckSquare className="h-3 w-3" />
+                <span>{checklistProgress.completed}/{checklistProgress.total}</span>
+            </div>
+          )}
+          {task.attachments && task.attachments.length > 0 && (
+            <div className="flex items-center gap-1">
+              <Paperclip className="h-3 w-3" />
+              <span>{task.attachments.length}</span>
+            </div>
+          )}
+        </div>
+
+        {checklistProgress && (
+            <Progress value={checklistProgress.percentage} className="h-1" />
         )}
-        <div className="flex items-center justify-between">
+        
+        <div className="flex items-center justify-between pt-1">
            <div className="flex -space-x-2">
                 {assignees.map(assignee => (
                     <Avatar key={assignee.id} className="h-6 w-6 border-2 border-background">
@@ -196,6 +229,26 @@ const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators }: TaskDi
                             ))}
                         </div>
                     </div>
+                    {isEditMode && (
+                        <div className="space-y-6">
+                            <div className="space-y-2">
+                                <Label>Étiquettes</Label>
+                                <div className="p-3 border rounded-md bg-muted/50 text-sm text-muted-foreground">Gestion des étiquettes (bientôt disponible)</div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Date d'échéance</Label>
+                                <div className="p-3 border rounded-md bg-muted/50 text-sm text-muted-foreground">Calendrier (bientôt disponible)</div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Checklist</Label>
+                                <div className="p-3 border rounded-md bg-muted/50 text-sm text-muted-foreground">Ajout de sous-tâches (bientôt disponible)</div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Pièces jointes</Label>
+                                <div className="p-3 border rounded-md bg-muted/50 text-sm text-muted-foreground">Téléchargement de fichiers (bientôt disponible)</div>
+                            </div>
+                        </div>
+                    )}
                 </div>
                 <DialogFooter>
                     <DialogClose asChild>

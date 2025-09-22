@@ -26,12 +26,28 @@ export const mockTaskLists: TaskList[] = [
 
 export const mockTasks: ProjectTask[] = [
     // "À faire"
-    { id: 'task-1', listId: 'list-1', title: 'Définir les spécifications fonctionnelles', order: 1, labels: ['Urgent'], assigneeIds: ['user-1'] },
-    { id: 'task-2', listId: 'list-1', title: 'Créer les maquettes UI/UX', order: 2, labels: ['Design'], assigneeIds: ['user-2'] },
+    { id: 'task-1', listId: 'list-1', title: 'Définir les spécifications fonctionnelles', order: 1, labels: ['Urgent'], assigneeIds: ['user-1'], dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000) },
+    { id: 'task-2', listId: 'list-1', title: 'Créer les maquettes UI/UX', order: 2, labels: ['Design'], assigneeIds: ['user-2'], dueDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000) },
     { id: 'task-3', listId: 'list-1', title: 'Mettre en place l\'environnement de développement', order: 3, labels: ['Tech'], assigneeIds: ['user-3'] },
     
     // "En cours"
-    { id: 'task-4', listId: 'list-2', title: 'Développer la page d\'accueil', content: 'Intégrer le nouveau design et les animations.', order: 1, labels: ['Dev'], assigneeIds: ['user-3'] },
+    { 
+        id: 'task-4', 
+        listId: 'list-2', 
+        title: 'Développer la page d\'accueil', 
+        content: 'Intégrer le nouveau design et les animations.', 
+        order: 1, 
+        labels: ['Dev'], 
+        assigneeIds: ['user-3'],
+        checklist: [
+            { id: 'cl-1', text: 'Intégrer le header', completed: true },
+            { id: 'cl-2', text: 'Ajouter la section "hero"', completed: false },
+            { id: 'cl-3', text: 'Connecter les données', completed: false },
+        ],
+        attachments: [
+            { id: 'att-1', name: 'maquette-accueil.jpg', url: '#', type: 'image' }
+        ]
+    },
     { id: 'task-5', listId: 'list-2', title: 'Concevoir le logo', order: 2, labels: ['Design'], assigneeIds: ['user-2'] },
 
     // "En revue"

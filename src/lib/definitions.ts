@@ -84,6 +84,19 @@ export type Subcontractor = {
   services: SubcontractorService[];
 };
 
+export type ChecklistItem = {
+  id: string;
+  text: string;
+  completed: boolean;
+};
+
+export type Attachment = {
+  id: string;
+  name: string;
+  url: string;
+  type: 'image' | 'file' | 'link';
+};
+
 export type ProjectTask = {
   id: string;
   listId: string;
@@ -92,6 +105,9 @@ export type ProjectTask = {
   order: number;
   labels?: string[];
   assigneeIds?: string[];
+  dueDate?: Date;
+  checklist?: ChecklistItem[];
+  attachments?: Attachment[];
 };
 
 export type TaskList = {
