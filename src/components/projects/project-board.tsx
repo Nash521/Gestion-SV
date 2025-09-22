@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import type { Project, TaskList, ProjectTask, Collaborator } from '@/lib/definitions';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Plus, Tag, X, Calendar, Paperclip, CheckSquare, CalendarIcon } from 'lucide-react';
+import { MoreHorizontal, Plus, Tag, X, Calendar, Paperclip, CheckSquare, CalendarIcon, Settings, Trash2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -26,24 +26,37 @@ import { fr } from 'date-fns/locale';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Calendar as CalendarComponent } from '../ui/calendar';
 import { cn } from '@/lib/utils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
-const availableLabels = ['Urgent', 'Design', 'Tech', 'Dev', 'Marketing', 'Bug'];
-const labelColors: { [key: string]: string } = {
-    'Urgent': 'bg-red-500',
-    'Design': 'bg-purple-500',
-    'Tech': 'bg-blue-500',
-    'Dev': 'bg-green-500',
-    'Marketing': 'bg-orange-500',
-    'Bug': 'bg-pink-500',
-};
+const initialLabels = [
+    { name: 'Urgent', color: 'bg-red-500' },
+    { name: 'Design', color: 'bg-purple-500' },
+    { name: 'Tech', color: 'bg-blue-500' },
+    { name: 'Dev', color: 'bg-green-500' },
+    { name: 'Marketing', color: 'bg-orange-500' },
+    { name: 'Bug', color: 'bg-pink-500' },
+];
+
+const colorPalette = ['bg-red-500', 'bg-purple-500', 'bg-blue-500', 'bg-green-500', 'bg-orange-500', 'bg-pink-500', 'bg-yellow-500', 'bg-indigo-500', 'bg-teal-500'];
 
 interface TaskCardProps {
   task: ProjectTask;
   collaborators: Collaborator[];
   onTaskClick: (task: ProjectTask) => void;
+  availableLabels: { name: string; color: string }[];
 }
 
-const TaskCard = ({ task, collaborators, onTaskClick }: TaskCardProps) => {
+const TaskCard = ({ task, collaborators, onTaskClick, availableLabels }: TaskCardProps) => {
   const assignees = collaborators.filter(c => task.assigneeIds?.includes(c.id));
   
   const checklistProgress = useMemo(() => {
@@ -61,11 +74,14 @@ const TaskCard = ({ task, collaborators, onTaskClick }: TaskCardProps) => {
       <CardContent className="p-3 space-y-3">
         {task.labels && task.labels.length > 0 && (
           <div className="flex flex-wrap gap-1">
-            {task.labels.map(label => (
-              <span key={label} className={`px-2 py-0.5 text-xs font-semibold text-white rounded-full ${labelColors[label] || 'bg-gray-400'}`}>
-                {label}
-              </span>
-            ))}
+            {task.labels.map(labelName => {
+              const labelInfo = availableLabels.find(l => l.name === labelName);
+              return (
+                <span key={labelName} className={`px-2 py-0.5 text-xs font-semibold text-white rounded-full ${labelInfo?.color || 'bg-gray-400'}`}>
+                  {labelName}
+                </span>
+              )
+            })}
           </div>
         )}
         <p className="font-medium text-sm">{task.title}</p>
@@ -116,9 +132,10 @@ interface TaskListColumnProps {
   collaborators: Collaborator[];
   onTaskClick: (task: ProjectTask) => void;
   onAddTask: (listId: string) => void;
+  availableLabels: { name: string; color: string }[];
 }
 
-const TaskListColumn = ({ list, tasks, collaborators, onTaskClick, onAddTask }: TaskListColumnProps) => {
+const TaskListColumn = ({ list, tasks, collaborators, onTaskClick, onAddTask, availableLabels }: TaskListColumnProps) => {
   return (
     <div className="flex-shrink-0 w-80 bg-muted/60 rounded-xl p-3 flex flex-col">
       <div className="flex items-center justify-between mb-4 px-1">
@@ -139,7 +156,7 @@ const TaskListColumn = ({ list, tasks, collaborators, onTaskClick, onAddTask }: 
       <ScrollArea className="flex-1 -mx-3 px-3">
         <div className="pr-1">
           {tasks.map(task => (
-            <TaskCard key={task.id} task={task} collaborators={collaborators} onTaskClick={onTaskClick} />
+            <TaskCard key={task.id} task={task} collaborators={collaborators} onTaskClick={onTaskClick} availableLabels={availableLabels} />
           ))}
         </div>
       </ScrollArea>
@@ -150,6 +167,141 @@ const TaskListColumn = ({ list, tasks, collaborators, onTaskClick, onAddTask }: 
   );
 };
 
+interface LabelManagerDialogProps {
+    isOpen: boolean;
+    setIsOpen: (open: boolean) => void;
+    labels: { name: string; color: string }[];
+    onLabelsChange: (labels: { name: string; color: string }[]) => void;
+}
+
+const LabelManagerDialog = ({ isOpen, setIsOpen, labels, onLabelsChange }: LabelManagerDialogProps) => {
+    const { toast } = useToast();
+    const [editingLabels, setEditingLabels] = useState(labels);
+    const [newLabelName, setNewLabelName] = useState('');
+    const [newLabelColor, setNewLabelColor] = useState(colorPalette[0]);
+
+    useEffect(() => {
+        setEditingLabels(labels);
+    }, [labels, isOpen]);
+
+    const handleAddLabel = () => {
+        if (!newLabelName) {
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Le nom de l\'étiquette ne peut pas être vide.' });
+            return;
+        }
+        if (editingLabels.some(l => l.name.toLowerCase() === newLabelName.toLowerCase())) {
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Cette étiquette existe déjà.' });
+            return;
+        }
+        setEditingLabels([...editingLabels, { name: newLabelName, color: newLabelColor }]);
+        setNewLabelName('');
+    };
+
+    const handleUpdateLabel = (index: number, newName: string, newColor: string) => {
+        const updatedLabels = [...editingLabels];
+        updatedLabels[index] = { name: newName, color: newColor };
+        setEditingLabels(updatedLabels);
+    };
+
+    const handleDeleteLabel = (index: number) => {
+        const updatedLabels = editingLabels.filter((_, i) => i !== index);
+        setEditingLabels(updatedLabels);
+    };
+
+    const handleSaveChanges = () => {
+        onLabelsChange(editingLabels);
+        setIsOpen(false);
+        toast({ title: 'Succès', description: 'Les étiquettes ont été mises à jour.' });
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogContent className="sm:max-w-[525px]">
+                <DialogHeader>
+                    <DialogTitle>Gérer les étiquettes</DialogTitle>
+                    <DialogDescription>Ajoutez, modifiez ou supprimez les étiquettes pour ce projet.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+                    {editingLabels.map((label, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                            <Input
+                                value={label.name}
+                                onChange={(e) => handleUpdateLabel(index, e.target.value, label.color)}
+                                className="flex-1"
+                            />
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" size="icon" className="w-10 h-10">
+                                        <div className={cn("w-4 h-4 rounded-full", label.color)}></div>
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent>
+                                    <div className="p-2 grid grid-cols-3 gap-2">
+                                    {colorPalette.map(color => (
+                                        <Button key={color} variant="outline" size="icon" className="w-8 h-8" onClick={() => handleUpdateLabel(index, label.name, color)}>
+                                            <div className={cn("w-4 h-4 rounded-full", color)}></div>
+                                        </Button>
+                                    ))}
+                                    </div>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                            <AlertDialog>
+                               <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                               </AlertDialogTrigger>
+                               <AlertDialogContent>
+                                 <AlertDialogHeader>
+                                   <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+                                   <AlertDialogDescription>
+                                     La suppression de cette étiquette la retirera de toutes les tâches associées. Cette action est irréversible.
+                                   </AlertDialogDescription>
+                                 </AlertDialogHeader>
+                                 <AlertDialogFooter>
+                                   <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                   <AlertDialogAction onClick={() => handleDeleteLabel(index)}>Supprimer</AlertDialogAction>
+                                 </AlertDialogFooter>
+                               </AlertDialogContent>
+                            </AlertDialog>
+                        </div>
+                    ))}
+                </div>
+                 <div className="space-y-2 border-t pt-4">
+                     <h4 className="font-medium">Nouvelle étiquette</h4>
+                     <div className="flex items-center gap-2">
+                        <Input
+                            placeholder="Nom de l'étiquette"
+                            value={newLabelName}
+                            onChange={(e) => setNewLabelName(e.target.value)}
+                            className="flex-1"
+                        />
+                         <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="icon" className="w-10 h-10">
+                                    <div className={cn("w-4 h-4 rounded-full", newLabelColor)}></div>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                                <div className="p-2 grid grid-cols-3 gap-2">
+                                {colorPalette.map(color => (
+                                    <Button key={color} variant="outline" size="icon" className="w-8 h-8" onClick={() => setNewLabelColor(color)}>
+                                        <div className={cn("w-4 h-4 rounded-full", color)}></div>
+                                    </Button>
+                                ))}
+                                </div>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                        <Button onClick={handleAddLabel}>Ajouter</Button>
+                     </div>
+                 </div>
+                <DialogFooter className="mt-4">
+                    <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>Annuler</Button>
+                    <Button onClick={handleSaveChanges}>Enregistrer les modifications</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
 
 interface TaskDialogProps {
   isOpen: boolean;
@@ -157,9 +309,10 @@ interface TaskDialogProps {
   onSubmit: (data: Partial<ProjectTask>) => void;
   task: Partial<ProjectTask> | null;
   collaborators: Collaborator[];
+  availableLabels: { name: string; color: string }[];
 }
 
-const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators }: TaskDialogProps) => {
+const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators, availableLabels }: TaskDialogProps) => {
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
@@ -204,11 +357,11 @@ const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators }: TaskDi
         }
     }
     
-    const handleLabelToggle = (label: string) => {
+    const handleLabelToggle = (labelName: string) => {
         setLabels(prev => 
-            prev.includes(label) 
-                ? prev.filter(l => l !== label)
-                : [...prev, label]
+            prev.includes(labelName) 
+                ? prev.filter(l => l !== labelName)
+                : [...prev, labelName]
         );
     }
 
@@ -258,16 +411,16 @@ const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators }: TaskDi
                                 <div className="flex flex-wrap gap-2">
                                     {availableLabels.map(label => (
                                         <button
-                                            key={label}
-                                            onClick={() => handleLabelToggle(label)}
+                                            key={label.name}
+                                            onClick={() => handleLabelToggle(label.name)}
                                             className={cn(
                                                 "px-3 py-1 text-xs font-semibold rounded-full transition-all border",
-                                                labels.includes(label)
-                                                    ? `${labelColors[label]} text-white border-transparent`
+                                                labels.includes(label.name)
+                                                    ? `${label.color} text-white border-transparent`
                                                     : "bg-transparent border-border hover:border-foreground/50"
                                             )}
                                         >
-                                            {label}
+                                            {label.name}
                                         </button>
                                     ))}
                                 </div>
@@ -335,6 +488,9 @@ export const ProjectBoard = ({ project, initialLists, initialTasks, collaborator
     const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
     const [editingTask, setEditingTask] = useState<Partial<ProjectTask> | null>(null);
 
+    const [availableLabels, setAvailableLabels] = useState(initialLabels);
+    const [isLabelManagerOpen, setIsLabelManagerOpen] = useState(false);
+
     const handleOpenTaskDialog = (task: ProjectTask) => {
         setEditingTask(task);
         setIsTaskDialogOpen(true);
@@ -360,6 +516,20 @@ export const ProjectBoard = ({ project, initialLists, initialTasks, collaborator
             toast({ title: "Tâche ajoutée", description: `La tâche "${newTask.title}" a été créée.` });
         }
     };
+    
+    const handleLabelsChange = (newLabels: { name: string; color: string }[]) => {
+        const oldLabels = availableLabels;
+        setAvailableLabels(newLabels);
+
+        // Update tasks that used a deleted or renamed label
+        const deletedLabelNames = oldLabels.filter(ol => !newLabels.some(nl => nl.name === ol.name)).map(l => l.name);
+        if (deletedLabelNames.length > 0) {
+            setTasks(currentTasks => currentTasks.map(task => ({
+                ...task,
+                labels: task.labels?.filter(l => !deletedLabelNames.includes(l))
+            })));
+        }
+    };
 
 
   return (
@@ -370,11 +540,26 @@ export const ProjectBoard = ({ project, initialLists, initialTasks, collaborator
           onSubmit={handleTaskSubmit}
           task={editingTask}
           collaborators={collaborators}
+          availableLabels={availableLabels}
       />
+       <LabelManagerDialog
+          isOpen={isLabelManagerOpen}
+          setIsOpen={setIsLabelManagerOpen}
+          labels={availableLabels}
+          onLabelsChange={handleLabelsChange}
+        />
       <div className="flex-1 flex flex-col overflow-hidden h-full">
-          <div className="p-4 bg-background border-b">
-              <h1 className="text-xl font-bold">{project.name}</h1>
-              {project.description && <p className="text-sm text-muted-foreground mt-1">{project.description}</p>}
+          <div className="p-4 bg-background border-b flex items-center justify-between">
+              <div>
+                <h1 className="text-xl font-bold">{project.name}</h1>
+                {project.description && <p className="text-sm text-muted-foreground mt-1">{project.description}</p>}
+              </div>
+              <div>
+                <Button variant="outline" size="sm" onClick={() => setIsLabelManagerOpen(true)}>
+                    <Tag className="mr-2 h-4 w-4" />
+                    Gérer les étiquettes
+                </Button>
+              </div>
           </div>
           <div className="flex-1 flex gap-6 p-4 overflow-x-auto">
               {lists.map(list => {
@@ -390,6 +575,7 @@ export const ProjectBoard = ({ project, initialLists, initialTasks, collaborator
                           collaborators={collaborators}
                           onTaskClick={handleOpenTaskDialog}
                           onAddTask={handleOpenAddTaskDialog}
+                          availableLabels={availableLabels}
                       />
                   );
               })}
