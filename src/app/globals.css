@@ -1,9 +1,9 @@
 
-@import 'react-big-calendar/lib/css/react-big-calendar.css';
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@import 'react-big-calendar/lib/css/react-big-calendar.css';
 
 @font-face {
   font-family: 'AndroidAssassins';
@@ -19,60 +19,95 @@ body {
   font-family: 'Century Gothic', 'PT Sans', sans-serif;
 }
 
+/* ===== React Big Calendar Styles ===== */
 .rbc-calendar {
     @apply h-[700px] text-sm;
 }
 
 .rbc-toolbar {
-    @apply mb-4 flex items-center gap-4;
+    @apply mb-4 flex items-center gap-2;
 }
 
 .rbc-toolbar button {
-    @apply px-3 py-1.5 text-sm font-medium rounded-md border border-input bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground transition-colors;
+    @apply px-3 py-1.5 text-sm font-medium rounded-md border border-input bg-background text-foreground hover:bg-accent hover:text-accent-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring;
 }
 .rbc-toolbar button.rbc-active {
     @apply bg-primary text-primary-foreground hover:bg-primary/90;
 }
 
 .rbc-toolbar-label {
-    @apply text-lg font-bold;
-}
-
-.rbc-header {
-    @apply p-2 text-center font-semibold border-b border-border;
-}
-
-.rbc-day-bg + .rbc-day-bg {
-    @apply border-l border-border;
-}
-
-.rbc-month-row {
-    @apply min-h-[120px];
+    @apply text-lg font-bold text-foreground;
 }
 
 .rbc-month-view {
-    @apply border border-border rounded-lg;
+    @apply border border-border rounded-lg overflow-hidden;
 }
 
-.rbc-event, .rbc-day-slot .rbc-background-event {
-    @apply p-1 rounded-md text-xs bg-primary/20 border border-primary/50 text-primary-foreground;
+.rbc-header {
+    @apply p-2 text-center font-semibold border-b border-border bg-muted/30;
 }
 
-.rbc-event:focus, .rbc-day-slot .rbc-background-event:focus {
-    outline: none;
+.rbc-day-bg {
+    @apply border-l border-border transition-colors duration-200;
 }
+.rbc-day-bg:first-child {
+    @apply border-l-0;
+}
+
+.rbc-month-row {
+    @apply flex min-h-[120px] border-b border-border;
+}
+.rbc-month-row:last-child {
+    @apply border-b-0;
+}
+
+.rbc-date-cell {
+    @apply p-1 text-right text-xs;
+}
+
+.rbc-row-segment {
+    @apply p-1;
+}
+
 .rbc-event {
+    @apply p-1.5 rounded-lg text-xs cursor-pointer bg-primary/10 border border-primary/40 shadow-sm hover:shadow-md transition-all;
     color: hsl(var(--primary));
-    background-color: hsla(var(--primary) / 0.1);
+}
+.rbc-event-label {
+    @apply font-semibold;
+}
+
+.rbc-day-slot .rbc-event {
+    @apply border border-primary;
+}
+
+.rbc-event:focus {
+    outline: none;
+    @apply ring-2 ring-ring ring-offset-2;
 }
 
 .rbc-off-range-bg {
-    background: hsl(var(--muted) / 0.5);
+    @apply bg-muted/40;
 }
 
 .rbc-today {
-    background-color: hsl(var(--accent));
+    @apply bg-accent/50;
 }
+
+.rbc-date-cell.rbc-now {
+    @apply font-bold text-primary;
+}
+
+/* Popup styles */
+.rbc-overlay {
+    @apply absolute z-50 mt-2 rounded-lg border bg-popover p-3 text-popover-foreground shadow-md min-w-[200px];
+}
+.rbc-overlay-header {
+    @apply border-b pb-2 mb-2 text-center font-bold;
+}
+
+
+/* ======================================= */
 
 @layer base {
   :root {
