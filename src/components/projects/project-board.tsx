@@ -37,6 +37,18 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverEvent,
+  DragStartEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCorners,
+} from '@dnd-kit/core';
+import { SortableContext, useSortable, arrayMove } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 const initialLabels = [
     { name: 'Urgent', color: 'bg-red-500' },
@@ -57,6 +69,19 @@ interface TaskCardProps {
 }
 
 const TaskCard = ({ task, collaborators, onTaskClick, availableLabels }: TaskCardProps) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: task.id,
+    data: {
+      type: 'Task',
+      task,
+    },
+  });
+  
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
   const assignees = collaborators.filter(c => task.assigneeIds?.includes(c.id));
   
   const checklistProgress = useMemo(() => {
@@ -66,63 +91,75 @@ const TaskCard = ({ task, collaborators, onTaskClick, availableLabels }: TaskCar
     return { completed, total, percentage: total > 0 ? (completed / total) * 100 : 0 };
   }, [task.checklist]);
 
-  return (
-    <Card 
-      className="mb-4 bg-background/80 backdrop-blur-sm hover:shadow-lg transition-shadow duration-200 cursor-pointer"
-      onClick={() => onTaskClick(task)}
-    >
-      <CardContent className="p-3 space-y-3">
-        {task.labels && task.labels.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {task.labels.map(labelName => {
-              const labelInfo = availableLabels.find(l => l.name === labelName);
-              return (
-                <span key={labelName} className={`px-2 py-0.5 text-xs font-semibold text-white rounded-full ${labelInfo?.color || 'bg-gray-400'}`}>
-                  {labelName}
-                </span>
-              )
-            })}
-          </div>
-        )}
-        <p className="font-medium text-sm">{task.title}</p>
-        
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
-          {task.dueDate && (
-            <div className="flex items-center gap-1">
-              <Calendar className="h-3 w-3" />
-              <span>{format(new Date(task.dueDate), 'd MMM', { locale: fr })}</span>
-            </div>
-          )}
-          {checklistProgress && checklistProgress.total > 0 && (
-             <div className="flex items-center gap-1">
-                <CheckSquare className="h-3 w-3" />
-                <span>{checklistProgress.completed}/{checklistProgress.total}</span>
-            </div>
-          )}
-          {task.attachments && task.attachments.length > 0 && (
-            <div className="flex items-center gap-1">
-              <Paperclip className="h-3 w-3" />
-              <span>{task.attachments.length}</span>
-            </div>
-          )}
-        </div>
+  if (isDragging) {
+    return (
+        <div
+            ref={setNodeRef}
+            style={style}
+            className="w-full h-24 bg-muted/50 rounded-lg border-2 border-dashed border-primary"
+        />
+    );
+  }
 
-        {checklistProgress && checklistProgress.total > 0 && (
-            <Progress value={checklistProgress.percentage} className="h-1" />
-        )}
-        
-        <div className="flex items-center justify-between pt-1">
-           <div className="flex -space-x-2">
-                {assignees.map(assignee => (
-                    <Avatar key={assignee.id} className="h-6 w-6 border-2 border-background">
-                         <AvatarImage src={`https://picsum.photos/seed/${assignee.id}/40/40`} />
-                        <AvatarFallback>{assignee.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                ))}
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+        <Card 
+        className="mb-4 bg-background/80 backdrop-blur-sm hover:shadow-lg transition-shadow duration-200 cursor-pointer"
+        onClick={() => onTaskClick(task)}
+        >
+        <CardContent className="p-3 space-y-3">
+            {task.labels && task.labels.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+                {task.labels.map(labelName => {
+                const labelInfo = availableLabels.find(l => l.name === labelName);
+                return (
+                    <span key={labelName} className={`px-2 py-0.5 text-xs font-semibold text-white rounded-full ${labelInfo?.color || 'bg-gray-400'}`}>
+                    {labelName}
+                    </span>
+                )
+                })}
             </div>
-        </div>
-      </CardContent>
-    </Card>
+            )}
+            <p className="font-medium text-sm">{task.title}</p>
+            
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
+            {task.dueDate && (
+                <div className="flex items-center gap-1">
+                <Calendar className="h-3 w-3" />
+                <span>{format(new Date(task.dueDate), 'd MMM', { locale: fr })}</span>
+                </div>
+            )}
+            {checklistProgress && checklistProgress.total > 0 && (
+                <div className="flex items-center gap-1">
+                    <CheckSquare className="h-3 w-3" />
+                    <span>{checklistProgress.completed}/{checklistProgress.total}</span>
+                </div>
+            )}
+            {task.attachments && task.attachments.length > 0 && (
+                <div className="flex items-center gap-1">
+                <Paperclip className="h-3 w-3" />
+                <span>{task.attachments.length}</span>
+                </div>
+            )}
+            </div>
+
+            {checklistProgress && checklistProgress.total > 0 && (
+                <Progress value={checklistProgress.percentage} className="h-1" />
+            )}
+            
+            <div className="flex items-center justify-between pt-1">
+            <div className="flex -space-x-2">
+                    {assignees.map(assignee => (
+                        <Avatar key={assignee.id} className="h-6 w-6 border-2 border-background">
+                            <AvatarImage src={`https://picsum.photos/seed/${assignee.id}/40/40`} />
+                            <AvatarFallback>{assignee.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                    ))}
+                </div>
+            </div>
+        </CardContent>
+        </Card>
+    </div>
   );
 };
 
@@ -136,8 +173,18 @@ interface TaskListColumnProps {
 }
 
 const TaskListColumn = ({ list, tasks, collaborators, onTaskClick, onAddTask, availableLabels }: TaskListColumnProps) => {
+    const { setNodeRef } = useSortable({
+      id: list.id,
+      data: {
+        type: 'List',
+        list,
+      },
+    });
+
+  const tasksIds = useMemo(() => tasks.map(t => t.id), [tasks]);
+
   return (
-    <div className="flex-shrink-0 w-80 bg-muted/60 rounded-xl p-3 flex flex-col">
+    <div ref={setNodeRef} className="flex-shrink-0 w-80 bg-muted/60 rounded-xl p-3 flex flex-col">
       <div className="flex items-center justify-between mb-4 px-1">
         <h3 className="font-semibold text-md">{list.title} <Badge variant="secondary" className="ml-2">{tasks.length}</Badge></h3>
         <DropdownMenu>
@@ -154,11 +201,13 @@ const TaskListColumn = ({ list, tasks, collaborators, onTaskClick, onAddTask, av
         </DropdownMenu>
       </div>
       <ScrollArea className="flex-1 -mx-3 px-3">
-        <div className="pr-1">
-          {tasks.map(task => (
-            <TaskCard key={task.id} task={task} collaborators={collaborators} onTaskClick={onTaskClick} availableLabels={availableLabels} />
-          ))}
-        </div>
+        <SortableContext items={tasksIds}>
+            <div className="pr-1">
+            {tasks.map(task => (
+                <TaskCard key={task.id} task={task} collaborators={collaborators} onTaskClick={onTaskClick} availableLabels={availableLabels} />
+            ))}
+            </div>
+        </SortableContext>
       </ScrollArea>
        <Button variant="ghost" className="w-full justify-start mt-2" onClick={() => onAddTask(list.id)}>
             <Plus className="mr-2 h-4 w-4" /> Ajouter une tâche
@@ -611,9 +660,12 @@ export const ProjectBoard = ({ project, initialLists, initialTasks, collaborator
     
     const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
     const [editingTask, setEditingTask] = useState<Partial<ProjectTask> | null>(null);
+    const [activeTask, setActiveTask] = useState<ProjectTask | null>(null);
 
     const [availableLabels, setAvailableLabels] = useState(initialLabels);
     const [isLabelManagerOpen, setIsLabelManagerOpen] = useState(false);
+
+    const listsIds = useMemo(() => lists.map(l => l.id), [lists]);
 
     const handleOpenTaskDialog = (task: ProjectTask) => {
         setEditingTask(task);
@@ -656,6 +708,73 @@ export const ProjectBoard = ({ project, initialLists, initialTasks, collaborator
             })));
         }
     };
+    
+    const sensors = useSensors(
+      useSensor(PointerSensor, {
+        activationConstraint: {
+          distance: 10,
+        },
+      })
+    );
+
+    function onDragStart(event: DragStartEvent) {
+        if (event.active.data.current?.type === 'Task') {
+            setActiveTask(event.active.data.current.task);
+        }
+    }
+    
+    function onDragEnd(event: DragEndEvent) {
+        setActiveTask(null);
+        const { active, over } = event;
+        if (!over) return;
+        if (active.id === over.id) return;
+        
+        const activeListId = active.data.current?.task.listId;
+        const overListId = over.data.current?.task?.listId || over.id;
+        
+        if (activeListId === overListId) {
+             setTasks((tasks) => {
+                const activeIndex = tasks.findIndex((t) => t.id === active.id);
+                const overIndex = tasks.findIndex((t) => t.id === over.id);
+                return arrayMove(tasks, activeIndex, overIndex);
+            });
+        }
+    }
+
+    function onDragOver(event: DragOverEvent) {
+        const { active, over } = event;
+        if (!over) return;
+        if (active.id === over.id) return;
+
+        const isActiveATask = active.data.current?.type === 'Task';
+        const isOverATask = over.data.current?.type === 'Task';
+        
+        if (!isActiveATask) return;
+
+        if (isActiveATask && isOverATask) {
+            setTasks((tasks) => {
+                const activeIndex = tasks.findIndex((t) => t.id === active.id);
+                const overIndex = tasks.findIndex((t) => t.id === over.id);
+
+                if (tasks[activeIndex].listId !== tasks[overIndex].listId) {
+                    tasks[activeIndex].listId = tasks[overIndex].listId;
+                    return arrayMove(tasks, activeIndex, overIndex - 1);
+                }
+                
+                return arrayMove(tasks, activeIndex, overIndex);
+            });
+        }
+        
+        const isOverAList = over.data.current?.type === 'List';
+
+        if (isActiveATask && isOverAList) {
+             setTasks((tasks) => {
+                const activeIndex = tasks.findIndex((t) => t.id === active.id);
+                tasks[activeIndex].listId = over.id as string;
+                return arrayMove(tasks, activeIndex, activeIndex);
+            });
+        }
+    }
 
 
   return (
@@ -687,30 +806,40 @@ export const ProjectBoard = ({ project, initialLists, initialTasks, collaborator
                 </Button>
               </div>
           </div>
-          <div className="flex-1 flex gap-6 p-4 overflow-x-auto">
-              {lists.map(list => {
-                  const tasksInList = tasks
-                      .filter(task => task.listId === list.id)
-                      .sort((a, b) => a.order - b.order);
-                  
-                  return (
-                      <TaskListColumn
-                          key={list.id}
-                          list={list}
-                          tasks={tasksInList}
-                          collaborators={collaborators}
-                          onTaskClick={handleOpenTaskDialog}
-                          onAddTask={handleOpenAddTaskDialog}
-                          availableLabels={availableLabels}
-                      />
-                  );
-              })}
-              <div className="flex-shrink-0 w-80">
-                  <Button variant="outline" className="w-full bg-muted/40 hover:bg-muted">
-                      <Plus className="mr-2 h-4 w-4" /> Ajouter une autre liste
-                  </Button>
-              </div>
-          </div>
+          <DndContext
+            sensors={sensors}
+            onDragStart={onDragStart}
+            onDragEnd={onDragEnd}
+            onDragOver={onDragOver}
+            collisionDetection={closestCorners}
+          >
+            <div className="flex-1 flex gap-6 p-4 overflow-x-auto">
+                <SortableContext items={listsIds}>
+                    {lists.map(list => {
+                        const tasksInList = tasks
+                            .filter(task => task.listId === list.id)
+                            .sort((a, b) => a.order - b.order);
+                        
+                        return (
+                            <TaskListColumn
+                                key={list.id}
+                                list={list}
+                                tasks={tasksInList}
+                                collaborators={collaborators}
+                                onTaskClick={handleOpenTaskDialog}
+                                onAddTask={handleOpenAddTaskDialog}
+                                availableLabels={availableLabels}
+                            />
+                        );
+                    })}
+                </SortableContext>
+                <div className="flex-shrink-0 w-80">
+                    <Button variant="outline" className="w-full bg-muted/40 hover:bg-muted">
+                        <Plus className="mr-2 h-4 w-4" /> Ajouter une autre liste
+                    </Button>
+                </div>
+            </div>
+          </DndContext>
       </div>
     </>
   );
