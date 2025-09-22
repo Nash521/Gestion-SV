@@ -105,7 +105,9 @@ export type ProjectTask = {
   order: number;
   labels?: string[];
   assigneeIds?: string[];
+  startDate?: Date;
   dueDate?: Date;
+  completed?: boolean;
   checklist?: ChecklistItem[];
   attachments?: Attachment[];
 };

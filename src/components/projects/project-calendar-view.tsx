@@ -7,7 +7,7 @@ import { fr } from 'date-fns/locale';
 import type { ProjectTask } from '@/lib/definitions';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Button } from '../ui/button';
-import { LayoutGrid, List, Calendar as CalendarSwitchIcon } from 'lucide-react';
+import { LayoutGrid, List, Calendar as CalendarSwitchIcon, BarChartHorizontal } from 'lucide-react';
 
 const locales = {
   'fr': fr,
@@ -23,8 +23,8 @@ const localizer = dateFnsLocalizer({
 
 interface ProjectCalendarViewProps {
   tasks: ProjectTask[];
-  currentView: 'board' | 'table' | 'calendar';
-  onViewChange: (view: 'board' | 'table' | 'calendar') => void;
+  currentView: 'board' | 'table' | 'calendar' | 'gantt';
+  onViewChange: (view: 'board' | 'table' | 'calendar' | 'gantt') => void;
 }
 
 export function ProjectCalendarView({ tasks, currentView, onViewChange }: ProjectCalendarViewProps) {
@@ -92,6 +92,15 @@ export function ProjectCalendarView({ tasks, currentView, onViewChange }: Projec
                         >
                         <CalendarSwitchIcon className="mr-2 h-4 w-4" />
                         Calendrier
+                    </Button>
+                     <Button
+                        variant={currentView === 'gantt' ? 'secondary' : 'ghost'}
+                        size="sm"
+                        onClick={() => onViewChange('gantt')}
+                        className="px-3 h-8"
+                        >
+                        <BarChartHorizontal className="mr-2 h-4 w-4" />
+                        Chronogramme
                     </Button>
                 </div>
             </CardHeader>

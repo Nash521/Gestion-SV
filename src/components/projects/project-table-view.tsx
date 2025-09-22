@@ -10,7 +10,7 @@ import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Button } from '../ui/button';
-import { LayoutGrid, List, Calendar as CalendarSwitchIcon } from 'lucide-react';
+import { LayoutGrid, List, Calendar as CalendarSwitchIcon, BarChartHorizontal } from 'lucide-react';
 
 const initialLabels = [
     { name: 'Urgent', color: 'bg-red-500' },
@@ -25,8 +25,8 @@ interface ProjectTableViewProps {
   tasks: ProjectTask[];
   lists: TaskList[];
   collaborators: Collaborator[];
-  currentView: 'board' | 'table' | 'calendar';
-  onViewChange: (view: 'board' | 'table' | 'calendar') => void;
+  currentView: 'board' | 'table' | 'calendar' | 'gantt';
+  onViewChange: (view: 'board' | 'table' | 'calendar' | 'gantt') => void;
 }
 
 export function ProjectTableView({ tasks, lists, collaborators, currentView, onViewChange }: ProjectTableViewProps) {
@@ -76,6 +76,15 @@ export function ProjectTableView({ tasks, lists, collaborators, currentView, onV
                         >
                         <CalendarSwitchIcon className="mr-2 h-4 w-4" />
                         Calendrier
+                    </Button>
+                    <Button
+                        variant={currentView === 'gantt' ? 'secondary' : 'ghost'}
+                        size="sm"
+                        onClick={() => onViewChange('gantt')}
+                        className="px-3 h-8"
+                        >
+                        <BarChartHorizontal className="mr-2 h-4 w-4" />
+                        Chronogramme
                     </Button>
                 </div>
             </CardHeader>

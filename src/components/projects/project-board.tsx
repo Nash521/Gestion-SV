@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import type { Project, TaskList, ProjectTask, Collaborator, ChecklistItem, Attachment } from '@/lib/definitions';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Plus, Tag, X, Calendar as CalendarSwitchIcon, Paperclip, CheckSquare, CalendarIcon, Settings, Trash2, File as FileIcon, LayoutGrid, List } from 'lucide-react';
+import { MoreHorizontal, Plus, Tag, X, Calendar as CalendarSwitchIcon, Paperclip, CheckSquare, CalendarIcon, Settings, Trash2, File as FileIcon, LayoutGrid, List, BarChartHorizontal } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -666,8 +666,8 @@ interface ProjectBoardProps {
   initialLists: TaskList[];
   initialTasks: ProjectTask[];
   collaborators: Collaborator[];
-  currentView: 'board' | 'table' | 'calendar';
-  onViewChange: (view: 'board' | 'table' | 'calendar') => void;
+  currentView: 'board' | 'table' | 'calendar' | 'gantt';
+  onViewChange: (view: 'board' | 'table' | 'calendar' | 'gantt') => void;
 }
 
 export const ProjectBoard = ({ project, initialLists, initialTasks, collaborators, currentView, onViewChange }: ProjectBoardProps) => {
@@ -846,6 +846,15 @@ export const ProjectBoard = ({ project, initialLists, initialTasks, collaborator
                         >
                         <CalendarSwitchIcon className="mr-2 h-4 w-4" />
                         Calendrier
+                    </Button>
+                    <Button
+                        variant={currentView === 'gantt' ? 'secondary' : 'ghost'}
+                        size="sm"
+                        onClick={() => onViewChange('gantt')}
+                        className="px-3 h-8"
+                        >
+                        <BarChartHorizontal className="mr-2 h-4 w-4" />
+                        Chronogramme
                     </Button>
                 </div>
                 <Button variant="outline" size="sm" onClick={() => setIsLabelManagerOpen(true)}>
