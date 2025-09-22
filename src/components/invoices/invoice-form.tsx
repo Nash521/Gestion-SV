@@ -4,8 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { mockClients } from '@/lib/data';
-import type { Invoice } from '@/lib/definitions';
+import type { Invoice, Client } from '@/lib/definitions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,13 +13,15 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon, Trash2 } from 'lucide-react';
+import { CalendarIcon, Trash2, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Link from 'next/link';
+import { getClients } from '@/lib/firebase/services';
 
 const lineItemSchema = z.object({
+  id: z.string().optional(),
   description: z.string().min(1, 'La description est requise.'),
   quantity: z.coerce.number().min(1, 'La quantité doit être au moins de 1.'),
   price: z.coerce.number().min(0, 'Le prix ne peut pas être négatif.'),
@@ -44,15 +45,21 @@ interface InvoiceFormProps {
 }
 
 export function InvoiceForm({ formType, onSubmit, initialData }: InvoiceFormProps) {
+  const [clients, setClients] = useState<Client[]>([]);
+
+  useEffect(() => {
+    getClients().then(setClients);
+  }, []);
+
   const form = useForm<InvoiceFormValues>({
     resolver: zodResolver(invoiceSchema),
     defaultValues: formType === 'edit' && initialData ? {
-        clientId: initialData.client.id,
+        clientId: initialData.clientId,
         issueDate: new Date(initialData.issueDate),
         dueDate: new Date(initialData.dueDate),
         taxRate: initialData.taxRate,
         notes: initialData.notes || '',
-        lineItems: initialData.lineItems.map(item => ({...item})) // Create new objects
+        lineItems: initialData.lineItems.map(item => ({...item}))
     } : {
       clientId: '',
       issueDate: new Date(),
@@ -62,6 +69,19 @@ export function InvoiceForm({ formType, onSubmit, initialData }: InvoiceFormProp
       notes: '',
     },
   });
+
+  useEffect(() => {
+    if (formType === 'edit' && initialData) {
+        form.reset({
+            clientId: initialData.clientId,
+            issueDate: new Date(initialData.issueDate),
+            dueDate: new Date(initialData.dueDate),
+            taxRate: initialData.taxRate,
+            notes: initialData.notes || '',
+            lineItems: initialData.lineItems.map(item => ({...item}))
+        })
+    }
+  }, [initialData, formType, form]);
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
@@ -113,7 +133,7 @@ export function InvoiceForm({ formType, onSubmit, initialData }: InvoiceFormProp
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {mockClients.map(client => (
+                        {clients.map(client => (
                           <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
                         ))}
                       </SelectContent>
@@ -324,7 +344,10 @@ export function InvoiceForm({ formType, onSubmit, initialData }: InvoiceFormProp
             <Button type="button" variant="outline" asChild>
                 <Link href="/dashboard/invoices">Annuler</Link>
             </Button>
-            <Button type="submit" disabled={isSubmitting}>{submitButtonText}</Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {submitButtonText}
+            </Button>
           </CardFooter>
         </Card>
       </form>

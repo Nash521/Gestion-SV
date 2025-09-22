@@ -4,20 +4,28 @@ import { InvoiceForm } from "@/components/invoices/invoice-form";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import type { InvoiceFormValues } from "@/components/invoices/invoice-form";
+import { addInvoice } from "@/lib/firebase/services";
 
 export default function NewInvoicePage() {
   const { toast } = useToast();
   const router = useRouter();
 
-  function onSubmit(data: InvoiceFormValues) {
-    console.log(data);
-    toast({
-      title: "Proforma créée",
-      description: "La nouvelle proforma a été créée avec succès.",
-    });
-    // Here you would typically send the data to your server
-    // For now, let's just redirect to the invoices page
-    router.push('/dashboard/invoices');
+  async function onSubmit(data: InvoiceFormValues) {
+    try {
+      await addInvoice({ ...data, status: 'Draft' });
+      toast({
+        title: "Proforma créée",
+        description: "La nouvelle proforma a été enregistrée dans la base de données.",
+      });
+      router.push('/dashboard/invoices');
+    } catch (error) {
+      console.error("Failed to create invoice:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de créer la proforma.",
+      });
+    }
   }
 
   return (

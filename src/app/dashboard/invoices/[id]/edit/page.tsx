@@ -1,36 +1,66 @@
 "use client";
-import { use, Suspense } from 'react';
+import { use, Suspense, useEffect, useState } from 'react';
 import { notFound, useRouter } from "next/navigation";
-import { mockInvoices } from "@/lib/data";
 import { InvoiceForm, type InvoiceFormValues } from "@/components/invoices/invoice-form";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
+import { getInvoice, updateInvoice } from '@/lib/firebase/services';
+import type { Invoice } from '@/lib/definitions';
+
 
 function EditInvoiceForm({ id }: { id: string }) {
     const router = useRouter();
     const { toast } = useToast();
+    const [initialData, setInitialData] = useState<Invoice | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
 
-    // In a real app, you'd fetch this data from your API
-    const invoice = mockInvoices.find(inv => inv.id === id);
+    useEffect(() => {
+        if (!id) return;
+        setIsLoading(true);
+        getInvoice(id)
+            .then(data => {
+                if (data) {
+                    setInitialData(data);
+                } else {
+                    notFound();
+                }
+            })
+            .finally(() => setIsLoading(false));
+    }, [id]);
 
-    if (!invoice) {
-        notFound();
+
+    const onSubmit = async (data: InvoiceFormValues) => {
+        if (!initialData) return;
+        try {
+            await updateInvoice(id, { ...data, status: initialData.status });
+            toast({
+                title: "Proforma modifiée",
+                description: `La proforma ${id} a été mise à jour avec succès.`,
+            });
+            router.push('/dashboard/invoices');
+        } catch (error) {
+            console.error("Failed to update invoice:", error);
+            toast({
+                variant: "destructive",
+                title: "Erreur",
+                description: "Impossible de modifier la proforma.",
+            });
+        }
+    };
+    
+    if (isLoading) {
+        return <EditInvoiceSkeleton />;
     }
 
-    const onSubmit = (data: InvoiceFormValues) => {
-        console.log("Updated data:", data);
-        toast({
-            title: "Proforma modifiée",
-            description: `La proforma ${invoice.id} a été mise à jour avec succès.`,
-        });
-        router.push('/dashboard/invoices');
-    };
+    if (!initialData) {
+        return notFound();
+    }
 
     return (
         <InvoiceForm
             formType="edit"
             onSubmit={onSubmit}
-            initialData={invoice}
+            initialData={initialData}
         />
     );
 }

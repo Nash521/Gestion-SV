@@ -7,7 +7,7 @@ export type Client = {
 };
 
 export type LineItem = {
-  id: string;
+  id?: string;
   description: string;
   quantity: number;
   price: number;
@@ -15,6 +15,7 @@ export type LineItem = {
 
 export type Invoice = {
   id: string;
+  clientId: string;
   client: Client;
   lineItems: LineItem[];
   status: 'Draft' | 'Sent' | 'Paid' | 'Overdue';
@@ -26,6 +27,7 @@ export type Invoice = {
 
 export type PurchaseOrder = {
   id: string;
+  clientId: string;
   client: Client;
   lineItems: LineItem[];
   status: 'Draft' | 'Sent' | 'Approved' | 'Rejected';
@@ -36,6 +38,7 @@ export type PurchaseOrder = {
 
 export type DeliveryNote = {
     id: string;
+    clientId: string;
     client: Client;
     invoiceId?: string; // Associated proforma
     lineItems: Omit<LineItem, 'price'>[];
