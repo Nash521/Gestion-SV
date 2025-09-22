@@ -59,7 +59,7 @@ export function InvoiceForm({ formType, onSubmit, initialData }: InvoiceFormProp
         dueDate: new Date(initialData.dueDate),
         taxRate: initialData.taxRate,
         notes: initialData.notes || '',
-        lineItems: initialData.lineItems.map(item => ({...item}))
+        lineItems: initialData.lineItems?.map(item => ({...item})) || []
     } : {
       clientId: '',
       issueDate: new Date(),
@@ -78,7 +78,7 @@ export function InvoiceForm({ formType, onSubmit, initialData }: InvoiceFormProp
             dueDate: new Date(initialData.dueDate),
             taxRate: initialData.taxRate,
             notes: initialData.notes || '',
-            lineItems: initialData.lineItems.map(item => ({...item}))
+            lineItems: initialData.lineItems?.map(item => ({...item})) || []
         })
     }
   }, [initialData, formType, form]);

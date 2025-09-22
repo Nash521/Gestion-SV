@@ -62,14 +62,15 @@ export const deleteClient = async (id: string) => {
 
 
 // Invoice Services
-const processInvoiceDoc = (doc: any, clientsMap: Map<string, Client>) => {
-    const data = doc.data();
+const processInvoiceDoc = (docSnap: any, clientsMap: Map<string, Client>, lineItems: LineItem[] = []) => {
+    const data = docSnap.data();
     return {
-        id: doc.id,
+        id: docSnap.id,
         ...data,
         client: clientsMap.get(data.clientId) || { id: data.clientId, name: 'Client Inconnu', email: '', address: '' },
         issueDate: data.issueDate.toDate(),
         dueDate: data.dueDate.toDate(),
+        lineItems,
     } as Invoice;
 };
 
@@ -79,7 +80,10 @@ export const subscribeToInvoices = (callback: (invoices: Invoice[]) => void) => 
         const clientsMap = await getClientsMap();
         const invoices: Invoice[] = [];
         for (const doc of querySnapshot.docs) {
-            invoices.push(processInvoiceDoc(doc, clientsMap));
+            const lineItemsQuery = query(collection(db, 'invoices', doc.id, 'lineItems'));
+            const lineItemsSnapshot = await getDocs(lineItemsQuery);
+            const lineItems = lineItemsSnapshot.docs.map(itemDoc => ({ id: itemDoc.id, ...itemDoc.data() } as LineItem));
+            invoices.push(processInvoiceDoc(doc, clientsMap, lineItems));
         }
         callback(invoices.sort((a,b) => b.issueDate.getTime() - a.issueDate.getTime()));
     });
@@ -91,8 +95,12 @@ export const getInvoice = async (id: string): Promise<Invoice | null> => {
     const docSnap = await getDoc(docRef);
     if (!docSnap.exists()) return null;
 
+    const lineItemsQuery = query(collection(db, 'invoices', id, 'lineItems'));
+    const lineItemsSnapshot = await getDocs(lineItemsQuery);
+    const lineItems = lineItemsSnapshot.docs.map(itemDoc => ({ id: itemDoc.id, ...itemDoc.data() } as LineItem));
+
     const clientsMap = await getClientsMap();
-    return processInvoiceDoc(docSnap, clientsMap);
+    return processInvoiceDoc(docSnap, clientsMap, lineItems);
 }
 
 export const addInvoice = async (invoiceData: Omit<Invoice, 'id' | 'client' | 'lineItems'> & { lineItems: Omit<LineItem, 'id'>[] }) => {
