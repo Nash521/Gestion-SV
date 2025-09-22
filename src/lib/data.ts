@@ -1,4 +1,4 @@
-import { Client, Invoice, Transaction, LineItem, PurchaseOrder, DeliveryNote, CashRegister, Collaborator, Subcontractor } from '@/lib/definitions';
+import { Client, Invoice, Transaction, LineItem, PurchaseOrder, DeliveryNote, CashRegister, Collaborator, Subcontractor, Project, TaskList, ProjectTask } from '@/lib/definitions';
 
 export const mockClients: Client[] = [
   { id: '1', name: 'Stark Industries', email: 'contact@stark.com', address: '10880 Malibu Point, 90265, Malibu', phone: '+12223334444' },
@@ -12,6 +12,36 @@ export const mockCollaborators: Collaborator[] = [
     { id: 'user-2', name: 'Alice', email: 'alice@example.com', role: 'Employee' },
     { id: 'user-3', name: 'Bob', email: 'bob@example.com', role: 'Employee' },
 ];
+
+export const mockProjects: Project[] = [
+    { id: 'proj-1', name: 'Refonte du site web', description: 'Projet de refonte complète du site web de l\'entreprise.' },
+];
+
+export const mockTaskLists: TaskList[] = [
+    { id: 'list-1', projectId: 'proj-1', title: 'À faire', order: 1 },
+    { id: 'list-2', projectId: 'proj-1', title: 'En cours', order: 2 },
+    { id: 'list-3', projectId: 'proj-1', title: 'En revue', order: 3 },
+    { id: 'list-4', projectId: 'proj-1', title: 'Terminé', order: 4 },
+];
+
+export const mockTasks: ProjectTask[] = [
+    // "À faire"
+    { id: 'task-1', listId: 'list-1', title: 'Définir les spécifications fonctionnelles', order: 1, labels: ['Urgent'], assigneeIds: ['user-1'] },
+    { id: 'task-2', listId: 'list-1', title: 'Créer les maquettes UI/UX', order: 2, labels: ['Design'], assigneeIds: ['user-2'] },
+    { id: 'task-3', listId: 'list-1', title: 'Mettre en place l\'environnement de développement', order: 3, labels: ['Tech'], assigneeIds: ['user-3'] },
+    
+    // "En cours"
+    { id: 'task-4', listId: 'list-2', title: 'Développer la page d\'accueil', content: 'Intégrer le nouveau design et les animations.', order: 1, labels: ['Dev'], assigneeIds: ['user-3'] },
+    { id: 'task-5', listId: 'list-2', title: 'Concevoir le logo', order: 2, labels: ['Design'], assigneeIds: ['user-2'] },
+
+    // "En revue"
+    { id: 'task-6', listId: 'list-3', title: 'Valider le schéma de la base de données', order: 1, labels: ['Tech', 'Urgent'], assigneeIds: ['user-1'] },
+
+    // "Terminé"
+    { id: 'task-7', listId: 'list-4', title: 'Choisir la palette de couleurs', order: 1, labels: ['Design'], assigneeIds: ['user-2'] },
+    { id: 'task-8', listId: 'list-4', title: 'Acheter le nom de domaine', order: 2, labels: [], assigneeIds: ['user-1'] },
+];
+
 
 export const mockCashRegisters: CashRegister[] = [
   { id: 'caisse-1', name: 'Caisse principale' },

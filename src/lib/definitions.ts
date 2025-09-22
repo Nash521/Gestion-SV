@@ -83,3 +83,26 @@ export type Subcontractor = {
   phone: string;
   services: SubcontractorService[];
 };
+
+export type ProjectTask = {
+  id: string;
+  listId: string;
+  title: string;
+  content?: string;
+  order: number;
+  labels?: string[];
+  assigneeIds?: string[];
+};
+
+export type TaskList = {
+  id: string;
+  projectId: string;
+  title: string;
+  order: number;
+};
+
+export type Project = {
+  id: string;
+  name: string;
+  description?: string;
+};

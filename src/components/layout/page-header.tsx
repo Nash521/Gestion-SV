@@ -5,6 +5,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 
 const titles: { [key: string]: string } = {
     '/dashboard': 'Tableau de bord',
+    '/dashboard/projects': 'Gestion de Projets',
     '/dashboard/invoices': 'Proformas',
     '/dashboard/invoices/new': 'Nouvelle Proforma',
     '/dashboard/purchase-orders': 'Bons de commande',
@@ -33,6 +34,8 @@ export function PageHeader() {
         title = 'Détails du Bon de commande';
     } else if (pathname.startsWith('/dashboard/delivery-notes/')) {
         title = 'Détails du Bon de livraison';
+    } else if (pathname.startsWith('/dashboard/projects/')) {
+        title = 'Tableau de Projet';
     }
 
 

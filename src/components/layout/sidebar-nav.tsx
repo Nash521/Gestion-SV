@@ -13,6 +13,7 @@ import {
   Truck,
   UsersRound,
   HardHat,
+  ClipboardCheck,
 } from 'lucide-react';
 import {
   SidebarMenu,
@@ -23,6 +24,7 @@ import type { CollaboratorRole } from '@/lib/definitions';
 
 const navItems = [
     { href: '/dashboard', icon: <LayoutDashboard />, label: 'Tableau de bord', requiredRole: ['Admin', 'Employee'] },
+    { href: '/dashboard/projects', icon: <ClipboardCheck />, label: 'Projets', requiredRole: ['Admin', 'Employee'] },
     { href: '/dashboard/invoices', icon: <FileText />, label: 'Proformas', requiredRole: ['Admin', 'Employee'] },
     { href: '/dashboard/purchase-orders', icon: <ShoppingCart />, label: 'Bons de commande', requiredRole: ['Admin', 'Employee'] },
     { href: '/dashboard/delivery-notes', icon: <Truck />, label: 'Bons de livraison', requiredRole: ['Admin', 'Employee'] },
