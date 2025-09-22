@@ -44,13 +44,15 @@ const SubcontractorFormDialog = ({
     isOpen,
     setIsOpen,
     onSubmit,
-    subcontractor
+    subcontractor,
+    children
 }: { 
     mode: 'add' | 'edit',
     isOpen: boolean,
     setIsOpen: (open: boolean) => void,
     onSubmit: (data: SubcontractorFormValues) => void,
-    subcontractor?: Subcontractor | null 
+    subcontractor?: Subcontractor | null,
+    children?: React.ReactNode // To accept the trigger
 }) => {
     
     const form = useForm<SubcontractorFormValues>({
@@ -100,13 +102,7 @@ const SubcontractorFormDialog = ({
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
-             {mode === 'add' && (
-                <DialogTrigger asChild>
-                    <Button size="sm">
-                        <PlusCircle className="mr-2 h-4 w-4" /> Ajouter un sous-traitant
-                    </Button>
-                </DialogTrigger>
-            )}
+             {children}
             <DialogContent className="sm:max-w-[625px]">
                  <DialogHeader>
                     <DialogTitle>{title}</DialogTitle>
@@ -354,7 +350,13 @@ export default function SubcontractorsPage() {
                 isOpen={isAddDialogOpen}
                 setIsOpen={setIsAddDialogOpen}
                 onSubmit={handleAddSubcontractor}
-            />
+            >
+                <DialogTrigger asChild>
+                    <Button size="sm" onClick={() => setIsAddDialogOpen(true)}>
+                        <PlusCircle className="mr-2 h-4 w-4" /> Ajouter un sous-traitant
+                    </Button>
+                </DialogTrigger>
+            </SubcontractorFormDialog>
 
             <SubcontractorFormDialog 
                 mode="edit"
@@ -370,6 +372,9 @@ export default function SubcontractorsPage() {
                         <h1 className="text-2xl font-bold">Sous-traitants</h1>
                         <p className="text-muted-foreground">Gérez votre réseau de partenaires et sous-traitants.</p>
                     </div>
+                     <Button size="sm" onClick={() => setIsAddDialogOpen(true)}>
+                        <PlusCircle className="mr-2 h-4 w-4" /> Ajouter un sous-traitant
+                    </Button>
                 </div>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
