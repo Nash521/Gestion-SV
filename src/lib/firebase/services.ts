@@ -162,7 +162,7 @@ export const deleteInvoice = async (id: string) => {
 
 
 // Purchase Order Services
-const processPODoc = (doc: any, clientsMap: Map<string, Client>) => {
+const processPODoc = (doc: any, clientsMap: Map<string, Client>, lineItems: LineItem[] = []) => {
     const data = doc.data();
     return {
         id: doc.id,
@@ -170,6 +170,7 @@ const processPODoc = (doc: any, clientsMap: Map<string, Client>) => {
         client: clientsMap.get(data.clientId) || { id: data.clientId, name: 'Client Inconnu', email: '', address: '' },
         issueDate: data.issueDate.toDate(),
         deliveryDate: data.deliveryDate.toDate(),
+        lineItems,
     } as PurchaseOrder;
 };
 
@@ -178,20 +179,47 @@ export const subscribeToPurchaseOrders = (callback: (pos: PurchaseOrder[]) => vo
     return onSnapshot(q, async (querySnapshot) => {
         const clientsMap = await getClientsMap();
         const pos: PurchaseOrder[] = [];
-        querySnapshot.forEach((doc) => {
-            pos.push(processPODoc(doc, clientsMap));
-        });
+        for (const doc of querySnapshot.docs) {
+             const lineItemsQuery = query(collection(db, 'purchaseOrders', doc.id, 'lineItems'));
+             const lineItemsSnapshot = await getDocs(lineItemsQuery);
+             const lineItems = lineItemsSnapshot.docs.map(itemDoc => ({ id: itemDoc.id, ...itemDoc.data() } as LineItem));
+            pos.push(processPODoc(doc, clientsMap, lineItems));
+        }
         callback(pos.sort((a,b) => b.issueDate.getTime() - a.issueDate.getTime()));
     });
 };
 
-export const addPurchaseOrder = async (poData: Omit<PurchaseOrder, 'id' | 'client'>) => {
+export const getPurchaseOrder = async (id: string): Promise<PurchaseOrder | null> => {
+    if (!id) return null;
+    const docRef = doc(db, 'purchaseOrders', id);
+    const docSnap = await getDoc(docRef);
+    if (!docSnap.exists()) return null;
+
+    const lineItemsQuery = query(collection(db, 'purchaseOrders', id, 'lineItems'));
+    const lineItemsSnapshot = await getDocs(lineItemsQuery);
+    const lineItems = lineItemsSnapshot.docs.map(itemDoc => ({ id: itemDoc.id, ...itemDoc.data() } as LineItem));
+
+    const clientsMap = await getClientsMap();
+    return processPODoc(docSnap, clientsMap, lineItems);
+}
+
+export const addPurchaseOrder = async (poData: Omit<PurchaseOrder, 'id' | 'client' | 'lineItems'> & { lineItems: Omit<LineItem, 'id'>[] }) => {
+    const { lineItems, ...po } = poData;
     const poPayload = {
-        ...poData,
+        ...po,
         issueDate: Timestamp.fromDate(poData.issueDate),
         deliveryDate: Timestamp.fromDate(poData.deliveryDate),
     };
     const newPoRef = await addDoc(collection(db, 'purchaseOrders'), poPayload);
+
+    const batch = writeBatch(db);
+    const itemsCollection = collection(db, 'purchaseOrders', newPoRef.id, 'lineItems');
+    lineItems.forEach(item => {
+        const itemRef = doc(itemsCollection);
+        batch.set(itemRef, item);
+    });
+    await batch.commit();
+
     return newPoRef.id;
 };
 
@@ -206,13 +234,14 @@ export const deletePurchaseOrder = async (id: string) => {
 
 
 // Delivery Note Services
-const processDNDoc = (doc: any, clientsMap: Map<string, Client>) => {
+const processDNDoc = (doc: any, clientsMap: Map<string, Client>, lineItems: Omit<LineItem, 'price'>[] = []) => {
     const data = doc.data();
     return {
         id: doc.id,
         ...data,
         client: clientsMap.get(data.clientId) || { id: data.clientId, name: 'Client Inconnu', email: '', address: '' },
         deliveryDate: data.deliveryDate.toDate(),
+        lineItems,
     } as DeliveryNote;
 };
 
@@ -221,25 +250,52 @@ export const subscribeToDeliveryNotes = (callback: (dns: DeliveryNote[]) => void
     return onSnapshot(q, async (querySnapshot) => {
         const clientsMap = await getClientsMap();
         const dns: DeliveryNote[] = [];
-        querySnapshot.forEach((doc) => {
-            dns.push(processDNDoc(doc, clientsMap));
-        });
+        for (const doc of querySnapshot.docs) {
+            const lineItemsQuery = query(collection(db, 'deliveryNotes', doc.id, 'lineItems'));
+            const lineItemsSnapshot = await getDocs(lineItemsQuery);
+            const lineItems = lineItemsSnapshot.docs.map(itemDoc => ({ id: itemDoc.id, ...itemDoc.data() } as Omit<LineItem, 'price'>));
+            dns.push(processDNDoc(doc, clientsMap, lineItems));
+        }
         callback(dns.sort((a,b) => b.deliveryDate.getTime() - a.deliveryDate.getTime()));
     });
 };
 
-export const addDeliveryNote = async (dnData: Omit<DeliveryNote, 'id' | 'client'>) => {
+export const getDeliveryNote = async (id: string): Promise<DeliveryNote | null> => {
+    if (!id) return null;
+    const docRef = doc(db, 'deliveryNotes', id);
+    const docSnap = await getDoc(docRef);
+    if (!docSnap.exists()) return null;
+
+    const lineItemsQuery = query(collection(db, 'deliveryNotes', id, 'lineItems'));
+    const lineItemsSnapshot = await getDocs(lineItemsQuery);
+    const lineItems = lineItemsSnapshot.docs.map(itemDoc => ({ id: itemDoc.id, ...itemDoc.data() } as Omit<LineItem, 'price'>));
+
+    const clientsMap = await getClientsMap();
+    return processDNDoc(docSnap, clientsMap, lineItems);
+}
+
+export const addDeliveryNote = async (dnData: Omit<DeliveryNote, 'id' | 'client' | 'lineItems'> & { lineItems: Omit<LineItem, 'id' | 'price'>[] }) => {
+    const { lineItems, ...dn } = dnData;
     const dnPayload = {
-        ...dnData,
+        ...dn,
         deliveryDate: Timestamp.fromDate(dnData.deliveryDate),
     };
     const newDnRef = await addDoc(collection(db, 'deliveryNotes'), dnPayload);
+
+    const batch = writeBatch(db);
+    const itemsCollection = collection(db, 'deliveryNotes', newDnRef.id, 'lineItems');
+    lineItems.forEach(item => {
+        const itemRef = doc(itemsCollection);
+        batch.set(itemRef, item);
+    });
+    await batch.commit();
+
     return newDnRef.id;
 };
 
 export const updateDeliveryNoteStatus = async (id: string, status: DeliveryNote['status']) => {
     const dnRef = doc(db, 'deliveryNotes', id);
-    await updateDoc(dnRef, { status });
+await updateDoc(dnRef, { status });
 };
 
 export const deleteDeliveryNote = async (id: string) => {

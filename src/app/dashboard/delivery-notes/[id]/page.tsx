@@ -1,17 +1,18 @@
 "use client"
-import React, { use } from 'react';
+import React, { useEffect, useState } from 'react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import { notFound } from 'next/navigation';
-import { mockDeliveryNotes } from '@/lib/data';
+import { notFound, useParams } from 'next/navigation';
 import type { DeliveryNote } from '@/lib/definitions';
+import { getDeliveryNote } from '@/lib/firebase/services';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { FileDown } from 'lucide-react';
+import { FileDown, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Link from 'next/link';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const companyInfo = {
     name: 'Smart Visuel SARL',
@@ -102,10 +103,70 @@ function exportDeliveryNoteToPDF(note: DeliveryNote) {
     };
 }
 
+const DetailPageSkeleton = () => (
+    <div className="max-w-4xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
+            <Skeleton className="h-8 w-64" />
+            <div className="flex items-center gap-2">
+                <Skeleton className="h-10 w-20" />
+                <Skeleton className="h-10 w-36" />
+            </div>
+        </div>
+        <Card>
+            <CardHeader>
+                <Skeleton className="h-8 w-48" />
+                <Skeleton className="h-5 w-80" />
+            </CardHeader>
+            <CardContent>
+                <div className="grid md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <Skeleton className="h-6 w-24 mb-2" />
+                        <Skeleton className="h-4 w-full mb-1" />
+                        <Skeleton className="h-4 w-full" />
+                    </div>
+                    <div>
+                        <Skeleton className="h-6 w-24 mb-2" />
+                        <Skeleton className="h-4 w-full mb-1" />
+                        <Skeleton className="h-4 w-full" />
+                    </div>
+                </div>
+                <div className="space-y-2">
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                </div>
+            </CardContent>
+            <CardFooter>
+                 <Skeleton className="h-4 w-full" />
+            </CardFooter>
+        </Card>
+    </div>
+);
 
-export default function DeliveryNoteDetailPage({ params }: { params: Promise<{ id: string }> }) {
-    const { id } = use(params);
-    const note = mockDeliveryNotes.find(n => n.id === id);
+
+export default function DeliveryNoteDetailPage() {
+    const params = useParams();
+    const id = params.id as string;
+    const [note, setNote] = useState<DeliveryNote | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        if (!id) return;
+        setIsLoading(true);
+        getDeliveryNote(id)
+            .then(data => {
+                if (data) {
+                    setNote(data);
+                } else {
+                    notFound();
+                }
+            })
+            .catch(() => notFound())
+            .finally(() => setIsLoading(false));
+    }, [id]);
+
+    if (isLoading) {
+        return <DetailPageSkeleton />;
+    }
 
     if (!note) {
         notFound();
@@ -158,8 +219,8 @@ export default function DeliveryNoteDetailPage({ params }: { params: Promise<{ i
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {note.lineItems.map((item) => (
-                                <TableRow key={item.id}>
+                            {note.lineItems.map((item, index) => (
+                                <TableRow key={index}>
                                     <TableCell>{item.description}</TableCell>
                                     <TableCell className="text-right">{item.quantity}</TableCell>
                                 </TableRow>

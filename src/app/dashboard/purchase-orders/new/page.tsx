@@ -5,7 +5,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from "next/navigation";
-import type { PurchaseOrder, Client } from '@/lib/definitions';
+import type { PurchaseOrder, Client, LineItem } from '@/lib/definitions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -24,7 +24,6 @@ import { useToast } from "@/hooks/use-toast";
 
 
 const lineItemSchema = z.object({
-  id: z.string().optional(),
   description: z.string().min(1, 'La description est requise.'),
   quantity: z.coerce.number().min(1, 'La quantité doit être au moins de 1.'),
   price: z.coerce.number().min(0, 'Le prix ne peut pas être négatif.'),

@@ -1,17 +1,18 @@
 "use client"
-import React, { use } from 'react';
+import React, { useEffect, useState } from 'react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import { notFound } from 'next/navigation';
-import { mockInvoices, getInvoiceTotal, mockClients } from '@/lib/data';
+import { notFound, useParams } from 'next/navigation';
 import type { Invoice } from '@/lib/definitions';
+import { getInvoice } from '@/lib/firebase/services';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { FileDown } from 'lucide-react';
+import { FileDown, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Link from 'next/link';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // Mock company data (replace with actual data source)
 const companyInfo = {
@@ -158,12 +159,80 @@ NB: Veuillez libeller tout paiement par chèque ou virement à l'ordre de ${comp
     };
 }
 
-export default function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
-    const { id } = use(params);
-    const invoice = mockInvoices.find(inv => inv.id === id);
+
+const InvoiceDetailSkeleton = () => (
+    <div className="max-w-4xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
+            <Skeleton className="h-8 w-64" />
+            <div className="flex items-center gap-2">
+                <Skeleton className="h-10 w-20" />
+                <Skeleton className="h-10 w-36" />
+            </div>
+        </div>
+        <Card>
+            <CardHeader>
+                <Skeleton className="h-8 w-48" />
+                <Skeleton className="h-5 w-80" />
+            </CardHeader>
+            <CardContent>
+                <div className="grid md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <Skeleton className="h-6 w-24 mb-2" />
+                        <Skeleton className="h-4 w-full mb-1" />
+                        <Skeleton className="h-4 w-full" />
+                    </div>
+                    <div>
+                        <Skeleton className="h-6 w-24 mb-2" />
+                        <Skeleton className="h-4 w-full mb-1" />
+                        <Skeleton className="h-4 w-full" />
+                    </div>
+                </div>
+                <div className="space-y-2">
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                </div>
+            </CardContent>
+            <CardFooter className="flex justify-end">
+                <div className="w-full max-w-sm space-y-2">
+                    <Skeleton className="h-6 w-full" />
+                    <Skeleton className="h-6 w-full" />
+                    <Skeleton className="h-8 w-full mt-2" />
+                </div>
+            </CardFooter>
+        </Card>
+    </div>
+);
+
+
+export default function InvoiceDetailPage() {
+    const params = useParams();
+    const id = params.id as string;
+    const [invoice, setInvoice] = useState<Invoice | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        if (!id) return;
+
+        setIsLoading(true);
+        getInvoice(id)
+            .then(data => {
+                if (data) {
+                    setInvoice(data);
+                } else {
+                    notFound();
+                }
+            })
+            .catch(() => notFound())
+            .finally(() => setIsLoading(false));
+    }, [id]);
+
+    if (isLoading) {
+        return <InvoiceDetailSkeleton />;
+    }
 
     if (!invoice) {
-        notFound();
+        return notFound();
     }
     
     const subtotal = invoice.lineItems.reduce((acc, item) => acc + (item.quantity * item.price), 0);
@@ -223,8 +292,8 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {invoice.lineItems.map((item) => (
-                                <TableRow key={item.id}>
+                            {invoice.lineItems.map((item, index) => (
+                                <TableRow key={index}>
                                     <TableCell>{item.description}</TableCell>
                                     <TableCell className="text-center">{item.quantity}</TableCell>
                                     <TableCell className="text-right">{item.price.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF' })}</TableCell>
