@@ -15,9 +15,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
 import { useNotifications } from '@/contexts/notification-context';
-import { addClient, getClients } from '@/lib/firebase/services';
-import { onSnapshot, collection } from 'firebase/firestore';
-import { db } from '@/lib/firebase/client';
+import { addClient, updateClient, deleteClient, subscribeToClients } from '@/lib/firebase/services';
 import { Skeleton } from '@/components/ui/skeleton';
 
 
@@ -122,8 +120,8 @@ export default function ClientsPage() {
   const [clientIdToDelete, setClientIdToDelete] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, "clients"), (snapshot) => {
-        const clientsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Client));
+    setIsLoading(true);
+    const unsubscribe = subscribeToClients((clientsData) => {
         setClients(clientsData);
         setIsLoading(false);
     });
@@ -142,23 +140,22 @@ export default function ClientsPage() {
   };
 
   const handleSaveClient = async (clientData: Omit<Client, 'id'> | Client) => {
-    if ('id' in clientData) {
-        // Edit mode - TODO: Implement update logic in services.ts
-        console.log("Editing not implemented yet");
-        // setClients(prev => prev.map(c => c.id === updatedClient.id ? updatedClient : c));
-        // toast({ title: 'Client modifié', description: `Les informations de ${updatedClient.name} ont été mises à jour.` });
+    try {
+        if ('id' in clientData) {
+            // Edit mode
+            const { id, ...dataToUpdate } = clientData;
+            await updateClient(id, dataToUpdate);
+            toast({ title: 'Client modifié', description: `Les informations de ${clientData.name} ont été mises à jour.` });
 
-        // if (currentUser?.role !== 'Admin') {
-        //     addNotification({
-        //         actorId: currentUser!.id,
-        //         actorName: currentUser!.name,
-        //         message: `a modifié le client ${updatedClient.name}.`,
-        //     });
-        // }
-
-    } else {
-        // Add mode
-        try {
+            if (currentUser?.role !== 'Admin') {
+                addNotification({
+                    actorId: currentUser!.id,
+                    actorName: currentUser!.name,
+                    message: `a modifié le client ${clientData.name}.`,
+                });
+            }
+        } else {
+            // Add mode
             await addClient(clientData);
             toast({ title: 'Client ajouté', description: `${clientData.name} a été ajouté à votre liste.` });
             if (currentUser?.role !== 'Admin') {
@@ -168,10 +165,10 @@ export default function ClientsPage() {
                     message: `a ajouté un nouveau client : ${clientData.name}.`,
                 });
             }
-        } catch (error) {
-            console.error("Error adding client: ", error);
-            toast({ variant: 'destructive', title: 'Erreur', description: "Impossible d'ajouter le client." });
         }
+    } catch (error) {
+        console.error("Error saving client: ", error);
+        toast({ variant: 'destructive', title: 'Erreur', description: "Impossible de sauvegarder le client." });
     }
   };
   
@@ -179,29 +176,33 @@ export default function ClientsPage() {
     setClientIdToDelete(clientId);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (!clientIdToDelete) return;
-    // TODO: Implement delete logic in services.ts
-    console.log("Deleting not implemented yet");
-    // const clientToDelete = clients.find(c => c.id === clientIdToDelete);
-    // if (!clientToDelete) return;
-
-    // setClients(prev => prev.filter(c => c.id !== clientIdToDelete));
-    // toast({
-    //     variant: 'destructive',
-    //     title: 'Client supprimé',
-    //     description: `${clientToDelete.name} a été supprimé.`,
-    // });
     
-    // if (currentUser?.role !== 'Admin') {
-    //     addNotification({
-    //         actorId: currentUser!.id,
-    //         actorName: currentUser!.name,
-    //         message: `a supprimé le client ${clientToDelete.name}.`,
-    //     });
-    // }
-
-    setClientIdToDelete(null);
+    const clientToDelete = clients.find(c => c.id === clientIdToDelete);
+    if (!clientToDelete) return;
+    
+    try {
+        await deleteClient(clientIdToDelete);
+        toast({
+            variant: 'destructive',
+            title: 'Client supprimé',
+            description: `${clientToDelete.name} a été supprimé.`,
+        });
+        
+        if (currentUser?.role !== 'Admin') {
+            addNotification({
+                actorId: currentUser!.id,
+                actorName: currentUser!.name,
+                message: `a supprimé le client ${clientToDelete.name}.`,
+            });
+        }
+    } catch (error) {
+        console.error("Error deleting client: ", error);
+        toast({ variant: 'destructive', title: 'Erreur', description: "Impossible de supprimer le client." });
+    } finally {
+        setClientIdToDelete(null);
+    }
   };
 
   const searchQuery = searchParams.get('q')?.toLowerCase() || '';
