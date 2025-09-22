@@ -119,6 +119,7 @@ export const mockInvoices: Invoice[] = [
   {
     id: 'INV-001',
     client: mockClients[0],
+    clientId: mockClients[0].id,
     lineItems: generateLineItems(2),
     status: 'Paid',
     issueDate: new Date(`${lastYear}-10-15`),
@@ -128,6 +129,7 @@ export const mockInvoices: Invoice[] = [
   {
     id: 'INV-002',
     client: mockClients[1],
+    clientId: mockClients[1].id,
     lineItems: generateLineItems(3),
     status: 'Sent',
     issueDate: new Date(`${lastYear}-11-01`),
@@ -138,6 +140,7 @@ export const mockInvoices: Invoice[] = [
   {
     id: 'INV-003',
     client: mockClients[2],
+    clientId: mockClients[2].id,
     lineItems: generateLineItems(1),
     status: 'Overdue',
     issueDate: new Date(`${lastYear}-09-20`),
@@ -147,6 +150,7 @@ export const mockInvoices: Invoice[] = [
   {
     id: 'INV-004',
     client: mockClients[3],
+    clientId: mockClients[3].id,
     lineItems: generateLineItems(5),
     status: 'Draft',
     issueDate: new Date(),
@@ -156,6 +160,7 @@ export const mockInvoices: Invoice[] = [
   {
     id: 'INV-005',
     client: mockClients[0],
+    clientId: mockClients[0].id,
     lineItems: generateLineItems(1),
     status: 'Paid',
     issueDate: new Date(`${lastYear}-11-05`),
@@ -168,6 +173,7 @@ export const mockPurchaseOrders: PurchaseOrder[] = [
     {
         id: 'BC-001',
         client: mockClients[1],
+        clientId: mockClients[1].id,
         lineItems: generateLineItems(4),
         status: 'Approved',
         issueDate: new Date(`${currentYear}-01-10`),
@@ -176,6 +182,7 @@ export const mockPurchaseOrders: PurchaseOrder[] = [
     {
         id: 'BC-002',
         client: mockClients[3],
+        clientId: mockClients[3].id,
         lineItems: generateLineItems(2),
         status: 'Sent',
         issueDate: new Date(`${currentYear}-02-20`),
@@ -185,6 +192,7 @@ export const mockPurchaseOrders: PurchaseOrder[] = [
      {
         id: 'BC-003',
         client: mockClients[0],
+        clientId: mockClients[0].id,
         lineItems: generateLineItems(1),
         status: 'Draft',
         issueDate: new Date(),
@@ -196,6 +204,7 @@ export const mockDeliveryNotes: DeliveryNote[] = [
     {
         id: 'BL-001',
         client: mockClients[1],
+        clientId: mockClients[1].id,
         invoiceId: 'INV-002',
         lineItems: generateDeliveryLineItems(3),
         status: 'Delivered',
@@ -204,6 +213,7 @@ export const mockDeliveryNotes: DeliveryNote[] = [
     {
         id: 'BL-002',
         client: mockClients[0],
+        clientId: mockClients[0].id,
         lineItems: generateDeliveryLineItems(2),
         status: 'Draft',
         deliveryDate: new Date(),
@@ -263,6 +273,9 @@ export const mockSubcontractors: Subcontractor[] = [
 ];
 
 export const getInvoiceTotal = (invoice: Invoice | PurchaseOrder): number => {
+    if (!invoice || !invoice.lineItems) {
+        return 0;
+    }
     const subtotal = invoice.lineItems.reduce((acc, item) => acc + item.quantity * item.price, 0);
     const tax = subtotal * (('taxRate' in invoice ? invoice.taxRate : 0) / 100);
     return subtotal + tax;
