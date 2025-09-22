@@ -370,9 +370,6 @@ export default function SubcontractorsPage() {
                         <h1 className="text-2xl font-bold">Sous-traitants</h1>
                         <p className="text-muted-foreground">Gérez votre réseau de partenaires et sous-traitants.</p>
                     </div>
-                    <Button size="sm" onClick={() => setIsAddDialogOpen(true)}>
-                        <PlusCircle className="mr-2 h-4 w-4" /> Ajouter un sous-traitant
-                    </Button>
                 </div>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
