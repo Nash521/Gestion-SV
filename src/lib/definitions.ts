@@ -124,3 +124,13 @@ export type Project = {
   name: string;
   description?: string;
 };
+
+export type AppNotification = {
+    id: string;
+    actorName: string;
+    actorId: string;
+    message: string;
+    timestamp: Date;
+    read: boolean;
+    href?: string;
+};

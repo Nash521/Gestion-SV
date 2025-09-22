@@ -25,6 +25,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { SearchBar } from '@/components/layout/search-bar';
 import { SettingsSheet } from '@/components/layout/settings-sheet';
 import { useAuth } from '@/contexts/auth-context';
+import { NotificationBell } from '@/components/layout/notification-bell';
 
 
 const searchablePages = [
@@ -126,6 +127,7 @@ export default function DashboardLayout({
                         <SearchBar />
                     </div>
                 )}
+                <NotificationBell />
                 <SettingsSheet />
             </div>
         </header>

@@ -1,4 +1,4 @@
-import { Client, Invoice, Transaction, LineItem, PurchaseOrder, DeliveryNote, CashRegister, Collaborator, Subcontractor, Project, TaskList, ProjectTask } from '@/lib/definitions';
+import { Client, Invoice, Transaction, LineItem, PurchaseOrder, DeliveryNote, CashRegister, Collaborator, Subcontractor, Project, TaskList, ProjectTask, AppNotification } from '@/lib/definitions';
 
 export const mockClients: Client[] = [
   { id: '1', name: 'Stark Industries', email: 'contact@stark.com', address: '10880 Malibu Point, 90265, Malibu', phone: '+12223334444' },
@@ -11,6 +11,36 @@ export const mockCollaborators: Collaborator[] = [
     { id: 'user-1', name: 'Nash Gone', email: 'nashgone@gmail.com', role: 'Admin' },
     { id: 'user-2', name: 'Alice', email: 'alice@example.com', role: 'Employee' },
     { id: 'user-3', name: 'Bob', email: 'bob@example.com', role: 'Employee' },
+];
+
+export const mockNotifications: AppNotification[] = [
+    { 
+        id: 'notif-1', 
+        actorId: 'user-2',
+        actorName: 'Alice',
+        message: 'a créé une nouvelle proforma (INV-006).',
+        timestamp: new Date(Date.now() - 3 * 60 * 1000), // 3 minutes ago
+        read: false,
+        href: '/dashboard/invoices/INV-006',
+    },
+    { 
+        id: 'notif-2', 
+        actorId: 'user-3',
+        actorName: 'Bob',
+        message: 'a ajouté une nouvelle tâche "Déployer en production" au projet "Refonte du site web".',
+        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+        read: false,
+        href: '/dashboard/projects',
+    },
+    { 
+        id: 'notif-3',
+        actorId: 'user-2',
+        actorName: 'Alice',
+        message: 'a modifié le statut de la proforma INV-004 en "Envoyée".',
+        timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
+        read: true,
+        href: '/dashboard/invoices/INV-004',
+    }
 ];
 
 export const mockProjects: Project[] = [

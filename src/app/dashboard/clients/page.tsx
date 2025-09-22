@@ -13,6 +13,8 @@ import { MoreHorizontal, PlusCircle, Mail, MessageSquare } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/auth-context';
+import { useNotifications } from '@/contexts/notification-context';
 
 
 const AddOrEditClientDialog = ({
@@ -106,6 +108,8 @@ const AddOrEditClientDialog = ({
 
 export default function ClientsPage() {
   const { toast } = useToast();
+  const { currentUser } = useAuth();
+  const { addNotification } = useNotifications();
   const searchParams = useSearchParams();
   const [clients, setClients] = useState<Client[]>(mockClients);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -125,13 +129,31 @@ export default function ClientsPage() {
   const handleSaveClient = (clientData: Omit<Client, 'id'> | Client) => {
     if ('id' in clientData) {
         // Edit mode
-        setClients(prev => prev.map(c => c.id === clientData.id ? clientData : c));
-        toast({ title: 'Client modifié', description: `Les informations de ${clientData.name} ont été mises à jour.` });
+        const updatedClient = clientData as Client;
+        setClients(prev => prev.map(c => c.id === updatedClient.id ? updatedClient : c));
+        toast({ title: 'Client modifié', description: `Les informations de ${updatedClient.name} ont été mises à jour.` });
+
+        if (currentUser?.role !== 'Admin') {
+            addNotification({
+                actorId: currentUser!.id,
+                actorName: currentUser!.name,
+                message: `a modifié le client ${updatedClient.name}.`,
+            });
+        }
+
     } else {
         // Add mode
         const newClient = { ...clientData, id: `client-${Date.now()}` };
         setClients(prev => [newClient, ...prev]);
         toast({ title: 'Client ajouté', description: `${newClient.name} a été ajouté à votre liste.` });
+        
+        if (currentUser?.role !== 'Admin') {
+            addNotification({
+                actorId: currentUser!.id,
+                actorName: currentUser!.name,
+                message: `a ajouté un nouveau client : ${newClient.name}.`,
+            });
+        }
     }
   };
   
@@ -141,13 +163,24 @@ export default function ClientsPage() {
 
   const handleConfirmDelete = () => {
     if (!clientIdToDelete) return;
-    const clientName = clients.find(c => c.id === clientIdToDelete)?.name;
+    const clientToDelete = clients.find(c => c.id === clientIdToDelete);
+    if (!clientToDelete) return;
+
     setClients(prev => prev.filter(c => c.id !== clientIdToDelete));
     toast({
         variant: 'destructive',
         title: 'Client supprimé',
-        description: `${clientName} a été supprimé.`,
+        description: `${clientToDelete.name} a été supprimé.`,
     });
+    
+    if (currentUser?.role !== 'Admin') {
+        addNotification({
+            actorId: currentUser!.id,
+            actorName: currentUser!.name,
+            message: `a supprimé le client ${clientToDelete.name}.`,
+        });
+    }
+
     setClientIdToDelete(null);
   };
 
