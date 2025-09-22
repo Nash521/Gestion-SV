@@ -23,27 +23,41 @@ export function ProjectGanttView({ tasks, project, currentView, onViewChange }: 
         const taskDates = tasks.map(t => t.dueDate).filter(Boolean).map(d => new Date(d!));
         if (taskDates.length === 0) {
             const today = new Date();
+            const start = addDays(today, -15);
+            const end = addDays(today, 15);
+            const days = differenceInDays(end, start);
+            
+            const markers = Array.from({ length: days }, (_, i) => {
+                const date = addDays(start, i);
+                if (i % 5 === 0) {
+                    return { date, label: format(date, 'd MMM', { locale: fr }) };
+                }
+                return null;
+            }).filter(Boolean);
+            
             return {
-                startDate: today,
-                endDate: addDays(today, 30),
-                totalDays: 30,
-                dateMarkers: []
+                startDate: start,
+                endDate: end,
+                totalDays: days,
+                dateMarkers: markers as {date: Date, label: string}[]
             };
         }
 
         const minDate = min(taskDates);
         const maxDate = max(taskDates);
         
-        const startDate = addDays(minDate, -5); // Add some padding
-        const endDate = addDays(maxDate, 5); // Add some padding
+        const startDate = addDays(minDate, -7); // Add some padding
+        const endDate = addDays(maxDate, 7); // Add some padding
         const totalDays = differenceInDays(endDate, startDate) || 1;
 
         const markers = [];
-        for (let i = 0; i <= totalDays; i++) {
+        let markerCount = Math.max(5, Math.floor(totalDays / 7)); // Aim for a reasonable number of markers
+        let interval = Math.floor(totalDays / markerCount);
+        if (interval < 1) interval = 1;
+
+        for (let i = 0; i <= totalDays; i+= interval) {
             const date = addDays(startDate, i);
-            if (i % 7 === 0) { // Mark every 7 days
-                markers.push({ date, label: format(date, 'd MMM', { locale: fr }) });
-            }
+            markers.push({ date, label: format(date, 'd MMM', { locale: fr }) });
         }
 
         return { startDate, endDate, totalDays, dateMarkers: markers };
@@ -54,8 +68,8 @@ export function ProjectGanttView({ tasks, project, currentView, onViewChange }: 
         
         const taskDueDate = new Date(task.dueDate);
         
-        // Let's assume tasks have a duration of 5 days for visualization
-        const taskStartDate = task.startDate ? new Date(task.startDate) : addDays(taskDueDate, -5);
+        // Let's assume tasks have a duration of 3 days for visualization if no start date
+        const taskStartDate = task.startDate ? new Date(task.startDate) : addDays(taskDueDate, -3);
 
         const leftOffset = differenceInDays(taskStartDate, startDate);
         const duration = differenceInDays(taskDueDate, taskStartDate) || 1;
@@ -64,8 +78,8 @@ export function ProjectGanttView({ tasks, project, currentView, onViewChange }: 
         const widthPercentage = (duration / totalDays) * 100;
 
         return {
-            left: `${leftPercentage}%`,
-            width: `${widthPercentage}%`,
+            left: `${Math.max(0, leftPercentage)}%`,
+            width: `${Math.min(100 - Math.max(0, leftPercentage), widthPercentage)}%`,
         };
     };
 
@@ -93,40 +107,39 @@ export function ProjectGanttView({ tasks, project, currentView, onViewChange }: 
             </CardHeader>
             <CardContent className="flex-1 overflow-auto">
               <TooltipProvider>
-                <div className="relative border-l border-border pt-8">
-                    {/* Date Markers */}
-                    <div className="absolute top-0 left-0 w-full h-8 flex">
-                        {dateMarkers.map(({ date, label }) => {
+                <div className="grid" style={{ gridTemplateColumns: '250px 1fr' }}>
+                    {/* Header Row */}
+                    <div className="font-semibold text-sm p-2 border-b border-border sticky top-0 bg-muted/50 z-10">Tâche</div>
+                    <div className="relative p-2 border-b border-border sticky top-0 bg-muted/50 z-10">
+                         {dateMarkers.map(({ date, label }) => {
                              const leftPercentage = (differenceInDays(date, startDate) / totalDays) * 100;
+                             if(leftPercentage < 0 || leftPercentage > 100) return null;
                              return (
-                                <div key={date.toISOString()} style={{ left: `${leftPercentage}%`}} className="absolute text-xs text-muted-foreground flex flex-col items-center">
-                                    <span className="h-8 w-px bg-border"></span>
+                                <div key={date.toISOString()} style={{ left: `${leftPercentage}%`}} className="absolute top-0 h-full pt-2 text-xs text-muted-foreground flex flex-col items-center">
                                     <span>{label}</span>
+                                    <div className="h-full w-px bg-border/70 mt-1"></div>
                                 </div>
                              )
                         })}
                     </div>
                 
                     {/* Task Rows */}
-                    <div className="space-y-2">
-                    {tasks.map(task => {
-                        if (!task.dueDate) return null;
-
+                    {tasks.filter(task => task.dueDate).map((task, index) => {
                         const taskStyle = getTaskStyle(task);
-                        const isOverdue = isPast(new Date(task.dueDate)) && !task.completed;
+                        const isOverdue = isPast(new Date(task.dueDate!)) && !task.completed;
 
                         return (
-                            <div key={task.id} className="relative h-10 flex items-center group">
-                                <div className="w-48 shrink-0 truncate pr-4 text-sm">
+                           <React.Fragment key={task.id}>
+                                <div className="p-2 border-b border-border truncate text-sm flex items-center">
                                     {task.title}
                                 </div>
-                                 <div className="flex-1 h-full bg-muted/60 rounded-md overflow-hidden">
-                                     <Tooltip delayDuration={0}>
+                                <div className="relative p-2 border-b border-border h-12">
+                                     <Tooltip delayDuration={100}>
                                         <TooltipTrigger asChild>
                                             <div
                                                 style={taskStyle}
                                                 className={cn(
-                                                    "absolute h-3/4 top-1/2 -translate-y-1/2 rounded-md transition-all",
+                                                    "absolute h-8 top-1/2 -translate-y-1/2 rounded-md transition-all cursor-pointer",
                                                     isOverdue ? "bg-destructive/80" : "bg-primary/80",
                                                     "hover:opacity-100 hover:scale-y-110"
                                                 )}
@@ -135,17 +148,21 @@ export function ProjectGanttView({ tasks, project, currentView, onViewChange }: 
                                         <TooltipContent>
                                             <p className="font-semibold">{task.title}</p>
                                             <p className="text-xs text-muted-foreground">
-                                                Échéance : {format(new Date(task.dueDate), 'd MMMM yyyy', { locale: fr })}
+                                                Échéance : {format(new Date(task.dueDate!), 'd MMMM yyyy', { locale: fr })}
                                             </p>
                                         </TooltipContent>
                                     </Tooltip>
                                 </div>
-                            </div>
+                           </React.Fragment>
                         )
                     })}
-                    </div>
                 </div>
               </TooltipProvider>
+               {tasks.filter(task => task.dueDate).length === 0 && (
+                    <div className="text-center py-20 text-muted-foreground border-2 border-dashed rounded-lg mt-4">
+                        Aucune tâche avec une date d'échéance à afficher.
+                    </div>
+                )}
             </CardContent>
         </Card>
     );
