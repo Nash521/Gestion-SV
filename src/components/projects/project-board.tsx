@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import type { Project, TaskList, ProjectTask, Collaborator } from '@/lib/definitions';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Plus, Tag, X, Calendar, Paperclip, CheckSquare } from 'lucide-react';
+import { MoreHorizontal, Plus, Tag, X, Calendar, Paperclip, CheckSquare, CalendarIcon } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -23,6 +23,9 @@ import { ScrollArea } from '../ui/scroll-area';
 import { Progress } from '../ui/progress';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { Calendar as CalendarComponent } from '../ui/calendar';
+import { cn } from '@/lib/utils';
 
 interface TaskCardProps {
   task: ProjectTask;
@@ -68,7 +71,7 @@ const TaskCard = ({ task, collaborators, onTaskClick }: TaskCardProps) => {
           {task.dueDate && (
             <div className="flex items-center gap-1">
               <Calendar className="h-3 w-3" />
-              <span>{format(task.dueDate, 'd MMM', { locale: fr })}</span>
+              <span>{format(new Date(task.dueDate), 'd MMM', { locale: fr })}</span>
             </div>
           )}
           {checklistProgress && (
@@ -157,6 +160,7 @@ const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators }: TaskDi
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
+    const [dueDate, setDueDate] = useState<Date | undefined>();
     
     const isEditMode = !!task?.id;
 
@@ -165,10 +169,12 @@ const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators }: TaskDi
             setTitle(task.title || '');
             setContent(task.content || '');
             setAssigneeIds(task.assigneeIds || []);
+            setDueDate(task.dueDate ? new Date(task.dueDate) : undefined);
         } else {
             setTitle('');
             setContent('');
             setAssigneeIds([]);
+            setDueDate(undefined);
         }
     }, [isOpen, task]);
 
@@ -178,6 +184,7 @@ const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators }: TaskDi
             title,
             content,
             assigneeIds,
+            dueDate,
         });
         setIsOpen(false);
     };
@@ -237,7 +244,29 @@ const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators }: TaskDi
                             </div>
                             <div className="space-y-2">
                                 <Label>Date d'échéance</Label>
-                                <div className="p-3 border rounded-md bg-muted/50 text-sm text-muted-foreground">Calendrier (bientôt disponible)</div>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant={"outline"}
+                                            className={cn(
+                                            "w-full justify-start text-left font-normal",
+                                            !dueDate && "text-muted-foreground"
+                                            )}
+                                        >
+                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                            {dueDate ? format(dueDate, "PPP", { locale: fr }) : <span>Choisir une date</span>}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0">
+                                        <CalendarComponent
+                                            mode="single"
+                                            selected={dueDate}
+                                            onSelect={setDueDate}
+                                            initialFocus
+                                            locale={fr}
+                                        />
+                                    </PopoverContent>
+                                </Popover>
                             </div>
                             <div className="space-y-2">
                                 <Label>Checklist</Label>
