@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useMemo } from 'react';
-import type { Project, TaskList, ProjectTask, Collaborator } from '@/lib/definitions';
+import type { Project, TaskList, ProjectTask, Collaborator, ChecklistItem } from '@/lib/definitions';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal, Plus, Tag, X, Calendar, Paperclip, CheckSquare, CalendarIcon, Settings, Trash2 } from 'lucide-react';
@@ -63,7 +63,7 @@ const TaskCard = ({ task, collaborators, onTaskClick, availableLabels }: TaskCar
     if (!task.checklist || task.checklist.length === 0) return null;
     const completed = task.checklist.filter(item => item.completed).length;
     const total = task.checklist.length;
-    return { completed, total, percentage: (completed / total) * 100 };
+    return { completed, total, percentage: total > 0 ? (completed / total) * 100 : 0 };
   }, [task.checklist]);
 
   return (
@@ -93,7 +93,7 @@ const TaskCard = ({ task, collaborators, onTaskClick, availableLabels }: TaskCar
               <span>{format(new Date(task.dueDate), 'd MMM', { locale: fr })}</span>
             </div>
           )}
-          {checklistProgress && (
+          {checklistProgress && checklistProgress.total > 0 && (
              <div className="flex items-center gap-1">
                 <CheckSquare className="h-3 w-3" />
                 <span>{checklistProgress.completed}/{checklistProgress.total}</span>
@@ -107,7 +107,7 @@ const TaskCard = ({ task, collaborators, onTaskClick, availableLabels }: TaskCar
           )}
         </div>
 
-        {checklistProgress && (
+        {checklistProgress && checklistProgress.total > 0 && (
             <Progress value={checklistProgress.percentage} className="h-1" />
         )}
         
@@ -318,8 +318,16 @@ const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators, availabl
     const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
     const [labels, setLabels] = useState<string[]>([]);
     const [dueDate, setDueDate] = useState<Date | undefined>();
+    const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
+    const [newChecklistItemText, setNewChecklistItemText] = useState('');
     
     const isEditMode = !!task?.id;
+    
+    const checklistProgress = useMemo(() => {
+        if (!checklist || checklist.length === 0) return 0;
+        const completed = checklist.filter(item => item.completed).length;
+        return (completed / checklist.length) * 100;
+    }, [checklist]);
 
     useEffect(() => {
         if (isOpen && task) {
@@ -328,12 +336,16 @@ const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators, availabl
             setAssigneeIds(task.assigneeIds || []);
             setDueDate(task.dueDate ? new Date(task.dueDate) : undefined);
             setLabels(task.labels || []);
+            setChecklist(task.checklist ? JSON.parse(JSON.stringify(task.checklist)) : []);
+            setNewChecklistItemText('');
         } else {
             setTitle('');
             setContent('');
             setAssigneeIds([]);
             setDueDate(undefined);
             setLabels([]);
+            setChecklist([]);
+            setNewChecklistItemText('');
         }
     }, [isOpen, task]);
 
@@ -345,6 +357,7 @@ const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators, availabl
             assigneeIds,
             dueDate,
             labels,
+            checklist,
         });
         setIsOpen(false);
     };
@@ -364,6 +377,34 @@ const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators, availabl
                 : [...prev, labelName]
         );
     }
+    
+     const handleAddChecklistItem = () => {
+        if (newChecklistItemText.trim()) {
+            const newItem: ChecklistItem = {
+                id: `cl-${Date.now()}`,
+                text: newChecklistItemText.trim(),
+                completed: false
+            };
+            setChecklist(prev => [...prev, newItem]);
+            setNewChecklistItemText('');
+        }
+    };
+    
+    const handleToggleChecklistItem = (id: string) => {
+        setChecklist(prev => prev.map(item => 
+            item.id === id ? { ...item, completed: !item.completed } : item
+        ));
+    };
+
+    const handleDeleteChecklistItem = (id: string) => {
+        setChecklist(prev => prev.filter(item => item.id !== id));
+    };
+
+    const handleChecklistTextChange = (id: string, newText: string) => {
+        setChecklist(prev => prev.map(item =>
+            item.id === id ? { ...item, text: newText } : item
+        ));
+    };
 
     return (
          <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -385,9 +426,45 @@ const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators, availabl
                         
                         {isEditMode && (
                              <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label>Checklist</Label>
-                                    <div className="p-3 border rounded-md bg-muted/50 text-sm text-muted-foreground">Ajout de sous-tâches (bientôt disponible)</div>
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-2">
+                                        <CheckSquare className="h-5 w-5" />
+                                        <Label>Checklist</Label>
+                                    </div>
+                                     {checklist.length > 0 && (
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs text-muted-foreground">{Math.round(checklistProgress)}%</span>
+                                            <Progress value={checklistProgress} className="h-2 w-full" />
+                                        </div>
+                                    )}
+                                    <div className="space-y-2 pl-6">
+                                        {checklist.map(item => (
+                                            <div key={item.id} className="flex items-center gap-2 group">
+                                                <Checkbox id={`cl-${item.id}`} checked={item.completed} onCheckedChange={() => handleToggleChecklistItem(item.id)} />
+                                                <Input 
+                                                    value={item.text} 
+                                                    onChange={(e) => handleChecklistTextChange(item.id, e.target.value)}
+                                                    className={cn("flex-1 h-8 border-0 shadow-none -ml-2 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent", item.completed && "line-through text-muted-foreground")}
+                                                />
+                                                 <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteChecklistItem(item.id)}><Trash2 className="h-4 w-4"/></Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="flex items-center gap-2 pl-6">
+                                        <Input 
+                                            placeholder="Ajouter un élément..." 
+                                            value={newChecklistItemText} 
+                                            onChange={(e) => setNewChecklistItemText(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    handleAddChecklistItem();
+                                                }
+                                            }}
+                                            className="h-9"
+                                        />
+                                        <Button type="button" onClick={handleAddChecklistItem} variant="secondary">Ajouter</Button>
+                                    </div>
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Pièces jointes</Label>
