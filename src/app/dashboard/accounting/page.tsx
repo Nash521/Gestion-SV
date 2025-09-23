@@ -1,3 +1,4 @@
+
 "use client"
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -238,6 +239,7 @@ const AddOrEditTransactionDialog = ({
     const isEditMode = !!transactionToEdit;
 
     useEffect(() => {
+        console.log('[Dialog] useEffect triggered. isOpen:', isOpen, 'cashRegisters:', cashRegisters);
         if (!isOpen) return;
 
         if (isEditMode && transactionToEdit) {
@@ -246,13 +248,16 @@ const AddOrEditTransactionDialog = ({
             setCategory(transactionToEdit.category);
             setAmount(String(transactionToEdit.amount));
             setCashRegisterId(transactionToEdit.cashRegisterId);
+            console.log('[Dialog] Edit mode. Set cashRegisterId to:', transactionToEdit.cashRegisterId);
         } else {
             // Reset for new transaction
             setType('');
             setDescription('');
             setCategory('');
             setAmount('');
-            setCashRegisterId(cashRegisters.length > 0 ? cashRegisters[0].id : '');
+            const defaultCashRegister = cashRegisters.length > 0 ? cashRegisters[0].id : '';
+            setCashRegisterId(defaultCashRegister);
+            console.log('[Dialog] Add mode. Set cashRegisterId to:', defaultCashRegister);
         }
     }, [isOpen, transactionToEdit, isEditMode, cashRegisters]);
 
@@ -284,6 +289,8 @@ const AddOrEditTransactionDialog = ({
         
         setIsOpen(false);
     };
+
+    console.log('[Dialog] Rendering. cashRegisterId state:', cashRegisterId);
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -361,6 +368,7 @@ export default function AccountingPage() {
             setIsLoading(false);
         });
         const unsubscribeCashRegisters = subscribeToCashRegisters((data) => {
+            console.log("Cash registers updated from Firebase:", data);
             setCashRegisters(data);
         });
 
@@ -540,6 +548,8 @@ export default function AccountingPage() {
         return items;
     }, [transactions, selectedCashRegister, searchQuery]);
 
+    console.log('[Parent] Rendering. Passing cashRegisters to dialog:', cashRegisters);
+
     return (
         <>
             <AlertDialog open={!!transactionIdToDelete} onOpenChange={(open) => !open && setTransactionIdToDelete(null)}>
@@ -613,3 +623,6 @@ export default function AccountingPage() {
         </>
     );
 }
+
+
+    
