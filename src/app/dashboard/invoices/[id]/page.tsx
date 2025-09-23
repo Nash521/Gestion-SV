@@ -76,6 +76,10 @@ function exportInvoiceToPDF(invoice: Invoice) {
         doc.text(invoice.client.address, pageWidth / 2 + 10, clientInfoY + 15);
 
         // Table
+        const subtotal = invoice.lineItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        const discount = invoice.discountAmount || 0;
+        const total = subtotal - discount;
+
         const tableData = invoice.lineItems.map((item, index) => ([
             index + 1,
             item.description,
@@ -83,16 +87,31 @@ function exportInvoiceToPDF(invoice: Invoice) {
             item.price.toLocaleString('de-DE') + ' XOF',
             (item.price * item.quantity).toLocaleString('de-DE') + ' XOF'
         ]));
+        
+        const footerData = [];
+        footerData.push([{ content: 'Sous-total', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold' } }, { content: `${subtotal.toLocaleString('de-DE')} XOF`, styles: { halign: 'right' } }]);
+        
+        if (discount > 0) {
+            footerData.push([{ content: 'Réduction', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold' } }, { content: `-${discount.toLocaleString('de-DE')} XOF`, styles: { halign: 'right' } }]);
+        }
+        
+        footerData.push([{ content: 'NET À PAYER', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fontSize: 11 } }, { content: `${total.toLocaleString('de-DE')} XOF`, styles: { halign: 'right', fontStyle: 'bold', fontSize: 11 } }]);
+
 
         (doc as any).autoTable({
             startY: clientInfoY + 40,
             head: [['N°', 'DESCRIPTION', 'QTY', 'PRIX UNITAIRE', 'TOTAL']],
             body: tableData,
+            foot: footerData,
             theme: 'grid',
             headStyles: {
                 fillColor: [76, 81, 191],
                 textColor: 255,
                 fontSize: 10,
+            },
+            footStyles: {
+                fillColor: [245, 247, 255],
+                textColor: [51, 51, 51],
             },
             styles: {
                 fontSize: 10,
@@ -105,39 +124,11 @@ function exportInvoiceToPDF(invoice: Invoice) {
             }
         });
 
-        // Totals
-        const finalY = (doc as any).lastAutoTable.finalY || pageHeight - 100;
-        const subtotal = invoice.lineItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-        const discount = invoice.discountAmount || 0;
-        const total = subtotal - discount;
-
-        const totalsBody = [['Sous-total', `${subtotal.toLocaleString('de-DE')} XOF`]];
-        if (discount > 0) {
-            totalsBody.push(['Réduction', `-${discount.toLocaleString('de-DE')} XOF`]);
-        }
-        totalsBody.push([{ content: 'NET À PAYER', styles: { fontStyle: 'bold', fontSize: 11 } }, { content: `${total.toLocaleString('de-DE')} XOF`, styles: { fontStyle: 'bold', fontSize: 11 } }]);
-
-        (doc as any).autoTable({
-            startY: finalY + 5,
-            body: totalsBody,
-            theme: 'plain',
-            tableWidth: 'wrap',
-            margin: { left: pageWidth - margin - 80 },
-            styles: {
-                fontSize: 10,
-                cellPadding: { top: 1, right: 2, bottom: 1, left: 2 },
-            },
-            columnStyles: {
-                0: { halign: 'left' },
-                1: { halign: 'right' },
-            }
-        });
-
 
         // Footer notes
-        const footerY = (doc as any).lastAutoTable.finalY + 15;
+        const finalY = (doc as any).lastAutoTable.finalY || pageHeight - 100;
         doc.setFillColor(245, 247, 255);
-        doc.rect(margin, footerY, pageWidth - (margin * 2), 30, 'F');
+        doc.rect(margin, finalY + 5, pageWidth - (margin * 2), 30, 'F');
         doc.setTextColor(51, 51, 51);
         doc.setFontSize(9);
         doc.setFont('helvetica', 'normal');
@@ -146,12 +137,13 @@ function exportInvoiceToPDF(invoice: Invoice) {
 Proforma valable: 07 Jours
 Veuillez notifier la commande par un bon numérique ou physique
 NB: Veuillez libeller tout paiement par chèque ou virement à l'ordre de ${companyInfo.legalName}`;
-        doc.text(paymentNotes, margin + 5, footerY + 5, { maxWidth: pageWidth - (margin * 2) - 10 });
+        doc.text(paymentNotes, margin + 5, finalY + 10, { maxWidth: pageWidth - (margin * 2) - 10 });
         
         // Legal footer
+        const legalFooterY = Math.max(finalY + 45, pageHeight - 20);
         doc.setFontSize(7);
         doc.setTextColor(100);
-        doc.text(companyInfo.legalFooter, margin, pageHeight - 20, { maxWidth: pageWidth - (margin * 2) });
+        doc.text(companyInfo.legalFooter, margin, legalFooterY, { maxWidth: pageWidth - (margin * 2) });
         
         doc.save(`proforma-${invoice.id}.pdf`);
     };
