@@ -88,30 +88,15 @@ function exportInvoiceToPDF(invoice: Invoice) {
             (item.price * item.quantity).toLocaleString('de-DE') + ' XOF'
         ]));
         
-        const footerData = [];
-        footerData.push([{ content: 'Sous-total', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', cellPadding: {top: 4, right: 2} } }, { content: `${subtotal.toLocaleString('de-DE')} XOF`, styles: { halign: 'right', cellPadding: {top: 4, right: 2} } }]);
-        
-        if (discount > 0) {
-            footerData.push([{ content: 'Réduction', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', cellPadding: {right: 2} } }, { content: `-${discount.toLocaleString('de-DE')} XOF`, styles: { halign: 'right', cellPadding: {right: 2} } }]);
-        }
-        
-        footerData.push([{ content: 'NET À PAYER', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fontSize: 11, cellPadding: {right: 2} } }, { content: `${total.toLocaleString('de-DE')} XOF`, styles: { halign: 'right', fontStyle: 'bold', fontSize: 11, cellPadding: {right: 2} } }]);
-
-
         (doc as any).autoTable({
             startY: clientInfoY + 40,
             head: [['N°', 'DESCRIPTION', 'QTY', 'PRIX UNITAIRE', 'TOTAL']],
             body: tableData,
-            foot: footerData,
             theme: 'grid',
             headStyles: {
                 fillColor: [76, 81, 191],
                 textColor: 255,
                 fontSize: 10,
-            },
-            footStyles: {
-                fillColor: [245, 247, 255],
-                textColor: [51, 51, 51],
             },
             styles: {
                 fontSize: 10,
@@ -124,11 +109,46 @@ function exportInvoiceToPDF(invoice: Invoice) {
             }
         });
 
+        const finalY = (doc as any).lastAutoTable.finalY;
+
+        const summaryData = [];
+        summaryData.push(['Sous-total', `${subtotal.toLocaleString('de-DE')} XOF`]);
+        
+        if (discount > 0) {
+            summaryData.push(['Réduction', `-${discount.toLocaleString('de-DE')} XOF`]);
+        }
+        
+        summaryData.push(['NET À PAYER', `${total.toLocaleString('de-DE')} XOF`]);
+
+        (doc as any).autoTable({
+            startY: finalY + 5,
+            body: summaryData,
+            theme: 'plain',
+            tableWidth: 'wrap',
+            margin: { left: pageWidth - margin - 80 },
+            styles: {
+                fontSize: 10,
+                cellPadding: { top: 1, right: 2, bottom: 1, left: 2 },
+            },
+            columnStyles: {
+                0: { halign: 'right', fontStyle: 'bold' },
+                1: { halign: 'right', fontStyle: 'bold' },
+            },
+            didParseCell: function (data: any) {
+                if (data.row.section === 'body' && data.row.raw[0] === 'NET À PAYER') {
+                    data.cell.styles.fontSize = 11;
+                    if (data.column.index === 1) {
+                        data.cell.styles.fontSize = 11;
+                    }
+                }
+            }
+        });
+
 
         // Footer notes
-        const finalY = (doc as any).lastAutoTable.finalY || pageHeight - 100;
+        const notesFinalY = (doc as any).lastAutoTable.finalY || finalY + 30;
         doc.setFillColor(245, 247, 255);
-        doc.rect(margin, finalY + 5, pageWidth - (margin * 2), 30, 'F');
+        doc.rect(margin, notesFinalY + 5, pageWidth - (margin * 2), 30, 'F');
         doc.setTextColor(51, 51, 51);
         doc.setFontSize(9);
         doc.setFont('helvetica', 'normal');
@@ -137,10 +157,10 @@ function exportInvoiceToPDF(invoice: Invoice) {
 Proforma valable: 07 Jours
 Veuillez notifier la commande par un bon numérique ou physique
 NB: Veuillez libeller tout paiement par chèque ou virement à l'ordre de ${companyInfo.legalName}`;
-        doc.text(paymentNotes, margin + 5, finalY + 10, { maxWidth: pageWidth - (margin * 2) - 10 });
+        doc.text(paymentNotes, margin + 5, notesFinalY + 10, { maxWidth: pageWidth - (margin * 2) - 10 });
         
         // Legal footer
-        const legalFooterY = Math.max(finalY + 45, pageHeight - 20);
+        const legalFooterY = Math.max(notesFinalY + 45, pageHeight - 20);
         doc.setFontSize(7);
         doc.setTextColor(100);
         doc.text(companyInfo.legalFooter, margin, legalFooterY, { maxWidth: pageWidth - (margin * 2) });
