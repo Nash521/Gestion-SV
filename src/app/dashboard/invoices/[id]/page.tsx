@@ -125,7 +125,7 @@ function exportInvoiceToPDF(invoice: Invoice) {
             margin: { left: pageWidth - margin - 80 },
             styles: {
                 fontSize: 10,
-                cellPadding: { top: 1, right: 0, bottom: 1, left: 0 },
+                cellPadding: { top: 1, right: 2, bottom: 1, left: 2 },
             },
             columnStyles: {
                 0: { halign: 'left' },
