@@ -125,7 +125,7 @@ function exportInvoiceToPDF(invoice: Invoice) {
             body: summaryData,
             theme: 'plain',
             tableWidth: 'wrap',
-            margin: { left: pageWidth - margin - 40 },
+            margin: { left: pageWidth - margin - 50 },
             styles: {
                 fontSize: 10,
                 cellPadding: { top: 1, right: 2, bottom: 1, left: 2 },
