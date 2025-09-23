@@ -238,24 +238,23 @@ const AddOrEditTransactionDialog = ({
     const isEditMode = !!transactionToEdit;
 
     useEffect(() => {
-        if (isOpen) {
-            if (isEditMode && transactionToEdit) {
-                setType(transactionToEdit.type);
-                setDescription(transactionToEdit.description);
-                setCategory(transactionToEdit.category);
-                setAmount(String(transactionToEdit.amount));
-                setCashRegisterId(transactionToEdit.cashRegisterId);
-            } else {
-                // Reset for new transaction
-                setType('');
-                setDescription('');
-                setCategory('');
-                setAmount('');
-                // Default to the first cash register if available
-                setCashRegisterId(cashRegisters.length > 0 ? cashRegisters[0].id : '');
-            }
+        if (!isOpen) return;
+
+        if (isEditMode && transactionToEdit) {
+            setType(transactionToEdit.type);
+            setDescription(transactionToEdit.description);
+            setCategory(transactionToEdit.category);
+            setAmount(String(transactionToEdit.amount));
+            setCashRegisterId(transactionToEdit.cashRegisterId);
+        } else {
+            // Reset for new transaction
+            setType('');
+            setDescription('');
+            setCategory('');
+            setAmount('');
+            setCashRegisterId(cashRegisters.length > 0 ? cashRegisters[0].id : '');
         }
-    }, [transactionToEdit, isEditMode, isOpen, cashRegisters]);
+    }, [isOpen, transactionToEdit, isEditMode, cashRegisters]);
 
 
     const handleSubmit = async () => {
