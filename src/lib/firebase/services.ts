@@ -1,6 +1,6 @@
 import { db } from './client';
 import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, onSnapshot, getDoc, Timestamp, where, writeBatch } from 'firebase/firestore';
-import type { Client, Invoice, PurchaseOrder, DeliveryNote, LineItem } from '../definitions';
+import type { Client, Invoice, PurchaseOrder, DeliveryNote, LineItem, Transaction, CashRegister } from '../definitions';
 
 const getClientsMap = async (): Promise<Map<string, Client>> => {
     const clients = await getClients();
@@ -112,7 +112,6 @@ export const addInvoice = async (invoiceData: Omit<Invoice, 'id' | 'client' | 'l
     };
     const newInvoiceRef = await addDoc(collection(db, 'invoices'), invoicePayload);
     
-    // Add line items to a sub-collection
     const batch = writeBatch(db);
     const itemsCollection = collection(db, 'invoices', newInvoiceRef.id, 'lineItems');
     lineItems.forEach(item => {
@@ -134,17 +133,14 @@ export const updateInvoice = async (id: string, invoiceData: Omit<Invoice, 'id' 
     const invoiceRef = doc(db, 'invoices', id);
     await updateDoc(invoiceRef, invoicePayload as any);
 
-    // Update line items
     const batch = writeBatch(db);
     const itemsCollection = collection(db, 'invoices', id, 'lineItems');
     
-    // First, delete existing line items
     const existingItemsSnap = await getDocs(itemsCollection);
     existingItemsSnap.forEach(doc => batch.delete(doc.ref));
 
-    // Then, add the new ones
     lineItems.forEach(item => {
-        const itemRef = doc(itemsCollection); // create new ones
+        const itemRef = doc(itemsCollection); 
         batch.set(itemRef, { description: item.description, quantity: item.quantity, price: item.price });
     });
     await batch.commit();
@@ -301,3 +297,53 @@ await updateDoc(dnRef, { status });
 export const deleteDeliveryNote = async (id: string) => {
     await deleteDoc(doc(db, 'deliveryNotes', id));
 };
+
+
+// Accounting / Transaction Services
+export const subscribeToTransactions = (callback: (transactions: Transaction[]) => void) => {
+    const q = query(collection(db, 'transactions'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        const transactions = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            date: doc.data().date.toDate(),
+        } as Transaction));
+        callback(transactions.sort((a,b) => b.date.getTime() - a.date.getTime()));
+    });
+    return unsubscribe;
+}
+
+export const addTransaction = async (transaction: Omit<Transaction, 'id'|'date'>) => {
+    const transactionPayload = {
+        ...transaction,
+        date: Timestamp.fromDate(new Date()),
+    }
+    await addDoc(collection(db, 'transactions'), transactionPayload);
+}
+
+export const updateTransaction = async (id: string, transaction: Omit<Transaction, 'id'>) => {
+    const transactionRef = doc(db, 'transactions', id);
+    const payload = {
+        ...transaction,
+        date: Timestamp.fromDate(new Date(transaction.date))
+    };
+    await updateDoc(transactionRef, payload as any);
+}
+
+export const deleteTransaction = async (id: string) => {
+    const transactionRef = doc(db, 'transactions', id);
+    await deleteDoc(transactionRef);
+}
+
+// Cash Register Services
+export const subscribeToCashRegisters = (callback: (registers: CashRegister[]) => void) => {
+    const q = query(collection(db, 'cashRegisters'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        const registers = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+        } as CashRegister));
+        callback(registers);
+    });
+    return unsubscribe;
+}

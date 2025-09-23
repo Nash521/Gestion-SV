@@ -3,7 +3,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import { mockTransactions, mockCashRegisters } from '@/lib/data';
 import type { Transaction, CashRegister } from '@/lib/definitions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,13 +21,58 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
+import { subscribeToTransactions, addTransaction, updateTransaction, deleteTransaction, subscribeToCashRegisters } from '@/lib/firebase/services';
 
-const TransactionTable = ({ transactions, type, onDelete, onEdit, cashRegisters }: { transactions: Transaction[], type: 'income' | 'expense', onDelete: (transactionId: string) => void, onEdit: (transaction: Transaction) => void, cashRegisters: CashRegister[] }) => {
+const TransactionTable = ({ 
+    transactions, 
+    type, 
+    onDelete, 
+    onEdit, 
+    cashRegisters,
+    isLoading 
+}: { 
+    transactions: Transaction[], 
+    type: 'income' | 'expense', 
+    onDelete: (transactionId: string) => void, 
+    onEdit: (transaction: Transaction) => void, 
+    cashRegisters: CashRegister[],
+    isLoading: boolean
+}) => {
     
     const getCashRegisterName = (id?: string) => {
         if (!id) return 'N/A';
         return cashRegisters.find(c => c.id === id)?.name || 'Inconnue';
     };
+
+    if (isLoading) {
+        return (
+             <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Catégorie</TableHead>
+                        <TableHead>Caisse</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead className="text-right">Montant</TableHead>
+                        <TableHead className="w-[50px] text-right">Actions</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {[...Array(3)].map((_, i) => (
+                        <TableRow key={i}>
+                            <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-28" /></TableCell>
+                            <TableCell className="text-right"><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
+                            <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        )
+    }
 
     return (
     <>
@@ -180,8 +224,8 @@ const AddOrEditTransactionDialog = ({
 }: { 
     isOpen: boolean;
     setIsOpen: (isOpen: boolean) => void;
-    onAddTransaction: (transaction: Omit<Transaction, 'id' | 'date'>) => void;
-    onEditTransaction: (transaction: Transaction) => void;
+    onAddTransaction: (transaction: Omit<Transaction, 'id' | 'date'>) => Promise<void>;
+    onEditTransaction: (transaction: Transaction) => Promise<void>;
     transactionToEdit?: Transaction | null;
     cashRegisters: CashRegister[];
 }) => {
@@ -201,7 +245,6 @@ const AddOrEditTransactionDialog = ({
             setAmount(String(transactionToEdit.amount));
             setCashRegisterId(transactionToEdit.cashRegisterId);
         } else {
-            // Reset form for "add" mode
             setType('');
             setDescription('');
             setCategory('');
@@ -211,7 +254,7 @@ const AddOrEditTransactionDialog = ({
     }, [transactionToEdit, isEditMode, isOpen, cashRegisters]);
 
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!type || !description || !category || !amount || !cashRegisterId) {
             alert('Veuillez remplir tous les champs.');
             return;
@@ -226,14 +269,14 @@ const AddOrEditTransactionDialog = ({
         };
 
         if (isEditMode && transactionToEdit) {
-             onEditTransaction({
+             await onEditTransaction({
                 ...transactionData,
                 id: transactionToEdit.id,
-                date: transactionToEdit.date, // Keep original date or allow editing? For now, keep.
+                date: transactionToEdit.date,
             });
         } else {
              const newTransaction: Omit<Transaction, 'id' | 'date'> = transactionData;
-             onAddTransaction(newTransaction);
+             await onAddTransaction(newTransaction);
         }
         
         setIsOpen(false);
@@ -300,41 +343,54 @@ const AddOrEditTransactionDialog = ({
 export default function AccountingPage() {
     const { toast } = useToast();
     const searchParams = useSearchParams();
-    const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [cashRegisters, setCashRegisters] = useState<CashRegister[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [transactionIdToDelete, setTransactionIdToDelete] = useState<string | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [transactionToEdit, setTransactionToEdit] = useState<Transaction | null>(null);
     const [selectedCashRegister, setSelectedCashRegister] = useState<string>('all');
     
-    const cashRegisters = mockCashRegisters;
-
-    const handleAddTransaction = (newTransaction: Omit<Transaction, 'id' | 'date'>) => {
-        const transactionToAdd: Transaction = {
-            id: `TRANS-${Date.now()}`,
-            ...newTransaction,
-            date: new Date(),
-        };
-
-        setTransactions(prevTransactions => [transactionToAdd, ...prevTransactions]);
-        
-        toast({
-            title: "Transaction ajoutée",
-            description: `La transaction "${transactionToAdd.description}" a été ajoutée.`,
+    useEffect(() => {
+        setIsLoading(true);
+        const unsubscribeTransactions = subscribeToTransactions((data) => {
+            setTransactions(data);
+            setIsLoading(false);
         });
+        const unsubscribeCashRegisters = subscribeToCashRegisters((data) => {
+            setCashRegisters(data);
+        });
+
+        return () => {
+            unsubscribeTransactions();
+            unsubscribeCashRegisters();
+        }
+    }, []);
+
+    const handleAddTransaction = async (newTransaction: Omit<Transaction, 'id' | 'date'>) => {
+        try {
+            await addTransaction(newTransaction);
+            toast({
+                title: "Transaction ajoutée",
+                description: `La transaction "${newTransaction.description}" a été ajoutée.`,
+            });
+        } catch (error) {
+             toast({ variant: 'destructive', title: 'Erreur', description: "Impossible d'ajouter la transaction." });
+        }
     };
 
-    const handleEditTransaction = (updatedTransaction: Transaction) => {
-        setTransactions(prevTransactions => 
-            prevTransactions.map(t => 
-                t.id === updatedTransaction.id ? updatedTransaction : t
-            )
-        );
-
-        toast({
-            title: "Transaction modifiée",
-            description: `La transaction "${updatedTransaction.description}" a été mise à jour.`,
-        });
-        setTransactionToEdit(null);
+    const handleEditTransaction = async (updatedTransaction: Transaction) => {
+        try {
+            await updateTransaction(updatedTransaction.id, updatedTransaction);
+            toast({
+                title: "Transaction modifiée",
+                description: `La transaction "${updatedTransaction.description}" a été mise à jour.`,
+            });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Erreur', description: "Impossible de modifier la transaction." });
+        } finally {
+            setTransactionToEdit(null);
+        }
     };
 
     const handleOpenAddDialog = () => {
@@ -351,19 +407,22 @@ export default function AccountingPage() {
         setTransactionIdToDelete(transactionId);
     };
 
-    const handleConfirmDelete = () => {
+    const handleConfirmDelete = async () => {
         if (!transactionIdToDelete) return;
 
         const transactionToDelete = transactions.find(t => t.id === transactionIdToDelete);
-        setTransactions(prevTransactions => prevTransactions.filter(t => t.id !== transactionIdToDelete));
-        
-        toast({
-            title: "Transaction supprimée",
-            description: `La transaction "${transactionToDelete?.description}" a été supprimée.`,
-            variant: "destructive",
-        });
-
-        setTransactionIdToDelete(null);
+        try {
+            await deleteTransaction(transactionIdToDelete);
+            toast({
+                title: "Transaction supprimée",
+                description: `La transaction "${transactionToDelete?.description}" a été supprimée.`,
+                variant: "destructive",
+            });
+        } catch(error) {
+            toast({ variant: 'destructive', title: 'Erreur', description: "Impossible de supprimer la transaction." });
+        } finally {
+            setTransactionIdToDelete(null);
+        }
     };
 
 
@@ -540,10 +599,10 @@ export default function AccountingPage() {
                             <TabsTrigger value="expense">Dépenses</TabsTrigger>
                         </TabsList>
                         <TabsContent value="income">
-                           <TransactionTable transactions={filteredTransactions} type="income" onDelete={handleDeleteRequest} onEdit={handleOpenEditDialog} cashRegisters={cashRegisters} />
+                           <TransactionTable transactions={filteredTransactions} type="income" onDelete={handleDeleteRequest} onEdit={handleOpenEditDialog} cashRegisters={cashRegisters} isLoading={isLoading} />
                         </TabsContent>
                         <TabsContent value="expense">
-                           <TransactionTable transactions={filteredTransactions} type="expense" onDelete={handleDeleteRequest} onEdit={handleOpenEditDialog} cashRegisters={cashRegisters} />
+                           <TransactionTable transactions={filteredTransactions} type="expense" onDelete={handleDeleteRequest} onEdit={handleOpenEditDialog} cashRegisters={cashRegisters} isLoading={isLoading} />
                         </TabsContent>
                     </Tabs>
                 </CardContent>
