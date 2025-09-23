@@ -31,7 +31,7 @@ const invoiceSchema = z.object({
   clientId: z.string().min(1, 'Le client est requis.'),
   issueDate: z.date({ required_error: 'La date d\'émission est requise.' }),
   dueDate: z.date({ required_error: 'La date d\'échéance est requise.' }),
-  taxRate: z.coerce.number().min(0).max(100).optional().default(0),
+  discountAmount: z.coerce.number().min(0).optional().default(0),
   notes: z.string().optional(),
   lineItems: z.array(lineItemSchema).min(1, 'Au moins un article est requis.'),
 });
@@ -57,7 +57,7 @@ export function InvoiceForm({ formType, onSubmit, initialData }: InvoiceFormProp
         clientId: initialData.clientId,
         issueDate: new Date(initialData.issueDate),
         dueDate: new Date(initialData.dueDate),
-        taxRate: initialData.taxRate,
+        discountAmount: initialData.discountAmount,
         notes: initialData.notes || '',
         lineItems: initialData.lineItems?.map(item => ({...item})) || []
     } : {
@@ -65,7 +65,7 @@ export function InvoiceForm({ formType, onSubmit, initialData }: InvoiceFormProp
       issueDate: new Date(),
       dueDate: new Date(new Date().setDate(new Date().getDate() + 30)),
       lineItems: [{ description: '', quantity: 1, price: 0 }],
-      taxRate: 18,
+      discountAmount: 0,
       notes: '',
     },
   });
@@ -76,7 +76,7 @@ export function InvoiceForm({ formType, onSubmit, initialData }: InvoiceFormProp
             clientId: initialData.clientId,
             issueDate: new Date(initialData.issueDate),
             dueDate: new Date(initialData.dueDate),
-            taxRate: initialData.taxRate,
+            discountAmount: initialData.discountAmount,
             notes: initialData.notes || '',
             lineItems: initialData.lineItems?.map(item => ({...item})) || []
         })
@@ -98,9 +98,9 @@ export function InvoiceForm({ formType, onSubmit, initialData }: InvoiceFormProp
             const prc = Number(item.price) || 0;
             return acc + (qty * prc);
         }, 0);
-        const tax = currentSubtotal * ((Number(values.taxRate) || 0) / 100);
+        const discount = Number(values.discountAmount) || 0;
         setSubtotal(currentSubtotal);
-        setTotal(currentSubtotal + tax);
+        setTotal(currentSubtotal - discount);
     });
     return () => subscription.unsubscribe();
   }, [form]);
@@ -309,12 +309,12 @@ export function InvoiceForm({ formType, onSubmit, initialData }: InvoiceFormProp
                     />
                      <FormField
                         control={form.control}
-                        name="taxRate"
+                        name="discountAmount"
                         render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Taux de taxe (%)</FormLabel>
+                            <FormLabel>Réduction (Montant)</FormLabel>
                             <FormControl>
-                                <Input type="number" placeholder="18" {...field} />
+                                <Input type="number" placeholder="0" {...field} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -328,8 +328,8 @@ export function InvoiceForm({ formType, onSubmit, initialData }: InvoiceFormProp
                             <span>{subtotal.toLocaleString('fr-FR', {style: 'currency', currency: 'XOF'})}</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-muted-foreground">Taxe ({form.watch('taxRate') || 0}%)</span>
-                            <span>{(total - subtotal).toLocaleString('fr-FR', {style: 'currency', currency: 'XOF'})}</span>
+                            <span className="text-muted-foreground">Réduction</span>
+                            <span>- {(form.watch('discountAmount') || 0).toLocaleString('fr-FR', {style: 'currency', currency: 'XOF'})}</span>
                         </div>
                          <div className="flex justify-between font-bold text-lg border-t pt-2 mt-2">
                             <span>Total</span>

@@ -21,7 +21,7 @@ export type Invoice = {
   status: 'Draft' | 'Sent' | 'Paid' | 'Overdue';
   issueDate: Date;
   dueDate: Date;
-  taxRate: number; // as a percentage
+  discountAmount?: number; // as a fixed amount
   notes?: string;
 };
 

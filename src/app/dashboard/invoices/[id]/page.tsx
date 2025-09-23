@@ -108,16 +108,18 @@ function exportInvoiceToPDF(invoice: Invoice) {
         // Totals
         const finalY = (doc as any).lastAutoTable.finalY || pageHeight - 100;
         const subtotal = invoice.lineItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-        const tax = subtotal * (invoice.taxRate / 100);
-        const total = subtotal + tax;
+        const discount = invoice.discountAmount || 0;
+        const total = subtotal - discount;
+
+        const totalsBody = [['Sous-total', `${subtotal.toLocaleString('fr-FR')} XOF`]];
+        if (discount > 0) {
+            totalsBody.push(['Réduction', `-${discount.toLocaleString('fr-FR')} XOF`]);
+        }
+        totalsBody.push([{ content: 'NET À PAYER', styles: { fontStyle: 'bold', fontSize: 11 } }, { content: `${total.toLocaleString('fr-FR')} XOF`, styles: { fontStyle: 'bold', fontSize: 11 } }]);
 
         (doc as any).autoTable({
             startY: finalY + 5,
-            body: [
-                ['Sous-total', `${subtotal.toLocaleString('fr-FR')} XOF`],
-                [`Taxe (${invoice.taxRate}%)`, `${tax.toLocaleString('fr-FR')} XOF`],
-                [{ content: 'NET À PAYER', styles: { fontStyle: 'bold', fontSize: 11 } }, { content: `${total.toLocaleString('fr-FR')} XOF`, styles: { fontStyle: 'bold', fontSize: 11 } }],
-            ],
+            body: totalsBody,
             theme: 'plain',
             tableWidth: 'wrap',
             margin: { left: pageWidth - margin - 80 },
@@ -245,8 +247,8 @@ export default function InvoiceDetailPage() {
     }
     
     const subtotal = invoice.lineItems.reduce((acc, item) => acc + (item.quantity * item.price), 0);
-    const tax = subtotal * (invoice.taxRate / 100);
-    const total = subtotal + tax;
+    const discount = invoice.discountAmount || 0;
+    const total = subtotal - discount;
 
     return (
         <div className="max-w-4xl mx-auto space-y-6">
@@ -318,10 +320,12 @@ export default function InvoiceDetailPage() {
                             <span className="text-muted-foreground">Sous-total</span>
                             <span>{subtotal.toLocaleString('fr-FR', {style: 'currency', currency: 'XOF'})}</span>
                         </div>
-                         <div className="flex justify-between">
-                            <span className="text-muted-foreground">Taxe ({invoice.taxRate}%)</span>
-                            <span>{tax.toLocaleString('fr-FR', {style: 'currency', currency: 'XOF'})}</span>
-                        </div>
+                         {discount > 0 && (
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Réduction</span>
+                                <span className="text-destructive">- {discount.toLocaleString('fr-FR', {style: 'currency', currency: 'XOF'})}</span>
+                            </div>
+                         )}
                          <div className="flex justify-between font-bold text-lg border-t pt-2 mt-2">
                             <span>Total</span>
                             <span>{total.toLocaleString('fr-FR', {style: 'currency', currency: 'XOF'})}</span>

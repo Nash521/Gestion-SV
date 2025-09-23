@@ -124,7 +124,7 @@ export const mockInvoices: Invoice[] = [
     status: 'Paid',
     issueDate: new Date(`${lastYear}-10-15`),
     dueDate: new Date(`${lastYear}-11-14`),
-    taxRate: 10,
+    discountAmount: 50,
   },
   {
     id: 'INV-002',
@@ -134,7 +134,6 @@ export const mockInvoices: Invoice[] = [
     status: 'Sent',
     issueDate: new Date(`${lastYear}-11-01`),
     dueDate: new Date(`${lastYear}-12-01`),
-    taxRate: 8,
     notes: 'Please pay promptly.'
   },
   {
@@ -145,7 +144,6 @@ export const mockInvoices: Invoice[] = [
     status: 'Overdue',
     issueDate: new Date(`${lastYear}-09-20`),
     dueDate: new Date(`${lastYear}-10-20`),
-    taxRate: 20,
   },
   {
     id: 'INV-004',
@@ -155,7 +153,6 @@ export const mockInvoices: Invoice[] = [
     status: 'Draft',
     issueDate: new Date(),
     dueDate: new Date(new Date().setDate(new Date().getDate() + 30)),
-    taxRate: 0,
   },
   {
     id: 'INV-005',
@@ -165,7 +162,6 @@ export const mockInvoices: Invoice[] = [
     status: 'Paid',
     issueDate: new Date(`${lastYear}-11-05`),
     dueDate: new Date(`${lastYear}-12-05`),
-    taxRate: 10,
   },
 ];
 
@@ -277,6 +273,15 @@ export const getInvoiceTotal = (invoice: Invoice | PurchaseOrder): number => {
         return 0;
     }
     const subtotal = invoice.lineItems.reduce((acc, item) => acc + item.quantity * item.price, 0);
-    const tax = subtotal * (('taxRate' in invoice ? invoice.taxRate : 0) / 100);
-    return subtotal + tax;
+    
+    if ('discountAmount' in invoice && invoice.discountAmount) {
+        return subtotal - invoice.discountAmount;
+    }
+
+    if ('taxRate' in invoice && invoice.taxRate) {
+        const tax = subtotal * (invoice.taxRate / 100);
+        return subtotal + tax;
+    }
+    
+    return subtotal;
 }

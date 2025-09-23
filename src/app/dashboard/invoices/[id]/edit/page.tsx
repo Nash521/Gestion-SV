@@ -93,8 +93,8 @@ function EditInvoiceSkeleton() {
 }
 
 
-export default function EditInvoicePage({ params }: { params: Promise<{ id: string }> }) {
-    const { id } = use(params);
+export default function EditInvoicePage({ params }: { params: { id: string } }) {
+    const { id } = params;
 
     return (
        <Suspense fallback={<EditInvoiceSkeleton/>}>

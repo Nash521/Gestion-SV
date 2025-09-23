@@ -132,7 +132,7 @@ export const updateInvoice = async (id: string, invoiceData: Omit<Invoice, 'id' 
         dueDate: Timestamp.fromDate(invoiceData.dueDate),
     };
     const invoiceRef = doc(db, 'invoices', id);
-    await updateDoc(invoiceRef, invoicePayload);
+    await updateDoc(invoiceRef, invoicePayload as any);
 
     // Update line items
     const batch = writeBatch(db);
