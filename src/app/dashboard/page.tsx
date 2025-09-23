@@ -1,3 +1,4 @@
+
 "use client";
 import React, { useState, useEffect } from 'react';
 import { getInvoiceTotal } from '@/lib/data';
@@ -73,11 +74,15 @@ export default function DashboardPage() {
     const ongoingInvoicesCount = invoices.filter(i => i.status === 'Sent').length;
     const recentInvoices = [...invoices].sort((a,b) => b.issueDate.getTime() - a.issueDate.getTime()).slice(0, 5);
     
-    const totalIncome = transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
-    const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
+    const petiteCaisseId = cashRegisters.find(cr => cr.name === 'Petite caisse')?.id;
+
+    // Filter out petty cash transactions for total revenue calculation
+    const mainTransactions = transactions.filter(t => t.cashRegisterId !== petiteCaisseId);
+
+    const totalIncome = mainTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
+    const totalExpenses = mainTransactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
     const totalRevenue = totalIncome - totalExpenses;
     
-    const petiteCaisseId = cashRegisters.find(cr => cr.name === 'Petite caisse')?.id;
     const petiteCaisseTotal = transactions
         .filter(t => t.cashRegisterId === petiteCaisseId)
         .reduce((acc, t) => {
@@ -99,7 +104,7 @@ export default function DashboardPage() {
              <StatCard
                 title="Revenu Total"
                 value={totalRevenue.toLocaleString('fr-FR', {style: 'currency', currency: 'XOF'})}
-                description="Basé sur toutes les caisses"
+                description="Hors petite caisse"
                 icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
                 isLoading={isLoading}
                 className="bg-gradient-to-br from-cyan-50 via-sky-100 to-blue-100 dark:from-cyan-900/50 dark:via-sky-950/50 dark:to-blue-950/50"
