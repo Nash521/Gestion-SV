@@ -540,8 +540,8 @@ export default function AccountingPage() {
                 headStyles: { fillColor: [76, 81, 191], font: 'helvetica' },
                 styles: { font: 'helvetica' },
                 columnStyles: {
-                    3: { halign: 'right' },
-                    4: { halign: 'right' }
+                    3: { halign: 'left' },
+                    4: { halign: 'left' }
                 }
             });
             
@@ -678,6 +678,8 @@ export default function AccountingPage() {
 
     
 
+
+    
 
     
 
