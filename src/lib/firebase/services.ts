@@ -313,10 +313,10 @@ export const subscribeToTransactions = (callback: (transactions: Transaction[]) 
     return unsubscribe;
 }
 
-export const addTransaction = async (transaction: Omit<Transaction, 'id'|'date'>) => {
+export const addTransaction = async (transaction: Omit<Transaction, 'id'|'date'> & { date?: Date }) => {
     const transactionPayload = {
         ...transaction,
-        date: Timestamp.fromDate(new Date()),
+        date: transaction.date ? Timestamp.fromDate(transaction.date) : Timestamp.fromDate(new Date()),
     }
     await addDoc(collection(db, 'transactions'), transactionPayload);
 }
@@ -347,12 +347,10 @@ export const subscribeToCashRegisters = (callback: (registers: CashRegister[]) =
                 { name: 'Petite caisse' },
             ];
             defaultRegisters.forEach(reg => {
-                const docRef = doc(registersCollection);
+                const docRef = doc(collection(db, 'cashRegisters'));
                 batch.set(docRef, reg);
             });
             await batch.commit();
-            // The onSnapshot listener will be triggered again automatically after the write,
-            // so we don't need to manually call the callback here.
         } else {
             const registers = snapshot.docs.map(doc => ({
                 id: doc.id,

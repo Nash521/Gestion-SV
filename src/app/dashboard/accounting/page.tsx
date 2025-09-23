@@ -23,6 +23,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/contexts/auth-context';
 import { subscribeToTransactions, addTransaction, updateTransaction, deleteTransaction, subscribeToCashRegisters } from '@/lib/firebase/services';
 
 const TransactionTable = ({ 
@@ -225,16 +226,18 @@ const AddOrEditTransactionDialog = ({
 }: { 
     isOpen: boolean;
     setIsOpen: (isOpen: boolean) => void;
-    onAddTransaction: (transaction: Omit<Transaction, 'id' | 'date'>) => Promise<void>;
+    onAddTransaction: (transaction: Omit<Transaction, 'id' | 'date'> & { date?: Date }) => Promise<void>;
     onEditTransaction: (transaction: Transaction) => Promise<void>;
     transactionToEdit?: Transaction | null;
     cashRegisters: CashRegister[];
 }) => {
+    const { currentUser } = useAuth();
     const [type, setType] = useState<'income' | 'expense' | ''>('');
     const [description, setDescription] = useState('');
     const [category, setCategory] = useState('');
     const [amount, setAmount] = useState('');
     const [cashRegisterId, setCashRegisterId] = useState<string | undefined>('');
+    const [date, setDate] = useState<Date | undefined>(new Date());
     
     const isEditMode = !!transactionToEdit;
 
@@ -247,6 +250,7 @@ const AddOrEditTransactionDialog = ({
             setCategory(transactionToEdit.category);
             setAmount(String(transactionToEdit.amount));
             setCashRegisterId(transactionToEdit.cashRegisterId);
+            setDate(new Date(transactionToEdit.date));
         } else {
             // Reset for new transaction
             setType('');
@@ -255,6 +259,7 @@ const AddOrEditTransactionDialog = ({
             setAmount('');
             const defaultCashRegister = cashRegisters.length > 0 ? cashRegisters[0].id : '';
             setCashRegisterId(defaultCashRegister);
+            setDate(new Date());
         }
     }, [isOpen, transactionToEdit, isEditMode, cashRegisters]);
 
@@ -271,16 +276,17 @@ const AddOrEditTransactionDialog = ({
             category: category,
             amount: parseFloat(amount),
             cashRegisterId: cashRegisterId,
+            date: date
         };
 
         if (isEditMode && transactionToEdit) {
              await onEditTransaction({
                 ...transactionData,
                 id: transactionToEdit.id,
-                date: transactionToEdit.date,
+                date: date || new Date(transactionToEdit.date),
             });
         } else {
-             const newTransaction: Omit<Transaction, 'id' | 'date'> = transactionData;
+             const newTransaction: Omit<Transaction, 'id' | 'date'> & { date?: Date } = transactionData;
              await onAddTransaction(newTransaction);
         }
         
@@ -297,6 +303,34 @@ const AddOrEditTransactionDialog = ({
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
+                    {currentUser?.role === 'Admin' && (
+                         <div className="grid grid-cols-4 items-center gap-4">
+                             <Label className="text-right">Date</Label>
+                             <Popover>
+                                <PopoverTrigger asChild>
+                                     <Button
+                                        variant={"outline"}
+                                        className={cn(
+                                        "col-span-3 justify-start text-left font-normal",
+                                        !date && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {date ? format(date, "PPP", {locale: fr}) : <span>Choisir une date</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                    <Calendar
+                                        mode="single"
+                                        selected={date}
+                                        onSelect={setDate}
+                                        initialFocus
+                                        locale={fr}
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                    )}
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="type" className="text-right">Type</Label>
                         <Select onValueChange={(value: 'income' | 'expense') => setType(value)} value={type}>
@@ -372,7 +406,7 @@ export default function AccountingPage() {
         }
     }, []);
 
-    const handleAddTransaction = async (newTransaction: Omit<Transaction, 'id' | 'date'>) => {
+    const handleAddTransaction = async (newTransaction: Omit<Transaction, 'id' | 'date'> & { date?: Date }) => {
         try {
             await addTransaction(newTransaction);
             toast({
