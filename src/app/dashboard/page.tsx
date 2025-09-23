@@ -1,27 +1,78 @@
 "use client";
-import React from 'react';
-import { mockInvoices, mockTransactions, getInvoiceTotal, mockCashRegisters } from '@/lib/data';
+import React, { useState, useEffect } from 'react';
+import { getInvoiceTotal } from '@/lib/data';
+import type { Invoice, Transaction, CashRegister } from '@/lib/definitions';
+import { subscribeToInvoices, subscribeToTransactions, subscribeToCashRegisters } from '@/lib/firebase/services';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowUpRight, DollarSign, Users, FileText, Wallet } from 'lucide-react';
+import { ArrowUpRight, DollarSign, Users, FileText, Wallet, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { RevenueChart } from '@/components/dashboard/revenue-chart';
 import { ExpenseChart } from '@/components/dashboard/expense-chart';
 import { RevenueComparisonChart } from '@/components/dashboard/revenue-comparison-chart';
+import { Skeleton } from '@/components/ui/skeleton';
 
+const StatCard = ({ title, value, description, icon, isLoading, className }: { title: string, value: string, description: string, icon: React.ReactNode, isLoading: boolean, className?: string }) => (
+    <Card className={`transition-transform transform hover:-translate-y-1 ${className}`}>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">{title}</CardTitle>
+            {icon}
+        </CardHeader>
+        <CardContent>
+            {isLoading ? (
+                <>
+                    <Skeleton className="h-8 w-3/4 mb-2" />
+                    <Skeleton className="h-4 w-1/2" />
+                </>
+            ) : (
+                <>
+                    <div className="text-2xl font-bold">{value}</div>
+                    <p className="text-xs text-muted-foreground">{description}</p>
+                </>
+            )}
+        </CardContent>
+    </Card>
+);
 
 export default function DashboardPage() {
-    const overdueInvoicesCount = mockInvoices.filter(i => i.status === 'Overdue').length;
-    const recentInvoices = [...mockInvoices].sort((a,b) => b.issueDate.getTime() - a.issueDate.getTime()).slice(0, 5);
+    const [invoices, setInvoices] = useState<Invoice[]>([]);
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [cashRegisters, setCashRegisters] = useState<CashRegister[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        setIsLoading(true);
+        const unsubscribeInvoices = subscribeToInvoices(setInvoices);
+        const unsubscribeTransactions = subscribeToTransactions(setTransactions);
+        const unsubscribeCashRegisters = subscribeToCashRegisters(setCashRegisters);
+
+        Promise.all([
+            new Promise(res => onSnapshot(collection(db, 'invoices'), () => res(true))),
+            new Promise(res => onSnapshot(collection(db, 'transactions'), () => res(true))),
+        ]).then(() => {
+            // This is a trick to know when initial data is loaded.
+            // A better solution would involve checking snapshot metadata.
+             setTimeout(() => setIsLoading(false), 500);
+        });
+
+        return () => {
+            unsubscribeInvoices();
+            unsubscribeTransactions();
+            unsubscribeCashRegisters();
+        };
+    }, []);
+
+    const overdueInvoicesCount = invoices.filter(i => i.status === 'Overdue').length;
+    const recentInvoices = [...invoices].sort((a,b) => b.issueDate.getTime() - a.issueDate.getTime()).slice(0, 5);
     
-    const totalIncome = mockTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
-    const totalExpenses = mockTransactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
+    const totalIncome = transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
+    const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
     const totalRevenue = totalIncome - totalExpenses;
     
-    const petiteCaisseId = mockCashRegisters.find(cr => cr.name === 'Petite caisse')?.id;
-    const petiteCaisseTotal = mockTransactions
+    const petiteCaisseId = cashRegisters.find(cr => cr.name === 'Petite caisse')?.id;
+    const petiteCaisseTotal = transactions
         .filter(t => t.cashRegisterId === petiteCaisseId)
         .reduce((acc, t) => {
             if (t.type === 'income') return acc + t.amount;
@@ -33,46 +84,38 @@ export default function DashboardPage() {
   return (
     <div className="grid gap-6">
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-             <Card className="transition-transform transform hover:-translate-y-1 bg-gradient-to-br from-cyan-50 via-sky-100 to-blue-100 dark:from-cyan-900/50 dark:via-sky-950/50 dark:to-blue-950/50">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Revenu Total</CardTitle>
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">{totalRevenue.toLocaleString('fr-FR', {style: 'currency', currency: 'XOF'})}</div>
-                    <p className="text-xs text-muted-foreground">Basé sur toutes les caisses</p>
-                </CardContent>
-            </Card>
-             <Card className="transition-transform transform hover:-translate-y-1 bg-gradient-to-br from-violet-50 via-purple-100 to-indigo-100 dark:from-violet-900/50 dark:via-purple-950/50 dark:to-indigo-950/50">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Solde Petite Caisse</CardTitle>
-                    <Wallet className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">{petiteCaisseTotal.toLocaleString('fr-FR', {style: 'currency', currency: 'XOF'})}</div>
-                    <p className="text-xs text-muted-foreground">Solde de la petite caisse uniquement</p>
-                </CardContent>
-            </Card>
-            <Card className="transition-transform transform hover:-translate-y-1 bg-gradient-to-br from-rose-50 via-red-100 to-orange-100 dark:from-rose-900/50 dark:via-red-950/50 dark:to-orange-950/50">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Proformas en Retard</CardTitle>
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold text-destructive">{overdueInvoicesCount}</div>
-                    <p className="text-xs text-muted-foreground">Total des proformas impayées</p>
-                </CardContent>
-            </Card>
-            <Card className="transition-transform transform hover:-translate-y-1 bg-gradient-to-br from-emerald-50 via-green-100 to-lime-100 dark:from-emerald-900/50 dark:via-green-950/50 dark:to-lime-950/50">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Nouveaux Clients</CardTitle>
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">+5</div>
-                    <p className="text-xs text-muted-foreground">+10% ce mois-ci</p>
-                </CardContent>
-            </Card>
+             <StatCard
+                title="Revenu Total"
+                value={totalRevenue.toLocaleString('fr-FR', {style: 'currency', currency: 'XOF'})}
+                description="Basé sur toutes les caisses"
+                icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
+                isLoading={isLoading}
+                className="bg-gradient-to-br from-cyan-50 via-sky-100 to-blue-100 dark:from-cyan-900/50 dark:via-sky-950/50 dark:to-blue-950/50"
+            />
+             <StatCard
+                title="Solde Petite Caisse"
+                value={petiteCaisseTotal.toLocaleString('fr-FR', {style: 'currency', currency: 'XOF'})}
+                description="Solde de la petite caisse uniquement"
+                icon={<Wallet className="h-4 w-4 text-muted-foreground" />}
+                isLoading={isLoading}
+                className="bg-gradient-to-br from-violet-50 via-purple-100 to-indigo-100 dark:from-violet-900/50 dark:via-purple-950/50 dark:to-indigo-950/50"
+            />
+            <StatCard
+                title="Proformas en Retard"
+                value={String(overdueInvoicesCount)}
+                description="Total des proformas impayées"
+                icon={<FileText className="h-4 w-4 text-muted-foreground" />}
+                isLoading={isLoading}
+                className="bg-gradient-to-br from-rose-50 via-red-100 to-orange-100 dark:from-rose-900/50 dark:via-red-950/50 dark:to-orange-950/50"
+            />
+             <StatCard
+                title="Nouveaux Clients"
+                value="+5" // This data is still mock
+                description="+10% ce mois-ci"
+                icon={<Users className="h-4 w-4 text-muted-foreground" />}
+                isLoading={isLoading}
+                className="bg-gradient-to-br from-emerald-50 via-green-100 to-lime-100 dark:from-emerald-900/50 dark:via-green-950/50 dark:to-lime-950/50"
+            />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -120,31 +163,45 @@ export default function DashboardPage() {
                 </Button>
             </CardHeader>
             <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Client</TableHead>
-                            <TableHead className="hidden sm:table-cell">Statut</TableHead>
-                            <TableHead className="text-right">Montant</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {recentInvoices.map((invoice) => (
-                            <TableRow key={invoice.id}>
-                                <TableCell>
-                                    <div className="font-medium">{invoice.client.name}</div>
-                                    <div className="hidden text-sm text-muted-foreground md:inline">
-                                        {invoice.id}
-                                    </div>
-                                </TableCell>
-                                <TableCell className="hidden sm:table-cell">
-                                    <StatusBadge status={invoice.status} />
-                                </TableCell>
-                                <TableCell className="text-right">{getInvoiceTotal(invoice).toLocaleString('fr-FR', {style: 'currency', currency: 'XOF'})}</TableCell>
+                 {isLoading ? (
+                     <div className="space-y-4">
+                        <Skeleton className="h-12 w-full" />
+                        <Skeleton className="h-12 w-full" />
+                        <Skeleton className="h-12 w-full" />
+                    </div>
+                 ) : (
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Client</TableHead>
+                                <TableHead className="hidden sm:table-cell">Statut</TableHead>
+                                <TableHead className="text-right">Montant</TableHead>
                             </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
+                        </TableHeader>
+                        <TableBody>
+                            {recentInvoices.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">
+                                        Aucune proforma récente.
+                                    </TableCell>
+                                </TableRow>
+                            ) : recentInvoices.map((invoice) => (
+                                <TableRow key={invoice.id}>
+                                    <TableCell>
+                                        <div className="font-medium">{invoice.client.name}</div>
+                                        <div className="hidden text-sm text-muted-foreground md:inline">
+                                            {invoice.id}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="hidden sm:table-cell">
+                                        <StatusBadge status={invoice.status} />
+                                    </TableCell>
+                                    <TableCell className="text-right">{getInvoiceTotal(invoice).toLocaleString('fr-FR', {style: 'currency', currency: 'XOF'})}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                 )}
             </CardContent>
         </Card>
     </div>

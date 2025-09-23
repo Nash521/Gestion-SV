@@ -347,3 +347,6 @@ export const subscribeToCashRegisters = (callback: (registers: CashRegister[]) =
     });
     return unsubscribe;
 }
+
+// This is a helper for dashboard page loading state
+export { onSnapshot, collection };
