@@ -95,7 +95,7 @@ function exportInvoiceToPDF(invoice: Invoice) {
                 fontSize: 10,
             },
             styles: {
-                fontSize: 9,
+                fontSize: 10,
             },
             columnStyles: {
                 0: { cellWidth: 10 },
