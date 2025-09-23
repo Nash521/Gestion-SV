@@ -89,13 +89,13 @@ function exportInvoiceToPDF(invoice: Invoice) {
         ]));
         
         const footerData = [];
-        footerData.push([{ content: 'Sous-total', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold' } }, { content: `${subtotal.toLocaleString('de-DE')} XOF`, styles: { halign: 'right' } }]);
+        footerData.push([{ content: 'Sous-total', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', cellPadding: {top: 4, right: 2} } }, { content: `${subtotal.toLocaleString('de-DE')} XOF`, styles: { halign: 'right', cellPadding: {top: 4, right: 2} } }]);
         
         if (discount > 0) {
-            footerData.push([{ content: 'Réduction', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold' } }, { content: `-${discount.toLocaleString('de-DE')} XOF`, styles: { halign: 'right' } }]);
+            footerData.push([{ content: 'Réduction', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', cellPadding: {right: 2} } }, { content: `-${discount.toLocaleString('de-DE')} XOF`, styles: { halign: 'right', cellPadding: {right: 2} } }]);
         }
         
-        footerData.push([{ content: 'NET À PAYER', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fontSize: 11 } }, { content: `${total.toLocaleString('de-DE')} XOF`, styles: { halign: 'right', fontStyle: 'bold', fontSize: 11 } }]);
+        footerData.push([{ content: 'NET À PAYER', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fontSize: 11, cellPadding: {right: 2} } }, { content: `${total.toLocaleString('de-DE')} XOF`, styles: { halign: 'right', fontStyle: 'bold', fontSize: 11, cellPadding: {right: 2} } }]);
 
 
         (doc as any).autoTable({
