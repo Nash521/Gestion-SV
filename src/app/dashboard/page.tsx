@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { getInvoiceTotal } from '@/lib/data';
 import type { Invoice, Transaction, CashRegister } from '@/lib/definitions';
-import { subscribeToInvoices, subscribeToTransactions, subscribeToCashRegisters } from '@/lib/firebase/services';
+import { subscribeToInvoices, subscribeToTransactions, subscribeToCashRegisters, onSnapshot, collection } from '@/lib/firebase/services';
+import { db } from '@/lib/firebase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowUpRight, DollarSign, Users, FileText, Wallet, Loader2 } from 'lucide-react';
@@ -64,7 +65,7 @@ export default function DashboardPage() {
         };
     }, []);
 
-    const overdueInvoicesCount = invoices.filter(i => i.status === 'Overdue').length;
+    const ongoingInvoicesCount = invoices.filter(i => i.status === 'Sent').length;
     const recentInvoices = [...invoices].sort((a,b) => b.issueDate.getTime() - a.issueDate.getTime()).slice(0, 5);
     
     const totalIncome = transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
@@ -101,9 +102,9 @@ export default function DashboardPage() {
                 className="bg-gradient-to-br from-violet-50 via-purple-100 to-indigo-100 dark:from-violet-900/50 dark:via-purple-950/50 dark:to-indigo-950/50"
             />
             <StatCard
-                title="Proformas en Retard"
-                value={String(overdueInvoicesCount)}
-                description="Total des proformas impayées"
+                title="Proformas en cours"
+                value={String(ongoingInvoicesCount)}
+                description="Total des proformas envoyées"
                 icon={<FileText className="h-4 w-4 text-muted-foreground" />}
                 isLoading={isLoading}
                 className="bg-gradient-to-br from-rose-50 via-red-100 to-orange-100 dark:from-rose-900/50 dark:via-red-950/50 dark:to-orange-950/50"
