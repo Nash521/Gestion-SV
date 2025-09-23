@@ -242,24 +242,22 @@ const AddOrEditTransactionDialog = ({
     const isEditMode = !!transactionToEdit;
 
     useEffect(() => {
-        if (!isOpen) return;
-
-        if (isEditMode && transactionToEdit) {
-            setType(transactionToEdit.type);
-            setDescription(transactionToEdit.description);
-            setCategory(transactionToEdit.category);
-            setAmount(String(transactionToEdit.amount));
-            setCashRegisterId(transactionToEdit.cashRegisterId);
-            setDate(new Date(transactionToEdit.date));
-        } else {
-            // Reset for new transaction
-            setType('');
-            setDescription('');
-            setCategory('');
-            setAmount('');
-            const defaultCashRegister = cashRegisters.length > 0 ? cashRegisters[0].id : '';
-            setCashRegisterId(defaultCashRegister);
-            setDate(new Date());
+        if (isOpen) {
+            if (isEditMode && transactionToEdit) {
+                setType(transactionToEdit.type);
+                setDescription(transactionToEdit.description);
+                setCategory(transactionToEdit.category);
+                setAmount(String(transactionToEdit.amount));
+                setCashRegisterId(transactionToEdit.cashRegisterId);
+                setDate(new Date(transactionToEdit.date));
+            } else {
+                setType('');
+                setDescription('');
+                setCategory('');
+                setAmount('');
+                setCashRegisterId(cashRegisters.length > 0 ? cashRegisters[0].id : '');
+                setDate(new Date());
+            }
         }
     }, [isOpen, transactionToEdit, isEditMode, cashRegisters]);
 
@@ -529,8 +527,8 @@ export default function AccountingPage() {
                     format(new Date(t.date), 'dd/MM/yyyy', { locale: fr }),
                     t.description,
                     t.category,
-                    t.type === 'income' ? t.amount.toLocaleString('fr-FR') + ' XOF' : '',
-                    t.type === 'expense' ? t.amount.toLocaleString('fr-FR') + ' XOF' : ''
+                    t.type === 'income' ? t.amount.toLocaleString('de-DE') + ' XOF' : '',
+                    t.type === 'expense' ? t.amount.toLocaleString('de-DE') + ' XOF' : ''
                 ];
             });
 
@@ -539,7 +537,8 @@ export default function AccountingPage() {
                 head: [['Date', 'Description', 'Catégorie', 'Entrée', 'Dépense']],
                 body: tableData,
                 theme: 'grid',
-                headStyles: { fillColor: [76, 81, 191] },
+                headStyles: { fillColor: [76, 81, 191], font: 'helvetica' },
+                styles: { font: 'helvetica' },
                 columnStyles: {
                     3: { halign: 'right' },
                     4: { halign: 'right' }
@@ -552,9 +551,9 @@ export default function AccountingPage() {
             doc.text('Résumé', 14, finalY + 15);
 
             const summaryData = [
-                ['Total des Entrées:', `${totalIncome.toLocaleString('fr-FR')} XOF`],
-                ['Total des Dépenses:', `${totalExpenses.toLocaleString('fr-FR')} XOF`],
-                ['Bénéfice Net:', `${(totalIncome - totalExpenses).toLocaleString('fr-FR')} XOF`],
+                ['Total des Entrées:', `${totalIncome.toLocaleString('de-DE')} XOF`],
+                ['Total des Dépenses:', `${totalExpenses.toLocaleString('de-DE')} XOF`],
+                ['Bénéfice Net:', `${(totalIncome - totalExpenses).toLocaleString('de-DE')} XOF`],
             ];
 
             (doc as any).autoTable({
@@ -679,5 +678,7 @@ export default function AccountingPage() {
 
     
 
+
+    
 
     
