@@ -1,8 +1,8 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { getInvoiceTotal } from '@/lib/data';
-import type { Invoice, Transaction, CashRegister } from '@/lib/definitions';
-import { subscribeToInvoices, subscribeToTransactions, subscribeToCashRegisters, onSnapshot, collection } from '@/lib/firebase/services';
+import type { Invoice, Transaction, CashRegister, Client } from '@/lib/definitions';
+import { subscribeToInvoices, subscribeToTransactions, subscribeToCashRegisters, subscribeToClients, onSnapshot, collection } from '@/lib/firebase/services';
 import { db } from '@/lib/firebase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,6 +41,7 @@ export default function DashboardPage() {
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [cashRegisters, setCashRegisters] = useState<CashRegister[]>([]);
+    const [clients, setClients] = useState<Client[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -48,10 +49,13 @@ export default function DashboardPage() {
         const unsubscribeInvoices = subscribeToInvoices(setInvoices);
         const unsubscribeTransactions = subscribeToTransactions(setTransactions);
         const unsubscribeCashRegisters = subscribeToCashRegisters(setCashRegisters);
+        const unsubscribeClients = subscribeToClients(setClients);
+
 
         Promise.all([
             new Promise(res => onSnapshot(collection(db, 'invoices'), () => res(true))),
             new Promise(res => onSnapshot(collection(db, 'transactions'), () => res(true))),
+            new Promise(res => onSnapshot(collection(db, 'clients'), () => res(true))),
         ]).then(() => {
             // This is a trick to know when initial data is loaded.
             // A better solution would involve checking snapshot metadata.
@@ -62,6 +66,7 @@ export default function DashboardPage() {
             unsubscribeInvoices();
             unsubscribeTransactions();
             unsubscribeCashRegisters();
+            unsubscribeClients();
         };
     }, []);
 
@@ -80,6 +85,12 @@ export default function DashboardPage() {
             if (t.type === 'expense') return acc - t.amount;
             return acc;
         }, 0);
+    
+    const totalClients = clients.length;
+    // Note: This logic assumes new clients are added without a specific creation date field.
+    // For a more accurate "new this month", a 'createdAt' field on the client document would be ideal.
+    // For now, we'll just show total clients. A "new clients this month" feature can be added later.
+    const newClientsThisMonth = 0; // Placeholder for future implementation
 
 
   return (
@@ -110,9 +121,9 @@ export default function DashboardPage() {
                 className="bg-gradient-to-br from-rose-50 via-red-100 to-orange-100 dark:from-rose-900/50 dark:via-red-950/50 dark:to-orange-950/50"
             />
              <StatCard
-                title="Nouveaux Clients"
-                value="+5" // This data is still mock
-                description="+10% ce mois-ci"
+                title="Nombre de Clients"
+                value={String(totalClients)}
+                description={`${newClientsThisMonth > 0 ? `+${newClientsThisMonth}` : 'Aucun nouveau'} ce mois-ci`}
                 icon={<Users className="h-4 w-4 text-muted-foreground" />}
                 isLoading={isLoading}
                 className="bg-gradient-to-br from-emerald-50 via-green-100 to-lime-100 dark:from-emerald-900/50 dark:via-green-950/50 dark:to-lime-950/50"
