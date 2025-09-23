@@ -99,7 +99,7 @@ function exportInvoiceToPDF(invoice: Invoice) {
                 fontSize: 10,
             },
             styles: {
-                fontSize: 9,
+                fontSize: 10,
             },
             columnStyles: {
                 0: { cellWidth: 10 },
@@ -121,11 +121,11 @@ function exportInvoiceToPDF(invoice: Invoice) {
         summaryData.push(['NET À PAYER', `${total.toLocaleString('de-DE')} XOF`]);
 
         (doc as any).autoTable({
-            startY: finalY + 5,
+            startY: finalY + 10,
             body: summaryData,
             theme: 'plain',
             tableWidth: 'wrap',
-            margin: { left: pageWidth - margin - 70 },
+            margin: { left: pageWidth - margin - 40 },
             styles: {
                 fontSize: 10,
                 cellPadding: { top: 1, right: 2, bottom: 1, left: 2 },
@@ -348,3 +348,5 @@ export default function InvoiceDetailPage() {
         </div>
     );
 }
+
+    
