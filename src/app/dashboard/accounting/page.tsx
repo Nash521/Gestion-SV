@@ -475,13 +475,6 @@ export default function AccountingPage() {
             return;
         }
 
-        const doc = new jsPDF();
-        
-        doc.setFontSize(18);
-        doc.text('Bilan Comptable', 14, 22);
-        doc.setFontSize(11);
-        doc.text(`Période du ${format(startDate, 'PPP', { locale: fr })} au ${format(endDate, 'PPP', { locale: fr })}`, 14, 30);
-
         const start = new Date(startDate);
         start.setHours(0, 0, 0, 0);
 
@@ -502,59 +495,92 @@ export default function AccountingPage() {
             return;
         }
         
-        let totalIncome = 0;
-        let totalExpenses = 0;
+        const generatePdfContent = (logoImage: HTMLImageElement | null) => {
+            const doc = new jsPDF();
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const margin = 15;
+            
+            // Header
+            doc.setFillColor(76, 81, 191);
+            doc.rect(0, 0, pageWidth, 30, 'F');
 
-        const tableData = filteredTransactions.map(t => {
-            if (t.type === 'income') totalIncome += t.amount;
-            if (t.type === 'expense') totalExpenses += t.amount;
+            if (logoImage) {
+                doc.addImage(logoImage, 'JPEG', margin, 5, 40, 20);
+            }
 
-            return [
-                format(new Date(t.date), 'dd/MM/yyyy', { locale: fr }),
-                t.description,
-                t.category,
-                t.type === 'income' ? t.amount.toString() : '',
-                t.type === 'expense' ? t.amount.toString() : ''
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(18);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Bilan Comptable', pageWidth - margin, 20, { align: 'right' });
+            
+            doc.setTextColor(51, 51, 51);
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Période du ${format(startDate, 'PPP', { locale: fr })} au ${format(endDate, 'PPP', { locale: fr })}`, margin, 45);
+
+            let totalIncome = 0;
+            let totalExpenses = 0;
+
+            const tableData = filteredTransactions.map(t => {
+                if (t.type === 'income') totalIncome += t.amount;
+                if (t.type === 'expense') totalExpenses += t.amount;
+
+                return [
+                    format(new Date(t.date), 'dd/MM/yyyy', { locale: fr }),
+                    t.description,
+                    t.category,
+                    t.type === 'income' ? t.amount.toLocaleString('fr-FR') + ' XOF' : '',
+                    t.type === 'expense' ? t.amount.toLocaleString('fr-FR') + ' XOF' : ''
+                ];
+            });
+
+            (doc as any).autoTable({
+                startY: 55,
+                head: [['Date', 'Description', 'Catégorie', 'Entrée', 'Dépense']],
+                body: tableData,
+                theme: 'grid',
+                headStyles: { fillColor: [76, 81, 191] },
+                columnStyles: {
+                    3: { halign: 'right' },
+                    4: { halign: 'right' }
+                }
+            });
+            
+            const finalY = (doc as any).lastAutoTable.finalY || 40;
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Résumé', 14, finalY + 15);
+
+            const summaryData = [
+                ['Total des Entrées:', `${totalIncome.toLocaleString('fr-FR')} XOF`],
+                ['Total des Dépenses:', `${totalExpenses.toLocaleString('fr-FR')} XOF`],
+                ['Bénéfice Net:', `${(totalIncome - totalExpenses).toLocaleString('fr-FR')} XOF`],
             ];
-        });
 
-        (doc as any).autoTable({
-            startY: 40,
-            head: [['Date', 'Description', 'Catégorie', 'Entrée (XOF)', 'Dépense (XOF)']],
-            body: tableData,
-            theme: 'grid',
-            headStyles: { fillColor: [41, 128, 185] },
-            columnStyles: {
-                3: { halign: 'right' },
-                4: { halign: 'right' }
-            }
-        });
-        
-        const finalY = (doc as any).lastAutoTable.finalY || 40;
-        doc.setFontSize(12);
-        doc.text('Résumé', 14, finalY + 15);
+            (doc as any).autoTable({
+                startY: finalY + 20,
+                body: summaryData,
+                theme: 'plain',
+                styles: { font: 'helvetica' },
+                columnStyles: {
+                    0: { fontStyle: 'bold' },
+                    1: { halign: 'right' },
+                }
+            });
 
-        const summaryData = [
-            ['Total des Entrées:', `${totalIncome.toString()} XOF`],
-            ['Total des Dépenses:', `${totalExpenses.toString()} XOF`],
-            ['Bénéfice Net:', `${(totalIncome - totalExpenses).toString()} XOF`],
-        ];
+            doc.save(`bilan-comptable-${format(startDate, 'yyyy-MM-dd')}-${format(endDate, 'yyyy-MM-dd')}.pdf`);
 
-        (doc as any).autoTable({
-             startY: finalY + 20,
-             body: summaryData,
-             theme: 'plain',
-             columnStyles: {
-                1: { halign: 'right' },
-            }
-        });
+            toast({
+                title: "Exportation réussie",
+                description: "Votre bilan PDF a été généré.",
+            });
+        };
 
-        doc.save(`bilan-comptable-${format(startDate, 'yyyy-MM-dd')}-${format(endDate, 'yyyy-MM-dd')}.pdf`);
-
-        toast({
-            title: "Exportation réussie",
-            description: "Votre bilan PDF a été généré.",
-        });
+        const img = new Image();
+        img.crossOrigin = 'Anonymous';
+        img.src = '/logo.jpeg'; 
+        img.onload = () => generatePdfContent(img);
+        img.onerror = () => generatePdfContent(null);
     };
     
     const searchQuery = searchParams.get('q')?.toLowerCase() || '';
@@ -649,6 +675,9 @@ export default function AccountingPage() {
         </>
     );
 }
+
+
+    
 
 
     
