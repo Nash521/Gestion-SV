@@ -24,6 +24,65 @@ const companyInfo = {
     legalFooter: 'N°RCCM: CI-TDI-22-Mo-742 - N°CC2242970-A. Régime d\'imposition: TEE - Direction régionale des impôts de Yamoussoukro\nBP: 1538 Yamoussoukro - Côte d\'Ivoire\nCel: 07 59 72 52 72 - smartvisuel1@gmail.com'
 };
 
+function numberToWordsFrench(num: number): string {
+    if (num === 0) return 'zéro';
+
+    const units = ['', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf'];
+    const teens = ['dix', 'onze', 'douze', 'treize', 'quatorze', 'quinze', 'seize', 'dix-sept', 'dix-huit', 'dix-neuf'];
+    const tens = ['', 'dix', 'vingt', 'trente', 'quarante', 'cinquante', 'soixante', 'soixante-dix', 'quatre-vingt', 'quatre-vingt-dix'];
+
+    function convert(n: number): string {
+        if (n < 10) {
+            return units[n];
+        }
+        if (n < 20) {
+            return teens[n - 10];
+        }
+        if (n < 70) {
+            if (n % 10 === 0) return tens[n / 10];
+            if (n % 10 === 1 && n < 60) return `${tens[Math.floor(n / 10)]}-et-un`;
+            return `${tens[Math.floor(n / 10)]}-${units[n % 10]}`;
+        }
+        if (n < 80) { // 70-79
+            return `${tens[6]}-et-${teens[n % 10]}`;
+        }
+        if (n < 100) {
+            if (n % 10 === 0) return tens[n / 10];
+            const base = n < 90 ? tens[8] : tens[9];
+             if (n === 80) return "quatre-vingts";
+            return `${tens[8]}-${units[n % 10]}`;
+        }
+        if (n < 200) {
+             if (n === 100) return 'cent';
+            return `cent-${convert(n - 100)}`;
+        }
+        if (n < 1000) {
+             const hundreds = units[Math.floor(n / 100)];
+            const remainder = n % 100;
+             const cents = hundreds === "un" ? "cent" : `${hundreds}-cents`;
+             if (remainder === 0) return cents;
+            return `${cents} ${convert(remainder)}`;
+        }
+        if (n < 2000) {
+             if (n === 1000) return 'mille';
+            return `mille-${convert(n % 1000)}`;
+        }
+        if (n < 1000000) {
+            const thousands = Math.floor(n / 1000);
+            const remainder = n % 1000;
+            const mille = thousands === 1 ? 'mille' : `${convert(thousands)} mille`;
+            if (remainder === 0) return mille;
+            return `${mille} ${convert(remainder)}`;
+        }
+        return "Nombre trop grand";
+    }
+
+    const words = convert(num);
+    // Capitalize first letter
+    return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+
 function exportInvoiceToPDF(invoice: Invoice) {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -152,7 +211,7 @@ function exportInvoiceToPDF(invoice: Invoice) {
         doc.setTextColor(51, 51, 51);
         doc.setFontSize(9);
         doc.setFont('helvetica', 'normal');
-        const paymentNotes = `Arrêter la présente facture proforma à la somme de [montant en lettres] XOF
+        const paymentNotes = `Arrêter la présente facture proforma à la somme de ${numberToWordsFrench(total)} francs CFA
 70% à la commande 30% à la livraison
 Proforma valable: 07 Jours
 Veuillez notifier la commande par un bon numérique ou physique
@@ -352,3 +411,4 @@ export default function InvoiceDetailPage() {
     
 
     
+
