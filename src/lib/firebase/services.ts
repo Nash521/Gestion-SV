@@ -337,16 +337,32 @@ export const deleteTransaction = async (id: string) => {
 
 // Cash Register Services
 export const subscribeToCashRegisters = (callback: (registers: CashRegister[]) => void) => {
-    const q = query(collection(db, 'cashRegisters'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-        const registers = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-        } as CashRegister));
-        callback(registers);
+    const registersCollection = collection(db, 'cashRegisters');
+    const unsubscribe = onSnapshot(registersCollection, async (snapshot) => {
+        if (snapshot.empty) {
+            console.log('No cash registers found, seeding default ones.');
+            const batch = writeBatch(db);
+            const defaultRegisters = [
+                { name: 'Caisse principale' },
+                { name: 'Petite caisse' },
+            ];
+            defaultRegisters.forEach(reg => {
+                const docRef = doc(registersCollection);
+                batch.set(docRef, reg);
+            });
+            await batch.commit();
+            // The onSnapshot listener will be triggered again automatically after the write,
+            // so we don't need to manually call the callback here.
+        } else {
+            const registers = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+            } as CashRegister));
+            callback(registers);
+        }
     });
     return unsubscribe;
-}
+};
 
 // This is a helper for dashboard page loading state
 export { onSnapshot, collection };
