@@ -80,8 +80,8 @@ function exportInvoiceToPDF(invoice: Invoice) {
             index + 1,
             item.description,
             item.quantity,
-            item.price.toLocaleString('fr-FR') + ' XOF',
-            (item.price * item.quantity).toLocaleString('fr-FR') + ' XOF'
+            item.price.toLocaleString('de-DE') + ' XOF',
+            (item.price * item.quantity).toLocaleString('de-DE') + ' XOF'
         ]));
 
         (doc as any).autoTable({
@@ -111,11 +111,11 @@ function exportInvoiceToPDF(invoice: Invoice) {
         const discount = invoice.discountAmount || 0;
         const total = subtotal - discount;
 
-        const totalsBody = [['Sous-total', `${subtotal.toLocaleString('fr-FR')} XOF`]];
+        const totalsBody = [['Sous-total', `${subtotal.toLocaleString('de-DE')} XOF`]];
         if (discount > 0) {
-            totalsBody.push(['Réduction', `-${discount.toLocaleString('fr-FR')} XOF`]);
+            totalsBody.push(['Réduction', `-${discount.toLocaleString('de-DE')} XOF`]);
         }
-        totalsBody.push([{ content: 'NET À PAYER', styles: { fontStyle: 'bold', fontSize: 11 } }, { content: `${total.toLocaleString('fr-FR')} XOF`, styles: { fontStyle: 'bold', fontSize: 11 } }]);
+        totalsBody.push([{ content: 'NET À PAYER', styles: { fontStyle: 'bold', fontSize: 11 } }, { content: `${total.toLocaleString('de-DE')} XOF`, styles: { fontStyle: 'bold', fontSize: 11 } }]);
 
         (doc as any).autoTable({
             startY: finalY + 5,
