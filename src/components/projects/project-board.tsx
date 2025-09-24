@@ -507,73 +507,71 @@ const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators, availabl
                             <Textarea id="task-content" value={content} onChange={(e) => setContent(e.target.value)} placeholder="Ajoutez une description plus détaillée..." rows={6} />
                         </div>
                         
-                        {isEditMode && (
-                             <div className="space-y-6">
-                                <div className="space-y-4">
-                                    <div className="flex items-center gap-2">
-                                        <CheckSquare className="h-5 w-5" />
-                                        <Label>Checklist</Label>
-                                    </div>
-                                     {checklist.length > 0 && (
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-xs text-muted-foreground">{Math.round(checklistProgress)}%</span>
-                                            <Progress value={checklistProgress} className="h-2 w-full" />
-                                        </div>
-                                    )}
-                                    <div className="space-y-2 pl-6">
-                                        {checklist.map(item => (
-                                            <div key={item.id} className="flex items-center gap-2 group">
-                                                <Checkbox id={`cl-${item.id}`} checked={item.completed} onCheckedChange={() => handleToggleChecklistItem(item.id)} />
-                                                <Input 
-                                                    value={item.text} 
-                                                    onChange={(e) => handleChecklistTextChange(item.id, e.target.value)}
-                                                    className={cn("flex-1 h-8 border-0 shadow-none -ml-2 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent", item.completed && "line-through text-muted-foreground")}
-                                                />
-                                                 <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteChecklistItem(item.id)}><Trash2 className="h-4 w-4"/></Button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div className="flex items-center gap-2 pl-6">
-                                        <Input 
-                                            placeholder="Ajouter un élément..." 
-                                            value={newChecklistItemText} 
-                                            onChange={(e) => setNewChecklistItemText(e.target.value)}
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    e.preventDefault();
-                                                    handleAddChecklistItem();
-                                                }
-                                            }}
-                                            className="h-9"
-                                        />
-                                        <Button type="button" onClick={handleAddChecklistItem} variant="secondary">Ajouter</Button>
-                                    </div>
+                        <div className="space-y-6">
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-2">
+                                    <CheckSquare className="h-5 w-5" />
+                                    <Label>Checklist</Label>
                                 </div>
-                                <div className="space-y-4">
+                                 {checklist.length > 0 && (
                                     <div className="flex items-center gap-2">
-                                        <Paperclip className="h-5 w-5" />
-                                        <Label>Pièces jointes</Label>
+                                        <span className="text-xs text-muted-foreground">{Math.round(checklistProgress)}%</span>
+                                        <Progress value={checklistProgress} className="h-2 w-full" />
                                     </div>
-                                    <div className="space-y-3 pl-6">
-                                        {attachments.map(att => (
-                                            <div key={att.id} className="flex items-center justify-between gap-2 p-2 rounded-md border bg-muted/50 group">
-                                                <div className="flex items-center gap-3">
-                                                    <FileIcon className="h-6 w-6 text-muted-foreground"/>
-                                                    <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium hover:underline">{att.name}</a>
-                                                </div>
-                                                <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteAttachment(att.id)}>
-                                                    <Trash2 className="h-4 w-4"/>
-                                                </Button>
-                                            </div>
-                                        ))}
-                                        <Button type="button" onClick={handleAddAttachment} variant="outline" size="sm">
-                                            Ajouter une pièce jointe
-                                        </Button>
-                                        <p className="text-xs text-muted-foreground">La fonctionnalité de téléversement sera bientôt disponible.</p>
-                                    </div>
+                                )}
+                                <div className="space-y-2 pl-6">
+                                    {checklist.map(item => (
+                                        <div key={item.id} className="flex items-center gap-2 group">
+                                            <Checkbox id={`cl-${item.id}`} checked={item.completed} onCheckedChange={() => handleToggleChecklistItem(item.id)} />
+                                            <Input 
+                                                value={item.text} 
+                                                onChange={(e) => handleChecklistTextChange(item.id, e.target.value)}
+                                                className={cn("flex-1 h-8 border-0 shadow-none -ml-2 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent", item.completed && "line-through text-muted-foreground")}
+                                            />
+                                             <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteChecklistItem(item.id)}><Trash2 className="h-4 w-4"/></Button>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="flex items-center gap-2 pl-6">
+                                    <Input 
+                                        placeholder="Ajouter un élément..." 
+                                        value={newChecklistItemText} 
+                                        onChange={(e) => setNewChecklistItemText(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                e.preventDefault();
+                                                handleAddChecklistItem();
+                                            }
+                                        }}
+                                        className="h-9"
+                                    />
+                                    <Button type="button" onClick={handleAddChecklistItem} variant="secondary">Ajouter</Button>
                                 </div>
                             </div>
-                        )}
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-2">
+                                    <Paperclip className="h-5 w-5" />
+                                    <Label>Pièces jointes</Label>
+                                </div>
+                                <div className="space-y-3 pl-6">
+                                    {attachments.map(att => (
+                                        <div key={att.id} className="flex items-center justify-between gap-2 p-2 rounded-md border bg-muted/50 group">
+                                            <div className="flex items-center gap-3">
+                                                <FileIcon className="h-6 w-6 text-muted-foreground"/>
+                                                <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium hover:underline">{att.name}</a>
+                                            </div>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteAttachment(att.id)}>
+                                                <Trash2 className="h-4 w-4"/>
+                                            </Button>
+                                        </div>
+                                    ))}
+                                    <Button type="button" onClick={handleAddAttachment} variant="outline" size="sm">
+                                        Ajouter une pièce jointe
+                                    </Button>
+                                    <p className="text-xs text-muted-foreground">La fonctionnalité de téléversement sera bientôt disponible.</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     
                     {/* Colonne latérale (droite) */}
@@ -600,56 +598,52 @@ const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators, availabl
                             </div>
                         </div>
 
-                        {isEditMode && (
-                            <>
-                                <div className="space-y-2">
-                                    <Label>Étiquettes</Label>
-                                    <div className="flex flex-wrap gap-2">
-                                        {availableLabels.map(label => (
-                                            <button
-                                                key={label.name}
-                                                onClick={() => handleLabelToggle(label.name)}
-                                                className={cn(
-                                                    "px-3 py-1 text-xs font-semibold rounded-full transition-all border",
-                                                    labels.includes(label.name)
-                                                        ? `${label.color} text-white border-transparent`
-                                                        : "bg-transparent border-border hover:border-foreground/50"
-                                                )}
-                                            >
-                                                {label.name}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                                
-                                <div className="space-y-2">
-                                    <Label>Date d'échéance</Label>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <Button
-                                                variant={"outline"}
-                                                className={cn(
-                                                "w-full justify-start text-left font-normal",
-                                                !dueDate && "text-muted-foreground"
-                                                )}
-                                            >
-                                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                                {dueDate ? format(dueDate, "PPP", { locale: fr }) : <span>Choisir une date</span>}
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0">
-                                            <Calendar
-                                                mode="single"
-                                                selected={dueDate}
-                                                onSelect={setDueDate}
-                                                initialFocus
-                                                locale={fr}
-                                            />
-                                        </PopoverContent>
-                                    </Popover>
-                                </div>
-                            </>
-                        )}
+                        <div className="space-y-2">
+                            <Label>Étiquettes</Label>
+                            <div className="flex flex-wrap gap-2">
+                                {availableLabels.map(label => (
+                                    <button
+                                        key={label.name}
+                                        onClick={() => handleLabelToggle(label.name)}
+                                        className={cn(
+                                            "px-3 py-1 text-xs font-semibold rounded-full transition-all border",
+                                            labels.includes(label.name)
+                                                ? `${label.color} text-white border-transparent`
+                                                : "bg-transparent border-border hover:border-foreground/50"
+                                        )}
+                                    >
+                                        {label.name}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                            <Label>Date d'échéance</Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant={"outline"}
+                                        className={cn(
+                                        "w-full justify-start text-left font-normal",
+                                        !dueDate && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {dueDate ? format(dueDate, "PPP", { locale: fr }) : <span>Choisir une date</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                    <Calendar
+                                        mode="single"
+                                        selected={dueDate}
+                                        onSelect={setDueDate}
+                                        initialFocus
+                                        locale={fr}
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
                     </div>
                 </div>
                 <DialogFooter>
