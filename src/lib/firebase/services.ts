@@ -114,8 +114,8 @@ const generateNewInvoiceId = async (): Promise<string> => {
     const invoicesRef = collection(db, "invoices");
     const q = query(
         invoicesRef, 
-        where('id', '>=', prefix), 
-        where('id', '<', prefix + '~'),
+        where('id', '>=', `${prefix}000${suffix}`),
+        where('id', '<=', `${prefix}999${suffix}`),
         orderBy('id', 'desc'),
         limit(1)
     );
@@ -125,12 +125,8 @@ const generateNewInvoiceId = async (): Promise<string> => {
     let lastNumber = 0;
     if (!querySnapshot.empty) {
         const lastId = querySnapshot.docs[0].id;
-        if (lastId.endsWith(suffix)) {
-            const lastNumberStr = lastId.substring(prefix.length, lastId.indexOf(suffix));
-            if (lastNumberStr) {
-                lastNumber = parseInt(lastNumberStr, 10);
-            }
-        }
+        const lastNumberStr = lastId.substring(prefix.length, lastId.indexOf(suffix));
+        lastNumber = parseInt(lastNumberStr, 10);
     }
     
     const newNumber = lastNumber + 1;
@@ -139,13 +135,14 @@ const generateNewInvoiceId = async (): Promise<string> => {
     return newId;
 };
 
+
 export const addInvoice = async (invoiceData: Omit<Invoice, 'id' | 'client' | 'lineItems'> & { lineItems: Omit<LineItem, 'id'>[] }) => {
     const newInvoiceId = await generateNewInvoiceId();
 
     const { lineItems, ...invoice } = invoiceData;
     const invoicePayload = {
         ...invoice,
-        id: newInvoiceId, // Add the generated ID to the document data
+        id: newInvoiceId,
         issueDate: Timestamp.fromDate(invoiceData.issueDate),
         dueDate: Timestamp.fromDate(invoiceData.dueDate),
     };
@@ -194,6 +191,7 @@ export const updateInvoiceStatus = async (id: string, status: Invoice['status'])
 
 export const deleteInvoice = async (id: string) => {
     const invoiceRef = doc(db, 'invoices', id);
+    // You might want to delete subcollections here too if needed
     await deleteDoc(invoiceRef);
 };
 
@@ -240,24 +238,60 @@ export const getPurchaseOrder = async (id: string): Promise<PurchaseOrder | null
     return processPODoc(docSnap, clientsMap, lineItems);
 }
 
+const generateNewPurchaseOrderId = async (): Promise<string> => {
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = String(now.getFullYear()).slice(-2);
+    
+    const prefix = 'B-SV-';
+    const suffix = `-${month}-${year}`;
+    
+    const poRef = collection(db, "purchaseOrders");
+    const q = query(
+        poRef,
+        where('id', '>=', `${prefix}000${suffix}`),
+        where('id', '<=', `${prefix}999${suffix}`),
+        orderBy('id', 'desc'),
+        limit(1)
+    );
+
+    const querySnapshot = await getDocs(q);
+    
+    let lastNumber = 0;
+    if (!querySnapshot.empty) {
+        const lastId = querySnapshot.docs[0].id;
+        const lastNumberStr = lastId.substring(prefix.length, lastId.indexOf(suffix));
+        lastNumber = parseInt(lastNumberStr, 10);
+    }
+    
+    const newNumber = lastNumber + 1;
+    return `${prefix}${String(newNumber).padStart(3, '0')}${suffix}`;
+};
+
 export const addPurchaseOrder = async (poData: Omit<PurchaseOrder, 'id' | 'client' | 'lineItems'> & { lineItems: Omit<LineItem, 'id'>[] }) => {
+    const newId = await generateNewPurchaseOrderId();
     const { lineItems, ...po } = poData;
+    
     const poPayload = {
         ...po,
+        id: newId,
         issueDate: Timestamp.fromDate(poData.issueDate),
         deliveryDate: Timestamp.fromDate(poData.deliveryDate),
     };
-    const newPoRef = await addDoc(collection(db, 'purchaseOrders'), poPayload);
+    
+    const newPoRef = doc(db, 'purchaseOrders', newId);
+    await setDoc(newPoRef, poPayload);
+
 
     const batch = writeBatch(db);
-    const itemsCollection = collection(db, 'purchaseOrders', newPoRef.id, 'lineItems');
+    const itemsCollection = collection(db, 'purchaseOrders', newId, 'lineItems');
     lineItems.forEach(item => {
         const itemRef = doc(itemsCollection);
         batch.set(itemRef, item);
     });
     await batch.commit();
 
-    return newPoRef.id;
+    return newId;
 };
 
 export const updatePurchaseOrderStatus = async (id: string, status: PurchaseOrder['status']) => {
