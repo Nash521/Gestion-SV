@@ -1,6 +1,6 @@
 
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { getInvoiceTotal } from '@/lib/data';
 import type { Invoice, Transaction, CashRegister, Client } from '@/lib/definitions';
 import { subscribeToInvoices, subscribeToTransactions, subscribeToCashRegisters, subscribeToClients, onSnapshot, collection } from '@/lib/firebase/services';
@@ -15,6 +15,9 @@ import { RevenueChart } from '@/components/dashboard/revenue-chart';
 import { ExpenseChart } from '@/components/dashboard/expense-chart';
 import { RevenueComparisonChart } from '@/components/dashboard/revenue-comparison-chart';
 import { Skeleton } from '@/components/ui/skeleton';
+import { format, subMonths, getMonth, getYear } from 'date-fns';
+import { fr } from 'date-fns/locale';
+
 
 const StatCard = ({ title, value, description, icon, isLoading, className }: { title: string, value: string, description: string, icon: React.ReactNode, isLoading: boolean, className?: string }) => (
     <Card className={`transition-transform transform hover:-translate-y-1 ${className}`}>
@@ -76,7 +79,6 @@ export default function DashboardPage() {
     
     const petiteCaisseId = cashRegisters.find(cr => cr.name === 'Petite caisse')?.id;
 
-    // Filter out petty cash transactions for total revenue calculation
     const mainTransactions = transactions.filter(t => t.cashRegisterId !== petiteCaisseId);
 
     const totalIncome = mainTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
@@ -92,10 +94,81 @@ export default function DashboardPage() {
         }, 0);
     
     const totalClients = clients.length;
-    // Note: This logic assumes new clients are added without a specific creation date field.
-    // For a more accurate "new this month", a 'createdAt' field on the client document would be ideal.
-    // For now, we'll just show total clients. A "new clients this month" feature can be added later.
-    const newClientsThisMonth = 0; // Placeholder for future implementation
+    
+    const newClientsThisMonth = useMemo(() => {
+        const today = new Date();
+        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        
+        // This assumes clients have a `createdAt` field. If not, this won't work.
+        // Let's assume `firebase/services` returns a `createdAt` field.
+        // Since it doesn't, we'll need to improvise or mock. For now, we'll keep it simple
+        // and filter by what's available. Without a creation date, we can't accurately count "new" clients.
+        // Let's set it to 0 and adjust the description.
+        return 0;
+
+    }, [clients]);
+
+     const { revenueChartData, expenseChartData, revenueComparisonData } = useMemo(() => {
+        const now = new Date();
+        
+        // Revenue and Comparison Charts Data (Last 6 months)
+        const monthlyData: { [key: string]: { month: string, revenue: number, expenses: number } } = {};
+        for (let i = 5; i >= 0; i--) {
+            const date = subMonths(now, i);
+            const monthName = format(date, 'MMMM', { locale: fr });
+            const year = getYear(date);
+            const key = `${monthName}-${year}`;
+            if (!monthlyData[key]) {
+                monthlyData[key] = { month: monthName, revenue: 0, expenses: 0 };
+            }
+        }
+
+        transactions.forEach(t => {
+            const transactionDate = new Date(t.date);
+            const monthName = format(transactionDate, 'MMMM', { locale: fr });
+            const year = getYear(transactionDate);
+            const key = `${monthName}-${year}`;
+
+            if (monthlyData[key]) {
+                if (t.type === 'income') {
+                    monthlyData[key].revenue += t.amount;
+                } else {
+                    monthlyData[key].expenses += t.amount;
+                }
+            }
+        });
+        const finalMonthlyData = Object.values(monthlyData);
+        
+        // Expense Chart Data (Current month)
+        const expenseData: { [category: string]: number } = {};
+        const currentMonth = getMonth(now);
+        const currentYear = getYear(now);
+
+        transactions
+            .filter(t => t.type === 'expense')
+            .filter(t => {
+                const transactionDate = new Date(t.date);
+                return getMonth(transactionDate) === currentMonth && getYear(transactionDate) === currentYear;
+            })
+            .forEach(t => {
+                const category = t.category || 'Autre';
+                if (!expenseData[category]) {
+                    expenseData[category] = 0;
+                }
+                expenseData[category] += t.amount;
+            });
+        
+        const finalExpenseData = Object.entries(expenseData)
+            .map(([category, expenses]) => ({ category, expenses }))
+            .sort((a, b) => b.expenses - a.expenses)
+            .slice(0, 5); // Take top 5 categories
+
+        return {
+            revenueChartData: finalMonthlyData.map(d => ({ month: d.month, revenue: d.revenue })),
+            expenseChartData: finalExpenseData,
+            revenueComparisonData: finalMonthlyData,
+        };
+    }, [transactions]);
 
 
   return (
@@ -142,7 +215,7 @@ export default function DashboardPage() {
                     <CardDescription>Aperçu des revenus des 6 derniers mois.</CardDescription>
                 </CardHeader>
                 <CardContent className="pl-2">
-                    <RevenueChart />
+                    <RevenueChart data={revenueChartData} isLoading={isLoading} />
                 </CardContent>
             </Card>
             <Card className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/50 dark:via-indigo-950/50 dark:to-purple-950/50">
@@ -151,7 +224,7 @@ export default function DashboardPage() {
                     <CardDescription>Dépenses par catégorie ce mois-ci.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <ExpenseChart />
+                    <ExpenseChart data={expenseChartData} isLoading={isLoading} />
                 </CardContent>
             </Card>
         </div>
@@ -162,7 +235,7 @@ export default function DashboardPage() {
                 <CardDescription>Vue d'ensemble de la rentabilité mensuelle.</CardDescription>
             </CardHeader>
             <CardContent>
-                <RevenueComparisonChart />
+                <RevenueComparisonChart data={revenueComparisonData} isLoading={isLoading}/>
             </CardContent>
         </Card>
 

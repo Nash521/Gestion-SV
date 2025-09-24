@@ -1,8 +1,10 @@
+
 "use client"
 
 import * as React from "react"
 import { TrendingUp } from "lucide-react"
 import { Label, Pie, PieChart, Sector } from "recharts"
+import { Skeleton } from '../ui/skeleton';
 
 import {
   Card,
@@ -20,44 +22,61 @@ import {
   ChartLegendContent
 } from "@/components/ui/chart"
 
-const chartData = [
-  { category: "Bureau", expenses: 27500, fill: "var(--color-office)" },
-  { category: "Logiciels", expenses: 20000, fill: "var(--color-software)" },
-  { category: "Repas", expenses: 18700, fill: "var(--color-meals)" },
-  { category: "Déplacements", expenses: 17500, fill: "var(--color-travel)" },
-  { category: "Autre", expenses: 15000, fill: "var(--color-other)" },
-]
 
-const chartConfig = {
-  expenses: {
-    label: "Dépenses",
-  },
-  office: {
-    label: "Bureau",
-    color: "hsl(var(--chart-1))",
-  },
-  software: {
-    label: "Logiciels",
-    color: "hsl(var(--chart-2))",
-  },
-  meals: {
-    label: "Repas",
-    color: "hsl(var(--chart-3))",
-  },
-  travel: {
-    label: "Déplacements",
-    color: "hsl(var(--chart-4))",
-  },
-  other: {
-    label: "Autre",
-    color: "hsl(var(--chart-5))",
-  },
+const chartColors = [
+  "hsl(var(--chart-1))",
+  "hsl(var(--chart-2))",
+  "hsl(var(--chart-3))",
+  "hsl(var(--chart-4))",
+  "hsl(var(--chart-5))",
+];
+
+interface ExpenseChartProps {
+    data: { category: string; expenses: number }[];
+    isLoading: boolean;
 }
 
-export function ExpenseChart() {
+export function ExpenseChart({ data, isLoading }: ExpenseChartProps) {
+  const chartData = React.useMemo(() => {
+    return data.map((item, index) => ({
+      ...item,
+      fill: chartColors[index % chartColors.length]
+    }))
+  }, [data]);
+
+  const chartConfig = React.useMemo(() => {
+    const config: any = {
+      expenses: {
+        label: "Dépenses",
+      },
+    };
+    chartData.forEach(item => {
+      config[item.category] = {
+        label: item.category,
+        color: item.fill,
+      }
+    });
+    return config;
+  }, [chartData]);
+
+
   const totalExpenses = React.useMemo(() => {
     return chartData.reduce((acc, curr) => acc + curr.expenses, 0)
-  }, [])
+  }, [chartData])
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-[300px] w-full">
+       <Skeleton className="h-[250px] w-[250px] rounded-full" />
+    </div>
+  }
+
+  if (!chartData || chartData.length === 0) {
+      return (
+          <div className="flex h-[300px] w-full items-center justify-center text-muted-foreground">
+              Aucune dépense ce mois-ci.
+          </div>
+      );
+  }
 
   return (
     <ChartContainer

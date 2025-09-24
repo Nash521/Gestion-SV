@@ -1,3 +1,4 @@
+
 "use client"
 
 import React from 'react';
@@ -10,15 +11,8 @@ import {
   ChartConfig,
 } from "@/components/ui/chart";
 import { AreaChart, Area, CartesianGrid, XAxis, YAxis } from "recharts";
+import { Skeleton } from '../ui/skeleton';
 
-const chartData = [
-  { month: "Janvier", revenue: 18600, expenses: 12000 },
-  { month: "Février", revenue: 30500, expenses: 18000 },
-  { month: "Mars", revenue: 23700, expenses: 20000 },
-  { month: "Avril", revenue: 7300, expenses: 9000 },
-  { month: "Mai", revenue: 20900, expenses: 15000 },
-  { month: "Juin", revenue: 21400, expenses: 17000 },
-];
 
 const chartConfig = {
   revenue: {
@@ -31,10 +25,27 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-export function RevenueComparisonChart() {
+interface RevenueComparisonChartProps {
+    data: { month: string; revenue: number; expenses: number }[];
+    isLoading: boolean;
+}
+
+export function RevenueComparisonChart({ data, isLoading }: RevenueComparisonChartProps) {
+    if (isLoading) {
+        return <Skeleton className="h-[300px] w-full" />
+    }
+
+     if (!data || data.length === 0) {
+        return (
+            <div className="flex h-[300px] w-full items-center justify-center text-muted-foreground">
+                Pas assez de données pour afficher le graphique.
+            </div>
+        );
+    }
+    
     return (
         <ChartContainer config={chartConfig} className="h-[300px] w-full">
-            <AreaChart accessibilityLayer data={chartData}>
+            <AreaChart accessibilityLayer data={data}>
                 <CartesianGrid vertical={false} />
                 <XAxis
                     dataKey="month"

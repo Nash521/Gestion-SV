@@ -1,3 +1,4 @@
+
 "use client"
 
 import React from 'react';
@@ -8,15 +9,7 @@ import {
   ChartConfig,
 } from "@/components/ui/chart";
 import { BarChart, Bar, CartesianGrid, XAxis, YAxis } from "recharts";
-
-const chartData = [
-  { month: "Janvier", revenue: 18600 },
-  { month: "Février", revenue: 30500 },
-  { month: "Mars", revenue: 23700 },
-  { month: "Avril", revenue: 7300 },
-  { month: "Mai", revenue: 20900 },
-  { month: "Juin", revenue: 21400 },
-];
+import { Skeleton } from '../ui/skeleton';
 
 const chartConfig = {
   revenue: {
@@ -25,10 +18,28 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-export function RevenueChart() {
+interface RevenueChartProps {
+    data: { month: string; revenue: number }[];
+    isLoading: boolean;
+}
+
+export function RevenueChart({ data, isLoading }: RevenueChartProps) {
+    
+     if (isLoading) {
+        return <Skeleton className="h-[300px] w-full" />
+    }
+
+    if (!data || data.length === 0) {
+        return (
+            <div className="flex h-[300px] w-full items-center justify-center text-muted-foreground">
+                Pas assez de données pour afficher le graphique.
+            </div>
+        );
+    }
+
     return (
         <ChartContainer config={chartConfig} className="h-[300px] w-full">
-            <BarChart accessibilityLayer data={chartData}>
+            <BarChart accessibilityLayer data={data}>
                 <CartesianGrid vertical={false} />
                 <XAxis
                     dataKey="month"
