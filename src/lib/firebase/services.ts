@@ -1,5 +1,5 @@
 import { db } from './client';
-import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, onSnapshot, getDoc, Timestamp, where, writeBatch } from 'firebase/firestore';
+import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, onSnapshot, getDoc, Timestamp, where, writeBatch, setDoc, orderBy, limit } from 'firebase/firestore';
 import type { Client, Invoice, PurchaseOrder, DeliveryNote, LineItem, Transaction, CashRegister } from '../definitions';
 
 const getClientsMap = async (): Promise<Map<string, Client>> => {
@@ -103,14 +103,49 @@ export const getInvoice = async (id: string): Promise<Invoice | null> => {
     return processInvoiceDoc(docSnap, clientsMap, lineItems);
 }
 
+const generateNewInvoiceId = async (): Promise<string> => {
+    const year = new Date().getFullYear();
+    const prefix = `P${year}-SV-`;
+    
+    const invoicesRef = collection(db, "invoices");
+    const q = query(
+        invoicesRef, 
+        where('id', '>=', prefix), 
+        where('id', '<', prefix + 'Z'),
+        orderBy('id', 'desc'),
+        limit(1)
+    );
+
+    const querySnapshot = await getDocs(q);
+    
+    let lastNumber = 0;
+    if (!querySnapshot.empty) {
+        const lastId = querySnapshot.docs[0].id;
+        const lastNumberStr = lastId.split('-').pop();
+        if (lastNumberStr) {
+            lastNumber = parseInt(lastNumberStr, 10);
+        }
+    }
+    
+    const newNumber = lastNumber + 1;
+    const newId = `${prefix}${String(newNumber).padStart(4, '0')}`;
+    
+    return newId;
+};
+
 export const addInvoice = async (invoiceData: Omit<Invoice, 'id' | 'client' | 'lineItems'> & { lineItems: Omit<LineItem, 'id'>[] }) => {
+    const newInvoiceId = await generateNewInvoiceId();
+
     const { lineItems, ...invoice } = invoiceData;
     const invoicePayload = {
         ...invoice,
+        id: newInvoiceId, // Add the generated ID to the document data
         issueDate: Timestamp.fromDate(invoiceData.issueDate),
         dueDate: Timestamp.fromDate(invoiceData.dueDate),
     };
-    const newInvoiceRef = await addDoc(collection(db, 'invoices'), invoicePayload);
+
+    const newInvoiceRef = doc(db, 'invoices', newInvoiceId);
+    await setDoc(newInvoiceRef, invoicePayload);
     
     const batch = writeBatch(db);
     const itemsCollection = collection(db, 'invoices', newInvoiceRef.id, 'lineItems');
