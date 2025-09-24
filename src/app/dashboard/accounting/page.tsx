@@ -479,16 +479,19 @@ export default function AccountingPage() {
         const end = new Date(endDate);
         end.setHours(23, 59, 59, 999);
         
+        const petiteCaisseId = cashRegisters.find(cr => cr.name === 'Petite caisse')?.id;
+
         const filteredTransactions = transactions.filter(t => {
             const transactionDate = new Date(t.date);
-            return transactionDate >= start && transactionDate <= end;
+            const isPetiteCaisse = t.cashRegisterId === petiteCaisseId;
+            return transactionDate >= start && transactionDate <= end && !isPetiteCaisse;
         });
 
         if (filteredTransactions.length === 0) {
             toast({
                 variant: "destructive",
                 title: "Aucune donnée à exporter",
-                description: "Aucune transaction n'a été trouvée pour la période sélectionnée.",
+                description: "Aucune transaction (hors petite caisse) n'a été trouvée pour la période sélectionnée.",
             })
             return;
         }
@@ -678,6 +681,8 @@ export default function AccountingPage() {
 
     
 
+
+    
 
     
 
