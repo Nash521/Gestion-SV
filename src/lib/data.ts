@@ -48,10 +48,10 @@ export const mockProjects: Project[] = [
 ];
 
 export const mockTaskLists: TaskList[] = [
-    { id: 'list-1', projectId: 'proj-1', title: 'À faire', order: 1 },
-    { id: 'list-2', projectId: 'proj-1', title: 'En cours', order: 2 },
-    { id: 'list-3', projectId: 'proj-1', title: 'En revue', order: 3 },
-    { id: 'list-4', projectId: 'proj-1', title: 'Terminé', order: 4 },
+    { id: 'list-1', projectId: 'proj-1', title: 'À faire', order: 1, color: 'bg-blue-100 dark:bg-blue-950/30' },
+    { id: 'list-2', projectId: 'proj-1', title: 'En cours', order: 2, color: 'bg-orange-100 dark:bg-orange-950/30' },
+    { id: 'list-3', projectId: 'proj-1', title: 'En revue', order: 3, color: 'bg-purple-100 dark:bg-purple-950/30' },
+    { id: 'list-4', projectId: 'proj-1', title: 'Terminé', order: 4, color: 'bg-green-100 dark:bg-green-950/30' },
 ];
 
 export const mockTasks: ProjectTask[] = [

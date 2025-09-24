@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import type { Project, TaskList, ProjectTask, Collaborator, ChecklistItem, Attachment } from '@/lib/definitions';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Plus, Tag, X, Calendar as CalendarSwitchIcon, Paperclip, CheckSquare, CalendarIcon, Settings, Trash2, File as FileIcon, LayoutGrid, List, BarChartHorizontal } from 'lucide-react';
+import { MoreHorizontal, Plus, Tag, X, Calendar as CalendarSwitchIcon, Paperclip, CheckSquare, CalendarIcon, Settings, Trash2, File as FileIcon, LayoutGrid, List, BarChartHorizontal, Palette } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -12,6 +12,10 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuPortal,
 } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -60,6 +64,17 @@ const initialLabels = [
 ];
 
 const colorPalette = ['bg-red-500', 'bg-purple-500', 'bg-blue-500', 'bg-green-500', 'bg-orange-500', 'bg-pink-500', 'bg-yellow-500', 'bg-indigo-500', 'bg-teal-500'];
+
+const listColorPalette = [
+    'bg-gray-100 dark:bg-gray-900/30',
+    'bg-blue-100 dark:bg-blue-950/30',
+    'bg-green-100 dark:bg-green-950/30',
+    'bg-yellow-100 dark:bg-yellow-950/30',
+    'bg-orange-100 dark:bg-orange-950/30',
+    'bg-red-100 dark:bg-red-950/30',
+    'bg-purple-100 dark:bg-purple-950/30',
+    'bg-pink-100 dark:bg-pink-950/30',
+]
 
 interface TaskCardProps {
   task: ProjectTask;
@@ -185,9 +200,10 @@ interface TaskListColumnProps {
   onTaskClick: (task: ProjectTask) => void;
   onAddTask: (listId: string) => void;
   availableLabels: { name: string; color: string }[];
+  onListColorChange: (listId: string, color: string) => void;
 }
 
-const TaskListColumn = ({ list, tasks, collaborators, onTaskClick, onAddTask, availableLabels }: TaskListColumnProps) => {
+const TaskListColumn = ({ list, tasks, collaborators, onTaskClick, onAddTask, availableLabels, onListColorChange }: TaskListColumnProps) => {
     const { setNodeRef } = useSortable({
       id: list.id,
       data: {
@@ -199,7 +215,7 @@ const TaskListColumn = ({ list, tasks, collaborators, onTaskClick, onAddTask, av
   const tasksIds = useMemo(() => tasks.map(t => t.id), [tasks]);
 
   return (
-    <div ref={setNodeRef} className="flex-shrink-0 w-80 bg-muted/60 rounded-xl p-3 flex flex-col">
+    <div ref={setNodeRef} className={cn("flex-shrink-0 w-80 rounded-xl p-3 flex flex-col transition-colors", list.color || 'bg-muted/60')}>
       <div className="flex items-center justify-between mb-4 px-1">
         <h3 className="font-semibold text-md">{list.title} <Badge variant="secondary" className="ml-2">{tasks.length}</Badge></h3>
         <DropdownMenu>
@@ -211,6 +227,29 @@ const TaskListColumn = ({ list, tasks, collaborators, onTaskClick, onAddTask, av
             <DropdownMenuContent>
                 <DropdownMenuItem onClick={() => onAddTask(list.id)}>Ajouter une tâche</DropdownMenuItem>
                 <DropdownMenuItem>Renommer la liste</DropdownMenuItem>
+                <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                        <Palette className="mr-2 h-4 w-4" />
+                        <span>Changer la couleur</span>
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                        <DropdownMenuSubContent>
+                            <div className="grid grid-cols-4 gap-2 p-2">
+                                {listColorPalette.map(color => (
+                                    <Button
+                                        key={color}
+                                        variant="outline"
+                                        size="icon"
+                                        className="h-8 w-8"
+                                        onClick={() => onListColorChange(list.id, color)}
+                                    >
+                                        <div className={cn("h-4 w-4 rounded-full", color)} />
+                                    </Button>
+                                ))}
+                            </div>
+                        </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                </DropdownMenuSub>
                 <DropdownMenuItem className="text-destructive">Archiver la liste</DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
@@ -508,6 +547,7 @@ const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators, availabl
                         </div>
                         
                         <div className="space-y-6">
+                           {(isEditMode || (task && 'checklist' in task)) && (
                             <div className="space-y-4">
                                 <div className="flex items-center gap-2">
                                     <CheckSquare className="h-5 w-5" />
@@ -548,6 +588,8 @@ const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators, availabl
                                     <Button type="button" onClick={handleAddChecklistItem} variant="secondary">Ajouter</Button>
                                 </div>
                             </div>
+                           )}
+                           {(isEditMode || (task && 'attachments' in task)) && (
                             <div className="space-y-4">
                                 <div className="flex items-center gap-2">
                                     <Paperclip className="h-5 w-5" />
@@ -571,6 +613,7 @@ const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators, availabl
                                     <p className="text-xs text-muted-foreground">La fonctionnalité de téléversement sera bientôt disponible.</p>
                                 </div>
                             </div>
+                           )}
                         </div>
                     </div>
                     
@@ -598,6 +641,7 @@ const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators, availabl
                             </div>
                         </div>
 
+                       {(isEditMode || (task && 'labels' in task)) && (
                         <div className="space-y-2">
                             <Label>Étiquettes</Label>
                             <div className="flex flex-wrap gap-2">
@@ -617,7 +661,9 @@ const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators, availabl
                                 ))}
                             </div>
                         </div>
+                       )}
                         
+                       {(isEditMode || (task && 'dueDate' in task)) && (
                         <div className="space-y-2">
                             <Label>Date d'échéance</Label>
                             <Popover>
@@ -644,6 +690,7 @@ const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators, availabl
                                 </PopoverContent>
                             </Popover>
                         </div>
+                       )}
                     </div>
                 </div>
                 <DialogFooter>
@@ -663,9 +710,10 @@ interface ProjectBoardProps {
   collaborators: Collaborator[];
   currentView: 'board' | 'table' | 'calendar' | 'gantt';
   onViewChange: (view: 'board' | 'table' | 'calendar' | 'gantt') => void;
+  setLists: React.Dispatch<React.SetStateAction<TaskList[]>>;
 }
 
-export const ProjectBoard = ({ project, lists, tasks, setTasks, collaborators, currentView, onViewChange }: ProjectBoardProps) => {
+export const ProjectBoard = ({ project, lists, tasks, setTasks, collaborators, currentView, onViewChange, setLists }: ProjectBoardProps) => {
     const { toast } = useToast();
     const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
     const [editingTask, setEditingTask] = useState<Partial<ProjectTask> | null>(null);
@@ -682,7 +730,13 @@ export const ProjectBoard = ({ project, lists, tasks, setTasks, collaborators, c
     };
 
     const handleOpenAddTaskDialog = (listId: string) => {
-        setEditingTask({ listId }); // Set the listId for the new task
+        setEditingTask({ 
+            listId,
+            labels: [],
+            dueDate: undefined,
+            checklist: [],
+            attachments: [],
+        });
         setIsTaskDialogOpen(true);
     };
 
@@ -716,6 +770,10 @@ export const ProjectBoard = ({ project, lists, tasks, setTasks, collaborators, c
                 labels: task.labels?.filter(l => !deletedLabelNames.includes(l))
             })));
         }
+    };
+
+    const handleListColorChange = (listId: string, color: string) => {
+        setLists(prevLists => prevLists.map(list => list.id === listId ? { ...list, color } : list));
     };
     
     const sensors = useSensors(
@@ -878,6 +936,7 @@ export const ProjectBoard = ({ project, lists, tasks, setTasks, collaborators, c
                                 onTaskClick={handleOpenTaskDialog}
                                 onAddTask={handleOpenAddTaskDialog}
                                 availableLabels={availableLabels}
+                                onListColorChange={handleListColorChange}
                             />
                         );
                     })}

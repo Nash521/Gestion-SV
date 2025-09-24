@@ -21,6 +21,7 @@ export default function ProjectsPage() {
                     <ProjectBoard
                         project={project}
                         lists={lists}
+                        setLists={setLists}
                         tasks={tasks}
                         setTasks={setTasks}
                         collaborators={mockCollaborators}

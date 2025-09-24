@@ -120,6 +120,7 @@ export type TaskList = {
   projectId: string;
   title: string;
   order: number;
+  color?: string;
 };
 
 export type Project = {
