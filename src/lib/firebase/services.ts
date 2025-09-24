@@ -104,14 +104,18 @@ export const getInvoice = async (id: string): Promise<Invoice | null> => {
 }
 
 const generateNewInvoiceId = async (): Promise<string> => {
-    const year = new Date().getFullYear();
-    const prefix = `P${year}-SV-`;
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = String(now.getFullYear()).slice(-2);
+    
+    const prefix = 'P-SV-';
+    const suffix = `-${month}-${year}`;
     
     const invoicesRef = collection(db, "invoices");
     const q = query(
         invoicesRef, 
         where('id', '>=', prefix), 
-        where('id', '<', prefix + 'Z'),
+        where('id', '<', prefix + '~'),
         orderBy('id', 'desc'),
         limit(1)
     );
@@ -121,14 +125,16 @@ const generateNewInvoiceId = async (): Promise<string> => {
     let lastNumber = 0;
     if (!querySnapshot.empty) {
         const lastId = querySnapshot.docs[0].id;
-        const lastNumberStr = lastId.split('-').pop();
-        if (lastNumberStr) {
-            lastNumber = parseInt(lastNumberStr, 10);
+        if (lastId.endsWith(suffix)) {
+            const lastNumberStr = lastId.substring(prefix.length, lastId.indexOf(suffix));
+            if (lastNumberStr) {
+                lastNumber = parseInt(lastNumberStr, 10);
+            }
         }
     }
     
     const newNumber = lastNumber + 1;
-    const newId = `${prefix}${String(newNumber).padStart(4, '0')}`;
+    const newId = `${prefix}${String(newNumber).padStart(3, '0')}${suffix}`;
     
     return newId;
 };
