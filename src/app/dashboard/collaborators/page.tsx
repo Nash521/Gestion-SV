@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@/contexts/auth-context';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 
 const AddCollaboratorDialog = ({ isOpen, setIsOpen, onAdd }: { isOpen: boolean, setIsOpen: (open: boolean) => void, onAdd: (collaborator: Omit<Collaborator, 'id'>, password: string) => Promise<void> }) => {
@@ -159,6 +160,8 @@ export default function CollaboratorsPage() {
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [collaboratorToEdit, setCollaboratorToEdit] = useState<Collaborator | null>(null);
+    const [collaboratorToDelete, setCollaboratorToDelete] = useState<Collaborator | null>(null);
+
 
     if (currentUser?.role !== 'Admin') {
         return <AccessDenied />;
@@ -206,7 +209,27 @@ export default function CollaboratorsPage() {
             description: `Le rôle de ${collaborators.find(c => c.id === id)?.name} a été changé en ${newRole}.`,
         });
     };
-    
+
+    const handleDeleteRequest = (collaborator: Collaborator) => {
+        setCollaboratorToDelete(collaborator);
+    };
+
+    const handleConfirmDelete = () => {
+        if (!collaboratorToDelete) return;
+        
+        // This is a client-side only deletion for now.
+        // A real implementation would call a backend function to delete the Firebase Auth user.
+        setCollaborators(prev => prev.filter(c => c.id !== collaboratorToDelete.id));
+
+        toast({
+            variant: "destructive",
+            title: "Collaborateur supprimé",
+            description: `${collaboratorToDelete.name} a été retiré de la liste.`,
+        });
+
+        setCollaboratorToDelete(null);
+    };
+
     const roleTranslations: Record<CollaboratorRole, string> = {
         'Admin': 'Administrateur',
         'Employee': 'Employé'
@@ -214,6 +237,20 @@ export default function CollaboratorsPage() {
 
     return (
         <>
+            <AlertDialog open={!!collaboratorToDelete} onOpenChange={(open) => !open && setCollaboratorToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Cette action supprimera {collaboratorToDelete?.name} de la liste. Note : Ceci ne supprime pas le compte utilisateur de l'authentification.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setCollaboratorToDelete(null)}>Annuler</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleConfirmDelete}>Confirmer</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
             <AddCollaboratorDialog isOpen={isAddDialogOpen} setIsOpen={setIsAddDialogOpen} onAdd={handleAddCollaborator} />
             <EditRoleDialog
                 collaborator={collaboratorToEdit}
@@ -257,16 +294,23 @@ export default function CollaboratorsPage() {
                                     <TableCell className="text-right">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" className="h-8 w-8 p-0" disabled={collaborator.id === currentUser?.id || (collaborator.role === 'Admin' && collaborator.id !== currentUser?.id)}>
+                                                <Button variant="ghost" className="h-8 w-8 p-0" disabled={collaborator.id === currentUser?.id}>
                                                     <span className="sr-only">Ouvrir le menu</span>
                                                     <MoreHorizontal className="h-4 w-4" />
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
                                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                <DropdownMenuItem onClick={() => handleOpenEditDialog(collaborator)}>Modifier le rôle</DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => handleOpenEditDialog(collaborator)} disabled={collaborator.role === 'Admin' && collaborator.id !== currentUser?.id}>
+                                                    Modifier le rôle
+                                                </DropdownMenuItem>
                                                 <DropdownMenuSeparator />
-                                                <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">Supprimer</DropdownMenuItem>
+                                                <DropdownMenuItem 
+                                                    className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                                                    onClick={() => handleDeleteRequest(collaborator)}
+                                                >
+                                                    Supprimer
+                                                </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </TableCell>
