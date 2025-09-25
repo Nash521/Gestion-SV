@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { MoreHorizontal, PlusCircle, ShieldCheck, User, ShieldAlert } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,32 +19,67 @@ import { auth } from '@/lib/firebase/client';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 
-const AddCollaboratorDialog = ({ isOpen, setIsOpen, onAdd }: { isOpen: boolean, setIsOpen: (open: boolean) => void, onAdd: (collaborator: Omit<Collaborator, 'id'>, password: string) => Promise<void> }) => {
+const AddOrEditCollaboratorDialog = ({ 
+    isOpen, 
+    setIsOpen, 
+    onSave,
+    collaboratorToEdit 
+}: { 
+    isOpen: boolean, 
+    setIsOpen: (open: boolean) => void, 
+    onSave: (collaborator: Omit<Collaborator, 'id'> | Collaborator, password?: string) => Promise<void>,
+    collaboratorToEdit?: Collaborator | null
+}) => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [role, setRole] = useState<CollaboratorRole | ''>('');
+    
+    const isEditMode = !!collaboratorToEdit;
+
+    useEffect(() => {
+        if (isOpen) {
+            if (isEditMode && collaboratorToEdit) {
+                setName(collaboratorToEdit.name);
+                setEmail(collaboratorToEdit.email);
+                setRole(collaboratorToEdit.role);
+                setPassword(''); // Password is not edited here for security
+            } else {
+                setName('');
+                setEmail('');
+                setPassword('');
+                setRole('');
+            }
+        }
+    }, [isOpen, collaboratorToEdit, isEditMode]);
 
     const handleSubmit = async () => {
-        if (!name || !email || !role || !password) {
-            alert('Veuillez remplir tous les champs.');
+        if (!name || !email || !role) {
+            alert('Veuillez remplir le nom, l\'email et le rôle.');
             return;
         }
-        await onAdd({ name, email, role: role as CollaboratorRole }, password);
+
+        if (!isEditMode && !password) {
+            alert('Le mot de passe est requis pour un nouvel utilisateur.');
+            return;
+        }
+
+        if (isEditMode && collaboratorToEdit) {
+            await onSave({ id: collaboratorToEdit.id, name, email, role: role as CollaboratorRole });
+        } else {
+            await onSave({ name, email, role: role as CollaboratorRole }, password);
+        }
+        
         setIsOpen(false);
-        setName('');
-        setEmail('');
-        setPassword('');
-        setRole('');
     };
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                    <DialogTitle>Ajouter un collaborateur</DialogTitle>
+                    <DialogTitle>{isEditMode ? 'Modifier le collaborateur' : 'Ajouter un collaborateur'}</DialogTitle>
                     <DialogDescription>
-                        Invitez un nouveau membre dans votre équipe.
+                        {isEditMode ? 'Mettez à jour les informations du collaborateur.' : 'Invitez un nouveau membre dans votre équipe.'}
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
@@ -56,10 +91,12 @@ const AddCollaboratorDialog = ({ isOpen, setIsOpen, onAdd }: { isOpen: boolean, 
                         <Label htmlFor="email" className="text-right">Email</Label>
                         <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="col-span-3" />
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="password" className="text-right">Mot de passe</Label>
-                        <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="col-span-3" />
-                    </div>
+                    {!isEditMode && (
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="password" className="text-right">Mot de passe</Label>
+                            <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="col-span-3" />
+                        </div>
+                    )}
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="role" className="text-right">Rôle</Label>
                         <Select onValueChange={(value: CollaboratorRole) => setRole(value)} value={role}>
@@ -75,64 +112,13 @@ const AddCollaboratorDialog = ({ isOpen, setIsOpen, onAdd }: { isOpen: boolean, 
                 </div>
                 <DialogFooter>
                     <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>Annuler</Button>
-                    <Button onClick={handleSubmit}>Ajouter</Button>
+                    <Button onClick={handleSubmit}>Enregistrer</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
     );
 };
 
-const EditRoleDialog = ({ collaborator, isOpen, setIsOpen, onUpdate }: { collaborator: Collaborator | null, isOpen: boolean, setIsOpen: (open: boolean) => void, onUpdate: (id: string, newRole: CollaboratorRole) => void }) => {
-    const [newRole, setNewRole] = useState<CollaboratorRole | ''>(collaborator?.role || '');
-    
-    useEffect(() => {
-        if (collaborator) {
-            setNewRole(collaborator.role);
-        }
-    }, [collaborator]);
-
-    if (!collaborator) return null;
-
-    const handleUpdate = () => {
-        if (!newRole) {
-            alert('Veuillez sélectionner un rôle.');
-            return;
-        }
-        onUpdate(collaborator.id, newRole as CollaboratorRole);
-        setIsOpen(false);
-    };
-
-    return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                    <DialogTitle>Modifier le rôle</DialogTitle>
-                    <DialogDescription>
-                        Changer le rôle de <span className="font-semibold">{collaborator.name}</span>.
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="role" className="text-right">Nouveau Rôle</Label>
-                        <Select onValueChange={(value: CollaboratorRole) => setNewRole(value)} value={newRole}>
-                            <SelectTrigger className="col-span-3">
-                                <SelectValue placeholder="Sélectionner un rôle" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="Admin">Administrateur</SelectItem>
-                                <SelectItem value="Employee">Employé</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </div>
-                <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>Annuler</Button>
-                    <Button onClick={handleUpdate}>Mettre à jour</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    );
-};
 
 function AccessDenied() {
     return (
@@ -157,8 +143,7 @@ export default function CollaboratorsPage() {
     const { toast } = useToast();
     const { currentUser } = useAuth();
     const [collaborators, setCollaborators] = useState<Collaborator[]>(mockCollaborators);
-    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [collaboratorToEdit, setCollaboratorToEdit] = useState<Collaborator | null>(null);
     const [collaboratorToDelete, setCollaboratorToDelete] = useState<Collaborator | null>(null);
 
@@ -166,49 +151,58 @@ export default function CollaboratorsPage() {
     if (currentUser?.role !== 'Admin') {
         return <AccessDenied />;
     }
-
-    const handleAddCollaborator = async (newCollaborator: Omit<Collaborator, 'id'>, password: string) => {
-        try {
-            // In a real app, you would have a backend function to create user
-            // to avoid exposing auth logic on the client.
-            // This is a simplified example.
-            const userCredential = await createUserWithEmailAndPassword(auth, newCollaborator.email, password);
-            
-            // You would then save the user's role and other info in Firestore
-            // associated with their userCredential.user.uid
-            const collaboratorToAdd: Collaborator = {
-                id: userCredential.user.uid,
-                ...newCollaborator
-            };
-
-            setCollaborators(prev => [...prev, collaboratorToAdd]);
-            toast({
-                title: "Collaborateur ajouté",
-                description: `Le compte pour ${collaboratorToAdd.email} a été créé.`,
-            });
-        } catch (error: any) {
-            console.error("Error creating user:", error);
-            toast({
-                variant: "destructive",
-                title: "Erreur lors de la création",
-                description: error.message,
-            });
-        }
-    };
     
+    const handleOpenAddDialog = () => {
+        setCollaboratorToEdit(null);
+        setIsDialogOpen(true);
+    };
+
     const handleOpenEditDialog = (collaborator: Collaborator) => {
         setCollaboratorToEdit(collaborator);
-        setIsEditDialogOpen(true);
+        setIsDialogOpen(true);
     };
 
-    const handleUpdateRole = (id: string, newRole: CollaboratorRole) => {
-        // In a real app, this would be an API call to your backend/Firebase to update the user's custom claims or role in Firestore.
-        setCollaborators(prev => prev.map(c => c.id === id ? { ...c, role: newRole } : c));
-        toast({
-            title: "Rôle mis à jour",
-            description: `Le rôle de ${collaborators.find(c => c.id === id)?.name} a été changé en ${newRole}.`,
-        });
+    const handleSaveCollaborator = async (data: Omit<Collaborator, 'id'> | Collaborator, password?: string) => {
+        if ('id' in data) {
+            // Edit mode
+            // In a real app, this would be an API call to your backend/Firebase to update user data.
+            // Also, changing email in Firebase Auth is a sensitive action.
+            setCollaborators(prev => prev.map(c => c.id === data.id ? { ...c, ...data } : c));
+            toast({
+                title: "Collaborateur mis à jour",
+                description: `Le profil de ${data.name} a été mis à jour.`,
+            });
+        } else {
+            // Add mode
+            if (!password) {
+                 toast({ variant: "destructive", title: "Erreur", description: "Le mot de passe est manquant." });
+                 return;
+            }
+            try {
+                // This is a simplified example. A real app would use a backend function.
+                const userCredential = await createUserWithEmailAndPassword(auth, data.email, password);
+                
+                const newCollaborator: Collaborator = {
+                    id: userCredential.user.uid,
+                    ...data
+                };
+
+                setCollaborators(prev => [...prev, newCollaborator]);
+                toast({
+                    title: "Collaborateur ajouté",
+                    description: `Le compte pour ${newCollaborator.email} a été créé.`,
+                });
+            } catch (error: any) {
+                console.error("Error creating user:", error);
+                toast({
+                    variant: "destructive",
+                    title: "Erreur lors de la création",
+                    description: error.message,
+                });
+            }
+        }
     };
+
 
     const handleDeleteRequest = (collaborator: Collaborator) => {
         setCollaboratorToDelete(collaborator);
@@ -251,13 +245,13 @@ export default function CollaboratorsPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-            <AddCollaboratorDialog isOpen={isAddDialogOpen} setIsOpen={setIsAddDialogOpen} onAdd={handleAddCollaborator} />
-            <EditRoleDialog
-                collaborator={collaboratorToEdit}
-                isOpen={isEditDialogOpen}
-                setIsOpen={setIsEditDialogOpen}
-                onUpdate={handleUpdateRole}
+            <AddOrEditCollaboratorDialog 
+                isOpen={isDialogOpen}
+                setIsOpen={setIsDialogOpen}
+                onSave={handleSaveCollaborator}
+                collaboratorToEdit={collaboratorToEdit}
             />
+
             <Card className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/50 dark:via-indigo-950/50 dark:to-purple-950/50">
                 <CardHeader>
                     <div className="flex items-center justify-between">
@@ -265,7 +259,7 @@ export default function CollaboratorsPage() {
                             <CardTitle>Collaborateurs</CardTitle>
                             <CardDescription>Gérez les membres de votre équipe et leurs permissions.</CardDescription>
                         </div>
-                        <Button size="sm" onClick={() => setIsAddDialogOpen(true)}>
+                        <Button size="sm" onClick={handleOpenAddDialog}>
                             <PlusCircle className="mr-2 h-4 w-4" /> Ajouter un collaborateur
                         </Button>
                     </div>
@@ -301,8 +295,8 @@ export default function CollaboratorsPage() {
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
                                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                <DropdownMenuItem onClick={() => handleOpenEditDialog(collaborator)} disabled={collaborator.role === 'Admin' && collaborator.id !== currentUser?.id}>
-                                                    Modifier le rôle
+                                                <DropdownMenuItem onClick={() => handleOpenEditDialog(collaborator)}>
+                                                    Modifier
                                                 </DropdownMenuItem>
                                                 <DropdownMenuSeparator />
                                                 <DropdownMenuItem 
