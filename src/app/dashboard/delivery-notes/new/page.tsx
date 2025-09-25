@@ -88,9 +88,52 @@ function DeliveryNoteForm({
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid md:grid-cols-3 gap-6">
-              <FormField control={form.control} name="clientId" render={({ field }) => ( <FormItem> <FormLabel>Client</FormLabel> <Select onValueChange={field.onChange} value={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Sélectionnez un client" /> </SelectTrigger> </FormControl> <SelectContent> {clients.map(client => ( <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem> ))} </SelectContent> </Select> <FormMessage /> </FormItem>)} />
-              <FormField control={form.control} name="deliveryDate" render={({ field }) => (<FormItem className="flex flex-col"> <FormLabel>Date de livraison</FormLabel> <Popover> <PopoverTrigger asChild> <FormControl> <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}> {field.value ? format(field.value, "PPP", { locale: fr }) : <span>Choisir une date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" /> </Button> </FormControl> </PopoverTrigger> <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus locale={fr} /></PopoverContent> </Popover> <FormMessage /> </FormItem> )} />
-              <FormField control={form.control} name="invoiceId" render={({ field }) => (<FormItem><FormLabel>ID Proforma (Optionnel)</FormLabel><FormControl><Input placeholder="INV-001" {...field} /></FormControl><FormMessage /></FormItem>)} />
+              <FormField control={form.control} name="clientId" render={({ field }) => ( 
+                <FormItem> 
+                  <FormLabel>Client</FormLabel> 
+                  <Select onValueChange={field.onChange} value={field.value}> 
+                    <FormControl> 
+                      <SelectTrigger> 
+                        <SelectValue placeholder="Sélectionnez un client" /> 
+                      </SelectTrigger> 
+                    </FormControl> 
+                    <SelectContent> 
+                      {clients.map(client => ( 
+                        <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem> 
+                      ))} 
+                    </SelectContent> 
+                  </Select> 
+                  <FormMessage /> 
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="deliveryDate" render={({ field }) => (
+                <FormItem className="flex flex-col"> 
+                  <FormLabel>Date de livraison</FormLabel> 
+                  <Popover> 
+                    <PopoverTrigger asChild> 
+                      <FormControl> 
+                        <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}> 
+                          {field.value ? format(field.value, "PPP", { locale: fr }) : <span>Choisir une date</span>} 
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" /> 
+                        </Button> 
+                      </FormControl> 
+                    </PopoverTrigger> 
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus locale={fr} />
+                    </PopoverContent> 
+                  </Popover> 
+                  <FormMessage /> 
+                </FormItem> 
+              )} />
+              <FormField control={form.control} name="invoiceId" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>ID Proforma (Optionnel)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="INV-001" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
             </div>
             
             <div className="space-y-4">
@@ -98,8 +141,24 @@ function DeliveryNoteForm({
                 {fields.map((item, index) => (
                     <div key={item.id} className="flex items-start gap-4 p-4 border rounded-lg bg-muted/20">
                         <div className="grid grid-cols-1 md:grid-cols-12 gap-4 flex-1">
-                            <FormField control={form.control} name={`lineItems.${index}.description`} render={({ field }) => (<FormItem className="md:col-span-8"><FormLabel className={cn(index !== 0 && "sr-only")}>Description</FormLabel><FormControl><Input placeholder="Description..." {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name={`lineItems.${index}.quantity`} render={({ field }) => (<FormItem className="md:col-span-4"><FormLabel className={cn(index !== 0 && "sr-only")}>Quantité</FormLabel><FormControl><Input type="number" placeholder="1" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name={`lineItems.${index}.description`} render={({ field }) => (
+                              <FormItem className="md:col-span-8">
+                                <FormLabel className={cn(index !== 0 && "sr-only")}>Description</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Description..." {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )} />
+                            <FormField control={form.control} name={`lineItems.${index}.quantity`} render={({ field }) => (
+                              <FormItem className="md:col-span-4">
+                                <FormLabel className={cn(index !== 0 && "sr-only")}>Quantité</FormLabel>
+                                <FormControl>
+                                  <Input type="number" placeholder="1" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )} />
                         </div>
                          <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="mt-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10" disabled={fields.length <= 1}><Trash2 className="h-4 w-4" /></Button>
                     </div>
@@ -107,7 +166,15 @@ function DeliveryNoteForm({
                 <Button type="button" variant="outline" onClick={() => append({ description: '', quantity: 1 })} disabled={isSubmitting}>Ajouter une ligne</Button>
             </div>
 
-             <FormField control={form.control} name="notes" render={({ field }) => (<FormItem><FormLabel>Notes</FormLabel><FormControl><Textarea placeholder="Notes optionnelles..." {...field} /></FormControl><FormMessage /></FormItem>)} />
+             <FormField control={form.control} name="notes" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Notes</FormLabel>
+                <FormControl>
+                  <Textarea placeholder="Notes optionnelles..." {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
 
           </CardContent>
           <CardFooter className="flex justify-end gap-2">
