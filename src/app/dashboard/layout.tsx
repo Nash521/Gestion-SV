@@ -116,7 +116,7 @@ export default function DashboardLayout({
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <header className="flex h-16 items-center justify-between gap-4 border-b bg-background px-4 md:px-6">
+        <header className="flex h-16 items-center justify-between gap-4 border-b bg-background px-4 md:px-6 sticky top-0 z-10">
             <div className="flex items-center gap-2">
                 <SidebarTrigger className="hidden md:flex" />
                 <PageHeader />
@@ -131,7 +131,7 @@ export default function DashboardLayout({
                 <SettingsSheet />
             </div>
         </header>
-        <main className="flex-1 p-4 md:p-6 animate-fade-in-up bg-background">
+        <main className="flex-1 p-4 md:p-6 animate-fade-in-up bg-background overflow-auto">
           {children}
         </main>
       </SidebarInset>
