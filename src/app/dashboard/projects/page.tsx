@@ -10,6 +10,7 @@ import type { Project, TaskList, ProjectTask, Collaborator } from '@/lib/definit
 import { useAuth } from '@/contexts/auth-context';
 import { Skeleton } from '@/components/ui/skeleton';
 import { mockCollaborators } from '@/lib/data'; // Collaborators are still mock for now
+import { Button } from '@/components/ui/button';
 
 export default function ProjectsPage() {
     const [view, setView] = useState<'board' | 'table' | 'calendar' | 'gantt'>('board');
@@ -26,9 +27,9 @@ export default function ProjectsPage() {
         const unsubProjects = subscribeToProjects(setProjects);
         
         // Let's assume we work on the first project. In a real app, you'd have a project selector.
-        if (activeProject) {
-            const unsubLists = subscribeToTaskLists(activeProject.id, setLists);
-            const unsubTasks = subscribeToProjectTasks(activeProject.id, setTasks);
+        if (projects.length > 0) {
+            const unsubLists = subscribeToTaskLists(projects[0].id, setLists);
+            const unsubTasks = subscribeToProjectTasks(projects[0].id, setTasks);
             
             // A simple way to detect when initial data has loaded
             Promise.all([
@@ -43,13 +44,14 @@ export default function ProjectsPage() {
             };
         } else {
             // Handle case where there are no projects
-            setIsLoading(false);
+             const timeout = setTimeout(() => setIsLoading(false), 500); // Check for projects, then stop loading
+             return () => clearTimeout(timeout);
         }
 
         return () => {
             unsubProjects();
         };
-    }, [activeProject?.id]);
+    }, [projects]);
 
 
     if (isLoading) {
