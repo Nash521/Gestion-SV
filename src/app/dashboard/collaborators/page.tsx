@@ -1,6 +1,5 @@
 "use client"
 import React, { useState, useEffect } from 'react';
-import { mockCollaborators } from '@/lib/data';
 import type { Collaborator, CollaboratorRole } from '@/lib/definitions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,10 +13,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/contexts/auth-context';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase/client';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-
+import { subscribeToCollaborators, addCollaborator, updateCollaborator, deleteCollaborator } from '@/lib/firebase/services';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const AddOrEditCollaboratorDialog = ({ 
     isOpen, 
@@ -89,7 +87,7 @@ const AddOrEditCollaboratorDialog = ({
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="email" className="text-right">Email</Label>
-                        <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="col-span-3" />
+                        <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="col-span-3" disabled={isEditMode} />
                     </div>
                     {!isEditMode && (
                         <div className="grid grid-cols-4 items-center gap-4">
@@ -139,14 +137,47 @@ function AccessDenied() {
     );
 }
 
+const CollaboratorListSkeleton = () => (
+    <TableBody>
+        {[...Array(3)].map((_, i) => (
+             <TableRow key={i}>
+                <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-48" /></TableCell>
+                <TableCell><Skeleton className="h-8 w-28" /></TableCell>
+                <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+            </TableRow>
+        ))}
+    </TableBody>
+  );
+
 export default function CollaboratorsPage() {
     const { toast } = useToast();
     const { currentUser } = useAuth();
-    const [collaborators, setCollaborators] = useState<Collaborator[]>(mockCollaborators);
+    const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [collaboratorToEdit, setCollaboratorToEdit] = useState<Collaborator | null>(null);
     const [collaboratorToDelete, setCollaboratorToDelete] = useState<Collaborator | null>(null);
 
+
+    useEffect(() => {
+        if (currentUser?.role !== 'Admin') {
+            setIsLoading(false);
+            return;
+        };
+
+        const unsubscribe = subscribeToCollaborators((data) => {
+            setCollaborators(data);
+            setIsLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, [currentUser]);
+
+
+    if (isLoading) {
+        return <Card><CardHeader><CardTitle>Collaborateurs</CardTitle></CardHeader><CardContent><Table><TableHeader><TableRow><TableHead>Nom</TableHead><TableHead>Email</TableHead><TableHead>Rôle</TableHead><TableHead></TableHead></TableRow></TableHeader><CollaboratorListSkeleton/></Table></CardContent></Card>
+    }
 
     if (currentUser?.role !== 'Admin') {
         return <AccessDenied />;
@@ -165,13 +196,15 @@ export default function CollaboratorsPage() {
     const handleSaveCollaborator = async (data: Omit<Collaborator, 'id'> | Collaborator, password?: string) => {
         if ('id' in data) {
             // Edit mode
-            // In a real app, this would be an API call to your backend/Firebase to update user data.
-            // Also, changing email in Firebase Auth is a sensitive action.
-            setCollaborators(prev => prev.map(c => c.id === data.id ? { ...c, ...data } : c));
-            toast({
-                title: "Collaborateur mis à jour",
-                description: `Le profil de ${data.name} a été mis à jour.`,
-            });
+            try {
+                await updateCollaborator(data.id, { name: data.name, role: data.role });
+                toast({
+                    title: "Collaborateur mis à jour",
+                    description: `Le profil de ${data.name} a été mis à jour.`,
+                });
+            } catch (error: any) {
+                toast({ variant: "destructive", title: "Erreur", description: error.message });
+            }
         } else {
             // Add mode
             if (!password) {
@@ -179,25 +212,17 @@ export default function CollaboratorsPage() {
                  return;
             }
             try {
-                // This is a simplified example. A real app would use a backend function.
-                const userCredential = await createUserWithEmailAndPassword(auth, data.email, password);
-                
-                const newCollaborator: Collaborator = {
-                    id: userCredential.user.uid,
-                    ...data
-                };
-
-                setCollaborators(prev => [...prev, newCollaborator]);
+                await addCollaborator(data, password);
                 toast({
                     title: "Collaborateur ajouté",
-                    description: `Le compte pour ${newCollaborator.email} a été créé.`,
+                    description: `Le compte pour ${data.email} a été créé.`,
                 });
             } catch (error: any) {
                 console.error("Error creating user:", error);
                 toast({
                     variant: "destructive",
                     title: "Erreur lors de la création",
-                    description: error.message,
+                    description: "Cette adresse e-mail est peut-être déjà utilisée.",
                 });
             }
         }
@@ -208,20 +233,25 @@ export default function CollaboratorsPage() {
         setCollaboratorToDelete(collaborator);
     };
 
-    const handleConfirmDelete = () => {
+    const handleConfirmDelete = async () => {
         if (!collaboratorToDelete) return;
         
-        // This is a client-side only deletion for now.
-        // A real implementation would call a backend function to delete the Firebase Auth user.
-        setCollaborators(prev => prev.filter(c => c.id !== collaboratorToDelete.id));
-
-        toast({
-            variant: "destructive",
-            title: "Collaborateur supprimé",
-            description: `${collaboratorToDelete.name} a été retiré de la liste.`,
-        });
-
-        setCollaboratorToDelete(null);
+        try {
+            await deleteCollaborator(collaboratorToDelete.id);
+            toast({
+                variant: "destructive",
+                title: "Collaborateur supprimé",
+                description: `${collaboratorToDelete.name} a été retiré de la liste.`,
+            });
+        } catch (error: any) {
+             toast({
+                variant: "destructive",
+                title: "Erreur",
+                description: `Impossible de supprimer ${collaboratorToDelete.name}.`,
+            });
+        } finally {
+            setCollaboratorToDelete(null);
+        }
     };
 
     const roleTranslations: Record<CollaboratorRole, string> = {
@@ -236,7 +266,7 @@ export default function CollaboratorsPage() {
                     <AlertDialogHeader>
                         <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Cette action supprimera {collaboratorToDelete?.name} de la liste. Note : Ceci ne supprime pas le compte utilisateur de l'authentification.
+                            Cette action supprimera {collaboratorToDelete?.name} de la base de données. Note : Ceci ne supprime pas le compte utilisateur de l'authentification Firebase, qui doit être gérée manuellement depuis la console Firebase pour des raisons de sécurité.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -274,43 +304,45 @@ export default function CollaboratorsPage() {
                                 <TableHead className="w-[50px] text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
-                        <TableBody>
-                            {collaborators.map((collaborator) => (
-                                <TableRow key={collaborator.id}>
-                                    <TableCell className="font-medium">{collaborator.name}</TableCell>
-                                    <TableCell>{collaborator.email}</TableCell>
-                                    <TableCell>
-                                        <Badge variant={collaborator.role === 'Admin' ? 'default' : 'secondary'}>
-                                            {collaborator.role === 'Admin' ? <ShieldCheck className="mr-2 h-4 w-4" /> : <User className="mr-2 h-4 w-4" />}
-                                            {roleTranslations[collaborator.role]}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" className="h-8 w-8 p-0" disabled={collaborator.id === currentUser?.id}>
-                                                    <span className="sr-only">Ouvrir le menu</span>
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                <DropdownMenuItem onClick={() => handleOpenEditDialog(collaborator)}>
-                                                    Modifier
-                                                </DropdownMenuItem>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuItem 
-                                                    className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                                                    onClick={() => handleDeleteRequest(collaborator)}
-                                                >
-                                                    Supprimer
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
+                         {isLoading ? <CollaboratorListSkeleton /> : (
+                            <TableBody>
+                                {collaborators.map((collaborator) => (
+                                    <TableRow key={collaborator.id}>
+                                        <TableCell className="font-medium">{collaborator.name}</TableCell>
+                                        <TableCell>{collaborator.email}</TableCell>
+                                        <TableCell>
+                                            <Badge variant={collaborator.role === 'Admin' ? 'default' : 'secondary'}>
+                                                {collaborator.role === 'Admin' ? <ShieldCheck className="mr-2 h-4 w-4" /> : <User className="mr-2 h-4 w-4" />}
+                                                {roleTranslations[collaborator.role]}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" className="h-8 w-8 p-0" disabled={collaborator.id === currentUser?.id}>
+                                                        <span className="sr-only">Ouvrir le menu</span>
+                                                        <MoreHorizontal className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                    <DropdownMenuItem onClick={() => handleOpenEditDialog(collaborator)}>
+                                                        Modifier
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem 
+                                                        className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                                                        onClick={() => handleDeleteRequest(collaborator)}
+                                                    >
+                                                        Supprimer
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                         )}
                     </Table>
                 </CardContent>
             </Card>

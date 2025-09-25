@@ -1,6 +1,8 @@
-import { db } from './client';
+import { db, auth } from './client';
 import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, onSnapshot, getDoc, Timestamp, where, writeBatch, setDoc, orderBy, limit } from 'firebase/firestore';
-import type { Client, Invoice, PurchaseOrder, DeliveryNote, LineItem, Transaction, CashRegister, Subcontractor, SubcontractorService, Project, TaskList, ProjectTask } from '../definitions';
+import type { Client, Invoice, PurchaseOrder, DeliveryNote, LineItem, Transaction, CashRegister, Subcontractor, SubcontractorService, Project, TaskList, ProjectTask, Collaborator } from '../definitions';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+
 
 const getClientsMap = async (): Promise<Map<string, Client>> => {
     const clients = await getClients();
@@ -543,6 +545,46 @@ export const deleteSubcontractor = async (id: string) => {
     await batch.commit();
 
     await deleteDoc(doc(db, 'subcontractors', id));
+};
+
+// Collaborator Services
+export const subscribeToCollaborators = (callback: (collaborators: Collaborator[]) => void) => {
+    const q = query(collection(db, "collaborators"), orderBy("name"));
+    return onSnapshot(q, (snapshot) => {
+        const collaborators = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Collaborator));
+        callback(collaborators);
+    });
+};
+
+export const addCollaborator = async (collaboratorData: Omit<Collaborator, 'id'>, password: string) => {
+    // This function is complex because it involves two Firebase services.
+    // In a real, secure application, this should be handled by a Cloud Function
+    // to avoid exposing user creation to the client in this way and to handle errors robustly.
+    
+    // 1. Create the user in Firebase Authentication
+    const userCredential = await createUserWithEmailAndPassword(auth, collaboratorData.email, password);
+    const user = userCredential.user;
+
+    // 2. Create the collaborator document in Firestore
+    const { email, name, role } = collaboratorData;
+    const collaboratorDocRef = doc(db, 'collaborators', user.uid);
+    await setDoc(collaboratorDocRef, { name, email, role });
+    
+    return user.uid;
+};
+
+export const updateCollaborator = async (id: string, data: Partial<Pick<Collaborator, 'name' | 'role'>>) => {
+    if (!id) throw new Error("ID manquant pour la mise à jour");
+    const collaboratorRef = doc(db, 'collaborators', id);
+    await updateDoc(collaboratorRef, data);
+};
+
+export const deleteCollaborator = async (id: string) => {
+    if (!id) throw new Error("ID manquant pour la suppression");
+    // This ONLY deletes the Firestore document.
+    // Deleting the user from Firebase Auth requires Admin SDK privileges
+    // and should be done from a secure backend environment (e.g., a Cloud Function).
+    await deleteDoc(doc(db, 'collaborators', id));
 };
 
 

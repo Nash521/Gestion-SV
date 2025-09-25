@@ -2,9 +2,9 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, User as FirebaseUser } from 'firebase/auth';
-import { auth } from '@/lib/firebase/client';
+import { auth, db } from '@/lib/firebase/client';
 import { Collaborator, CollaboratorRole } from '@/lib/definitions';
-import { mockCollaborators } from '@/lib/data'; // We'll use this for mock role lookup
+import { doc, onSnapshot } from 'firebase/firestore';
 
 interface AuthContextType {
     currentUser: Collaborator | null;
@@ -27,27 +27,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             if (user) {
-                // In a real app, you would fetch user roles from Firestore/Database
-                // For now, we'll find the user in our mock data
-                const collaborator = mockCollaborators.find(c => c.email === user.email);
-                
-                if (collaborator) {
-                    setCurrentUser(collaborator);
-                } else {
-                    // Fallback for newly created users not in mock data
-                    // Default to 'Employee' role. In a real app, you'd have a system
-                    // to assign roles upon creation.
-                     setCurrentUser({
-                        id: user.uid,
-                        name: user.displayName || user.email || 'Nouveau membre',
-                        email: user.email!,
-                        role: 'Employee',
-                    });
-                }
+                const userDocRef = doc(db, 'collaborators', user.uid);
+                const unsubDoc = onSnapshot(userDocRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        setCurrentUser({ id: docSnap.id, ...docSnap.data() } as Collaborator);
+                    } else {
+                        // This might happen for a brief moment if the user doc hasn't been created yet.
+                        // Or if a user exists in Auth but not in Firestore.
+                        setCurrentUser({
+                            id: user.uid,
+                            name: user.displayName || user.email || 'Utilisateur',
+                            email: user.email!,
+                            role: 'Employee' // Default role
+                        });
+                    }
+                    setLoading(false);
+                });
+                return () => unsubDoc();
             } else {
                 setCurrentUser(null);
+                setLoading(false);
             }
-            setLoading(false);
         });
 
         return () => unsubscribe();
