@@ -24,34 +24,30 @@ export default function ProjectsPage() {
     useEffect(() => {
         setIsLoading(true);
 
-        const unsubProjects = subscribeToProjects(setProjects);
-        
-        // Let's assume we work on the first project. In a real app, you'd have a project selector.
-        if (projects.length > 0) {
-            const unsubLists = subscribeToTaskLists(projects[0].id, setLists);
-            const unsubTasks = subscribeToProjectTasks(projects[0].id, setTasks);
-            
-            // A simple way to detect when initial data has loaded
-            Promise.all([
-                new Promise(resolve => setTimeout(resolve, 1500)) // Give Firebase some time to load
-            ]).then(() => {
+        const unsubProjects = subscribeToProjects((newProjects) => {
+            setProjects(newProjects);
+            if (newProjects.length > 0) {
+                const firstProject = newProjects[0];
+                const unsubLists = subscribeToTaskLists(firstProject.id, setLists);
+                const unsubTasks = subscribeToProjectTasks(firstProject.id, (projectTasks) => {
+                    setTasks(projectTasks);
+                    setIsLoading(false); 
+                });
+
+                // Cleanup function for inner subscriptions
+                return () => {
+                    unsubLists();
+                    unsubTasks();
+                };
+            } else {
                 setIsLoading(false);
-            });
-
-            return () => {
-                unsubLists();
-                unsubTasks();
-            };
-        } else {
-            // Handle case where there are no projects
-             const timeout = setTimeout(() => setIsLoading(false), 500); // Check for projects, then stop loading
-             return () => clearTimeout(timeout);
-        }
-
+            }
+        });
+        
         return () => {
             unsubProjects();
         };
-    }, [projects]);
+    }, []);
 
 
     if (isLoading) {

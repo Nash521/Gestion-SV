@@ -547,7 +547,7 @@ export const deleteSubcontractor = async (id: string) => {
 
 
 // Project Services
-export const subscribeToProjects = (callback: (projects: Project[]) => void) => {
+export const subscribeToProjects = (callback: (projects: Project[]) => (() => void) | void) => {
     const q = query(collection(db, "projects"), orderBy("name"));
     return onSnapshot(q, async (querySnapshot) => {
         if (querySnapshot.empty) {
