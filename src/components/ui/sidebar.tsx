@@ -141,7 +141,7 @@ const SidebarProvider = React.forwardRef<
               } as React.CSSProperties
             }
             className={cn(
-              "group/sidebar-wrapper flex min-h-svh w-full has-[[data-variant=inset]]:bg-sidebar",
+              "group/sidebar-wrapper peer flex min-h-svh w-full has-[[data-variant=inset]]:bg-sidebar",
               className
             )}
             ref={ref}
@@ -216,7 +216,7 @@ const Sidebar = React.forwardRef<
       <div
         ref={ref}
         className={cn(
-          "peer hidden md:fixed md:top-0 z-30 md:flex md:h-screen flex-col text-sidebar-foreground",
+          "hidden md:fixed md:top-0 z-30 md:flex md:h-screen flex-col text-sidebar-foreground",
           "group-data-[collapsible=icon]:w-[--sidebar-width-icon]",
           "group-data-[state=expanded]:w-[--sidebar-width]",
           "transition-all duration-200",
