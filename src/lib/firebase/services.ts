@@ -1,6 +1,6 @@
 import { db } from './client';
 import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, onSnapshot, getDoc, Timestamp, where, writeBatch, setDoc, orderBy, limit } from 'firebase/firestore';
-import type { Client, Invoice, PurchaseOrder, DeliveryNote, LineItem, Transaction, CashRegister, Subcontractor, SubcontractorService } from '../definitions';
+import type { Client, Invoice, PurchaseOrder, DeliveryNote, LineItem, Transaction, CashRegister, Subcontractor, SubcontractorService, Project, TaskList, ProjectTask } from '../definitions';
 
 const getClientsMap = async (): Promise<Map<string, Client>> => {
     const clients = await getClients();
@@ -543,6 +543,101 @@ export const deleteSubcontractor = async (id: string) => {
     await batch.commit();
 
     await deleteDoc(doc(db, 'subcontractors', id));
+};
+
+
+// Project Services
+export const subscribeToProjects = (callback: (projects: Project[]) => void) => {
+    const q = query(collection(db, "projects"), orderBy("name"));
+    return onSnapshot(q, async (querySnapshot) => {
+        if (querySnapshot.empty) {
+            console.log('No projects found, seeding one.');
+            await addDoc(collection(db, "projects"), {
+                name: "Refonte du site web",
+                description: "Projet de refonte complète du site web de l'entreprise."
+            });
+        } else {
+            const projects = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Project));
+            callback(projects);
+        }
+    });
+};
+
+export const subscribeToTaskLists = (projectId: string, callback: (lists: TaskList[]) => void) => {
+    const q = query(collection(db, "projects", projectId, "lists"), orderBy("order"));
+    return onSnapshot(q, async (querySnapshot) => {
+        if (querySnapshot.empty) {
+             console.log('No lists found, seeding default ones.');
+            const batch = writeBatch(db);
+            const defaultLists = [
+                { title: 'À faire', order: 1, color: 'bg-blue-100 dark:bg-blue-950/30' },
+                { title: 'En cours', order: 2, color: 'bg-orange-100 dark:bg-orange-950/30' },
+                { title: 'En revue', order: 3, color: 'bg-purple-100 dark:bg-purple-950/30' },
+                { title: 'Terminé', order: 4, color: 'bg-green-100 dark:bg-green-950/30' },
+            ];
+            defaultLists.forEach(list => {
+                const docRef = doc(collection(db, 'projects', projectId, 'lists'));
+                batch.set(docRef, list);
+            });
+            await batch.commit();
+        } else {
+            const lists = querySnapshot.docs.map(doc => ({ id: doc.id, projectId, ...doc.data() } as TaskList));
+            callback(lists);
+        }
+    });
+};
+
+
+const processTaskDoc = (doc: any): ProjectTask => {
+    const data = doc.data();
+    return {
+        id: doc.id,
+        ...data,
+        dueDate: data.dueDate?.toDate(),
+        startDate: data.startDate?.toDate(),
+    } as ProjectTask;
+};
+
+export const subscribeToProjectTasks = (projectId: string, callback: (tasks: ProjectTask[]) => void) => {
+    const q = query(collection(db, "projects", projectId, "tasks"), orderBy("order"));
+    return onSnapshot(q, (querySnapshot) => {
+        const tasks = querySnapshot.docs.map(processTaskDoc);
+        callback(tasks);
+    });
+};
+
+export const addProjectTask = async (projectId: string, taskData: Omit<ProjectTask, 'id' | 'dueDate' | 'startDate'> & { dueDate?: Date, startDate?: Date }) => {
+    const { dueDate, startDate, ...rest } = taskData;
+    const payload: any = { ...rest };
+    if (dueDate) payload.dueDate = Timestamp.fromDate(dueDate);
+    if (startDate) payload.startDate = Timestamp.fromDate(startDate);
+    
+    return addDoc(collection(db, 'projects', projectId, 'tasks'), payload);
+};
+
+export const updateProjectTask = async (projectId: string, taskId: string, taskData: Partial<ProjectTask>) => {
+    const { dueDate, startDate, ...rest } = taskData;
+    const payload: any = { ...rest };
+    if (dueDate) payload.dueDate = Timestamp.fromDate(new Date(dueDate));
+    if (startDate) payload.startDate = Timestamp.fromDate(new Date(startDate));
+    
+    // Remove undefined values
+    Object.keys(payload).forEach(key => payload[key] === undefined && delete payload[key]);
+
+    return updateDoc(doc(db, 'projects', projectId, 'tasks', taskId), payload);
+};
+
+export const updateTaskListColor = async (projectId: string, listId: string, color: string) => {
+    return updateDoc(doc(db, "projects", projectId, "lists", listId), { color });
+};
+
+export const reorderTasks = async (projectId: string, tasks: ProjectTask[]) => {
+    const batch = writeBatch(db);
+    tasks.forEach((task, index) => {
+        const taskRef = doc(db, 'projects', projectId, 'tasks', task.id);
+        batch.update(taskRef, { order: index, listId: task.listId });
+    });
+    await batch.commit();
 };
 
 

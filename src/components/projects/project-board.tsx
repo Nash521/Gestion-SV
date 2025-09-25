@@ -53,6 +53,7 @@ import {
 } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { addProjectTask, updateProjectTask, reorderTasks, updateTaskListColor } from '@/lib/firebase/services';
 
 const initialLabels = [
     { name: 'Urgent', color: 'bg-red-500' },
@@ -201,9 +202,10 @@ interface TaskListColumnProps {
   onAddTask: (listId: string) => void;
   availableLabels: { name: string; color: string }[];
   onListColorChange: (listId: string, color: string) => void;
+  projectId: string;
 }
 
-const TaskListColumn = ({ list, tasks, collaborators, onTaskClick, onAddTask, availableLabels, onListColorChange }: TaskListColumnProps) => {
+const TaskListColumn = ({ list, tasks, collaborators, onTaskClick, onAddTask, availableLabels, onListColorChange, projectId }: TaskListColumnProps) => {
     const { setNodeRef } = useSortable({
       id: list.id,
       data: {
@@ -241,7 +243,7 @@ const TaskListColumn = ({ list, tasks, collaborators, onTaskClick, onAddTask, av
                                         variant="outline"
                                         size="icon"
                                         className="h-8 w-8"
-                                        onClick={() => onListColorChange(list.id, color)}
+                                        onClick={() => updateTaskListColor(projectId, list.id, color)}
                                     >
                                         <div className={cn("h-4 w-4 rounded-full", color)} />
                                     </Button>
@@ -706,18 +708,21 @@ interface ProjectBoardProps {
   project: Project;
   lists: TaskList[];
   tasks: ProjectTask[];
-  setTasks: React.Dispatch<React.SetStateAction<ProjectTask[]>>;
   collaborators: Collaborator[];
   currentView: 'board' | 'table' | 'calendar' | 'gantt';
   onViewChange: (view: 'board' | 'table' | 'calendar' | 'gantt') => void;
-  setLists: React.Dispatch<React.SetStateAction<TaskList[]>>;
 }
 
-export const ProjectBoard = ({ project, lists, tasks, setTasks, collaborators, currentView, onViewChange, setLists }: ProjectBoardProps) => {
+export const ProjectBoard = ({ project, lists, tasks: initialTasks, collaborators, currentView, onViewChange }: ProjectBoardProps) => {
     const { toast } = useToast();
     const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
     const [editingTask, setEditingTask] = useState<Partial<ProjectTask> | null>(null);
     const [activeTask, setActiveTask] = useState<ProjectTask | null>(null);
+
+    const [tasks, setTasks] = useState<ProjectTask[]>(initialTasks);
+    useEffect(() => {
+        setTasks(initialTasks.sort((a,b) => a.order - b.order));
+    }, [initialTasks]);
 
     const [availableLabels, setAvailableLabels] = useState(initialLabels);
     const [isLabelManagerOpen, setIsLabelManagerOpen] = useState(false);
@@ -740,19 +745,19 @@ export const ProjectBoard = ({ project, lists, tasks, setTasks, collaborators, c
         setIsTaskDialogOpen(true);
     };
 
-    const handleTaskSubmit = (data: Partial<ProjectTask>) => {
+    const handleTaskSubmit = async (data: Partial<ProjectTask>) => {
         if (data.id) { // Editing existing task
-            setTasks(currentTasks => currentTasks.map(t => t.id === data.id ? { ...t, ...data } as ProjectTask : t));
+            await updateProjectTask(project.id, data.id, data);
             toast({ title: "Tâche mise à jour", description: `La tâche "${data.title}" a été modifiée.` });
         } else { // Adding new task
-            const newOrder = tasks.filter(t => t.listId === data.listId).length + 1;
-            const newTask: ProjectTask = {
-                id: `task-${Date.now()}`,
+            const newOrder = tasks.filter(t => t.listId === data.listId).length;
+            const taskData = {
                 order: newOrder,
                 ...data
-            } as ProjectTask;
-            setTasks(currentTasks => [...currentTasks, newTask]);
-            toast({ title: "Tâche ajoutée", description: `La tâche "${newTask.title}" a été créée.` });
+            } as Omit<ProjectTask, 'id'>;
+
+            await addProjectTask(project.id, taskData);
+            toast({ title: "Tâche ajoutée", description: `La tâche "${taskData.title}" a été créée.` });
         }
         setEditingTask(null);
         setIsTaskDialogOpen(false);
@@ -762,18 +767,15 @@ export const ProjectBoard = ({ project, lists, tasks, setTasks, collaborators, c
         const oldLabels = availableLabels;
         setAvailableLabels(newLabels);
 
-        // Update tasks that used a deleted or renamed label
         const deletedLabelNames = oldLabels.filter(ol => !newLabels.some(nl => nl.name === ol.name)).map(l => l.name);
         if (deletedLabelNames.length > 0) {
-            setTasks(currentTasks => currentTasks.map(task => ({
-                ...task,
-                labels: task.labels?.filter(l => !deletedLabelNames.includes(l))
-            })));
+            tasks.forEach(task => {
+                const newLabels = task.labels?.filter(l => !deletedLabelNames.includes(l));
+                if (newLabels?.length !== task.labels?.length) {
+                    updateProjectTask(project.id, task.id, { labels: newLabels });
+                }
+            })
         }
-    };
-
-    const handleListColorChange = (listId: string, color: string) => {
-        setLists(prevLists => prevLists.map(list => list.id === listId ? { ...list, color } : list));
     };
     
     const sensors = useSensors(
@@ -790,61 +792,78 @@ export const ProjectBoard = ({ project, lists, tasks, setTasks, collaborators, c
         }
     }
     
-    function onDragEnd(event: DragEndEvent) {
+    async function onDragEnd(event: DragEndEvent) {
         setActiveTask(null);
         const { active, over } = event;
-        if (!over) return;
-        if (active.id === over.id) return;
+        if (!over || active.id === over.id) return;
         
-        const activeListId = (active.data.current?.task as ProjectTask)?.listId;
-        const overListId = (over.data.current?.task as ProjectTask)?.listId || over.id;
-        
-        if (activeListId === overListId) {
-             setTasks((tasks) => {
-                const activeIndex = tasks.findIndex((t) => t.id === active.id);
-                const overIndex = tasks.findIndex((t) => t.id === over.id);
-                return arrayMove(tasks, activeIndex, overIndex);
-            });
+        const activeIsTask = active.data.current?.type === 'Task';
+
+        if (activeIsTask) {
+            // Reorder tasks locally for instant UI update
+            const activeIndex = tasks.findIndex(t => t.id === active.id);
+            const overId = over.id as string;
+            const overIsList = over.data.current?.type === 'List';
+            
+            let overIndex: number;
+            let newListId: string;
+
+            if (overIsList) {
+                // Dropped on a list column
+                newListId = overId;
+                // Find first task in that list to determine drop position
+                const firstTaskInNewListIndex = tasks.findIndex(t => t.listId === newListId);
+                overIndex = firstTaskInNewListIndex !== -1 ? firstTaskInNewListIndex : tasks.length;
+            } else {
+                // Dropped on another task
+                overIndex = tasks.findIndex(t => t.id === overId);
+                newListId = tasks[overIndex].listId;
+            }
+
+            let updatedTasks = [...tasks];
+            const activeTask = updatedTasks[activeIndex];
+            
+            if (activeTask.listId !== newListId) {
+                activeTask.listId = newListId;
+            }
+            updatedTasks = arrayMove(updatedTasks, activeIndex, overIndex);
+            
+            setTasks(updatedTasks);
+            await reorderTasks(project.id, updatedTasks);
         }
     }
 
     function onDragOver(event: DragOverEvent) {
         const { active, over } = event;
-        if (!over) return;
-        if (active.id === over.id) return;
+        if (!over || active.id === over.id) return;
 
         const isActiveATask = active.data.current?.type === 'Task';
-        const isOverATask = over.data.current?.type === 'Task';
-        
         if (!isActiveATask) return;
 
-        if (isActiveATask && isOverATask) {
-            setTasks((tasks) => {
-                const activeIndex = tasks.findIndex((t) => t.id === active.id);
-                const overIndex = tasks.findIndex((t) => t.id === over.id);
+        setTasks(currentTasks => {
+            const activeIndex = currentTasks.findIndex((t) => t.id === active.id);
+            let overIndex: number;
+            let newListId: string;
+            
+            if (over.data.current?.type === 'Task') {
+                overIndex = currentTasks.findIndex((t) => t.id === over.id);
+                newListId = currentTasks[overIndex].listId;
+            } else if (over.data.current?.type === 'List') {
+                overIndex = currentTasks.length; // Append to end conceptually
+                newListId = over.id as string;
+            } else {
+                return currentTasks;
+            }
 
-                if (tasks[activeIndex].listId !== tasks[overIndex].listId) {
-                    const newItems = [...tasks];
-                    newItems[activeIndex].listId = tasks[overIndex].listId;
-                    return arrayMove(newItems, activeIndex, overIndex - 1);
-                }
-                
-                return arrayMove(tasks, activeIndex, overIndex);
-            });
-        }
-        
-        const isOverAList = over.data.current?.type === 'List';
+            if (currentTasks[activeIndex].listId !== newListId) {
+                const newTasks = [...currentTasks];
+                newTasks[activeIndex] = { ...newTasks[activeIndex], listId: newListId };
+                return arrayMove(newTasks, activeIndex, overIndex);
+            }
 
-        if (isActiveATask && isOverAList) {
-             setTasks((tasks) => {
-                const activeIndex = tasks.findIndex((t) => t.id === active.id);
-                const newItems = [...tasks];
-                newItems[activeIndex].listId = over.id as string;
-                return arrayMove(newItems, activeIndex, activeIndex);
-            });
-        }
+            return arrayMove(currentTasks, activeIndex, overIndex);
+        });
     }
-
 
   return (
     <>
@@ -930,13 +949,14 @@ export const ProjectBoard = ({ project, lists, tasks, setTasks, collaborators, c
                         return (
                             <TaskListColumn
                                 key={list.id}
+                                projectId={project.id}
                                 list={list}
                                 tasks={tasksInList}
                                 collaborators={collaborators}
                                 onTaskClick={handleOpenTaskDialog}
                                 onAddTask={handleOpenAddTaskDialog}
                                 availableLabels={availableLabels}
-                                onListColorChange={handleListColorChange}
+                                onListColorChange={updateTaskListColor}
                             />
                         );
                     })}
