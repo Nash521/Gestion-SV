@@ -1,11 +1,10 @@
 "use client"
 import React, { useState, useEffect } from 'react';
-import { mockSubcontractors } from '@/lib/data';
 import type { Subcontractor, SubcontractorService } from '@/lib/definitions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
-import { MoreHorizontal, PlusCircle, Phone, MapPin, Globe, Trash2 } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Phone, MapPin, Globe, Trash2, Loader2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
@@ -18,6 +17,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { cn } from '@/lib/utils';
+import { subscribeToSubcontractors, addSubcontractor, updateSubcontractor, deleteSubcontractor } from '@/lib/firebase/services';
+import { Skeleton } from '@/components/ui/skeleton';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 
 const serviceSchema = z.object({
@@ -49,7 +51,7 @@ const SubcontractorFormDialog = ({
     mode: 'add' | 'edit',
     isOpen: boolean,
     setIsOpen: (open: boolean) => void,
-    onSubmit: (data: SubcontractorFormValues) => void,
+    onSubmit: (data: SubcontractorFormValues) => Promise<void>,
     subcontractor?: Subcontractor | null
 }) => {
     
@@ -89,8 +91,8 @@ const SubcontractorFormDialog = ({
         name: 'services',
     });
 
-    const handleFormSubmit = (data: SubcontractorFormValues) => {
-        onSubmit(data);
+    const handleFormSubmit = async (data: SubcontractorFormValues) => {
+        await onSubmit(data);
         form.reset();
         setIsOpen(false);
     };
@@ -235,7 +237,10 @@ const SubcontractorFormDialog = ({
                         </div>
                          <DialogFooter className="pt-4 sticky bottom-0 bg-background py-4 -mx-4 px-6 border-t">
                             <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>Annuler</Button>
-                            <Button type="submit">Enregistrer</Button>
+                            <Button type="submit" disabled={form.formState.isSubmitting}>
+                                {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Enregistrer
+                            </Button>
                         </DialogFooter>
                     </form>
                 </Form>
@@ -279,49 +284,102 @@ const MapDialog = ({ isOpen, setIsOpen, subcontractor }: { isOpen: boolean, setI
     )
 }
 
+const SubcontractorSkeleton = () => (
+    <Card className="flex flex-col">
+        <CardHeader>
+            <div className="flex items-start justify-between">
+                <div>
+                    <Skeleton className="h-6 w-40 mb-2" />
+                    <Skeleton className="h-5 w-24" />
+                </div>
+                <Skeleton className="h-8 w-8" />
+            </div>
+             <div className="pt-2 space-y-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+             </div>
+        </CardHeader>
+        <CardContent className="flex-grow">
+            <Skeleton className="h-4 w-28 mb-2" />
+            <div className="space-y-1">
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+            </div>
+        </CardContent>
+        <CardFooter>
+            <Skeleton className="h-10 w-full" />
+        </CardFooter>
+    </Card>
+);
 
 export default function SubcontractorsPage() {
     const { toast } = useToast();
-    const [subcontractors, setSubcontractors] = useState<Subcontractor[]>(mockSubcontractors);
+    const [subcontractors, setSubcontractors] = useState<Subcontractor[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [isMapOpen, setIsMapOpen] = useState(false);
     const [selectedSubcontractor, setSelectedSubcontractor] = useState<Subcontractor | null>(null);
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [subcontractorToEdit, setSubcontractorToEdit] = useState<Subcontractor | null>(null);
+    const [subcontractorToDelete, setSubcontractorToDelete] = useState<Subcontractor | null>(null);
 
-    const handleAddSubcontractor = (data: SubcontractorFormValues) => {
-        const newSubcontractor: Subcontractor = {
-            id: `sub-${Date.now()}`,
-            ...data,
-            services: data.services.map((s, i) => ({ ...s, id: `s-${Date.now()}-${i}` }))
-        };
 
-        setSubcontractors(prev => [newSubcontractor, ...prev]);
-
-        toast({
-            title: "Sous-traitant ajouté",
-            description: `${data.name} a été ajouté à votre liste de partenaires.`,
+    useEffect(() => {
+        setIsLoading(true);
+        const unsubscribe = subscribeToSubcontractors(data => {
+            setSubcontractors(data);
+            setIsLoading(false);
         });
+        return () => unsubscribe();
+    }, []);
+
+    const handleAddSubcontractor = async (data: SubcontractorFormValues) => {
+        try {
+            await addSubcontractor(data);
+            toast({
+                title: "Sous-traitant ajouté",
+                description: `${data.name} a été ajouté à votre liste de partenaires.`,
+            });
+        } catch (error) {
+            console.error("Failed to add subcontractor:", error);
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible d\'ajouter le sous-traitant.' });
+        }
     };
     
-    const handleEditSubcontractor = (data: SubcontractorFormValues) => {
+    const handleEditSubcontractor = async (data: SubcontractorFormValues) => {
         if (!subcontractorToEdit) return;
+        try {
+            await updateSubcontractor(subcontractorToEdit.id, data);
+            toast({
+                title: "Sous-traitant modifié",
+                description: `Les informations de ${data.name} ont été mises à jour.`,
+            });
+        } catch (error) {
+            console.error("Failed to update subcontractor:", error);
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de modifier le sous-traitant.' });
+        }
+    };
 
-        const updatedSubcontractor: Subcontractor = {
-            ...subcontractorToEdit,
-            ...data,
-            services: data.services.map((s, i) => ({ 
-                ...s, 
-                id: s.id || `s-edited-${Date.now()}-${i}` 
-            }))
-        };
-        
-        setSubcontractors(prev => prev.map(sub => sub.id === subcontractorToEdit.id ? updatedSubcontractor : sub));
-
-        toast({
-            title: "Sous-traitant modifié",
-            description: `Les informations de ${data.name} ont été mises à jour.`,
-        });
+    const handleDeleteRequest = (subcontractor: Subcontractor) => {
+        setSubcontractorToDelete(subcontractor);
+    };
+    
+    const handleConfirmDelete = async () => {
+        if (!subcontractorToDelete) return;
+        try {
+            await deleteSubcontractor(subcontractorToDelete.id);
+            toast({
+                variant: 'destructive',
+                title: "Sous-traitant supprimé",
+                description: `${subcontractorToDelete.name} a été supprimé.`,
+            });
+        } catch (error) {
+            console.error("Failed to delete subcontractor:", error);
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de supprimer le sous-traitant.' });
+        } finally {
+            setSubcontractorToDelete(null);
+        }
     };
     
     const handleOpenEditDialog = (subcontractor: Subcontractor) => {
@@ -356,6 +414,22 @@ export default function SubcontractorsPage() {
                 onSubmit={handleEditSubcontractor}
                 subcontractor={subcontractorToEdit}
             />
+            
+            <AlertDialog open={!!subcontractorToDelete} onOpenChange={(open) => !open && setSubcontractorToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Cette action est irréversible. Le sous-traitant {subcontractorToDelete?.name} et toute sa grille tarifaire seront définitivement supprimés.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setSubcontractorToDelete(null)}>Annuler</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleConfirmDelete}>Confirmer</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
 
             <div className="space-y-6">
                 <div className="flex items-center justify-between">
@@ -368,77 +442,91 @@ export default function SubcontractorsPage() {
                     </Button>
                 </div>
                 
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {subcontractors.map(subcontractor => (
-                        <Card key={subcontractor.id} className="flex flex-col bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/50 dark:via-indigo-950/50 dark:to-purple-950/50 shadow-glow-blue">
-                            <CardHeader>
-                                <div className="flex items-start justify-between">
-                                    <div>
-                                        <CardTitle>{subcontractor.name}</CardTitle>
-                                        <Badge variant="secondary" className="mt-2">{subcontractor.domain}</Badge>
+                {isLoading ? (
+                     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                        <SubcontractorSkeleton />
+                        <SubcontractorSkeleton />
+                        <SubcontractorSkeleton />
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                        {subcontractors.map(subcontractor => (
+                            <Card key={subcontractor.id} className="flex flex-col bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/50 dark:via-indigo-950/50 dark:to-purple-950/50 shadow-glow-blue">
+                                <CardHeader>
+                                    <div className="flex items-start justify-between">
+                                        <div>
+                                            <CardTitle>{subcontractor.name}</CardTitle>
+                                            <Badge variant="secondary" className="mt-2">{subcontractor.domain}</Badge>
+                                        </div>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                                    <span className="sr-only">Ouvrir le menu</span>
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                <DropdownMenuItem onClick={() => handleOpenEditDialog(subcontractor)}>
+                                                    Modifier
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem 
+                                                    className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                                                    onClick={() => handleDeleteRequest(subcontractor)}
+                                                >
+                                                    Supprimer
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                     </div>
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" className="h-8 w-8 p-0">
-                                                <span className="sr-only">Ouvrir le menu</span>
-                                                <MoreHorizontal className="h-4 w-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                            <DropdownMenuItem onClick={() => handleOpenEditDialog(subcontractor)}>
-                                                Modifier
-                                            </DropdownMenuItem>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">Supprimer</DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </div>
-                                <div className="pt-2">
-                                    <a href={`tel:${subcontractor.phone}`} className="text-sm text-muted-foreground flex items-center hover:text-primary transition-colors">
-                                        <Phone className="mr-2 h-4 w-4 flex-shrink-0" />
-                                        {subcontractor.phone}
-                                    </a>
-                                    <p className="text-sm text-muted-foreground flex items-center mt-2">
-                                        <MapPin className="mr-2 h-4 w-4 flex-shrink-0" />
-                                        {subcontractor.address}
-                                    </p>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="flex-grow">
-                                <h4 className="font-semibold mb-2 text-sm">Grille Tarifaire</h4>
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Service</TableHead>
-                                            <TableHead className="text-right">Prix</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {subcontractor.services.map(service => (
-                                            <TableRow key={service.id}>
-                                                <TableCell className="text-xs">
-                                                    {service.description}
-                                                    <span className="text-muted-foreground ml-1">({service.unit})</span>
-                                                </TableCell>
-                                                <TableCell className="text-right font-semibold text-xs">
-                                                    {service.price.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF', minimumFractionDigits: 0 })}
-                                                </TableCell>
+                                    <div className="pt-2">
+                                        <a href={`tel:${subcontractor.phone}`} className="text-sm text-muted-foreground flex items-center hover:text-primary transition-colors">
+                                            <Phone className="mr-2 h-4 w-4 flex-shrink-0" />
+                                            {subcontractor.phone}
+                                        </a>
+                                        <p className="text-sm text-muted-foreground flex items-center mt-2">
+                                            <MapPin className="mr-2 h-4 w-4 flex-shrink-0" />
+                                            {subcontractor.address}
+                                        </p>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="flex-grow">
+                                    <h4 className="font-semibold mb-2 text-sm">Grille Tarifaire</h4>
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Service</TableHead>
+                                                <TableHead className="text-right">Prix</TableHead>
                                             </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </CardContent>
-                            <CardFooter>
-                                <Button variant="outline" className="w-full" onClick={() => handleOpenMap(subcontractor)}>
-                                    <Globe className="mr-2 h-4 w-4" /> Géolocaliser
-                                </Button>
-                            </CardFooter>
-                        </Card>
-                    ))}
-                </div>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {subcontractor.services.map(service => (
+                                                <TableRow key={service.id}>
+                                                    <TableCell className="text-xs">
+                                                        {service.description}
+                                                        <span className="text-muted-foreground ml-1">({service.unit})</span>
+                                                    </TableCell>
+                                                    <TableCell className="text-right font-semibold text-xs">
+                                                        {service.price.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF', minimumFractionDigits: 0 })}
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </CardContent>
+                                <CardFooter>
+                                    <Button variant="outline" className="w-full" onClick={() => handleOpenMap(subcontractor)}>
+                                        <Globe className="mr-2 h-4 w-4" /> Géolocaliser
+                                    </Button>
+                                </CardFooter>
+                            </Card>
+                        ))}
+                    </div>
+                )}
 
-                {subcontractors.length === 0 && (
+
+                {!isLoading && subcontractors.length === 0 && (
                     <div className="text-center py-20 text-muted-foreground border-2 border-dashed rounded-lg">
                         Aucun sous-traitant trouvé.
                     </div>

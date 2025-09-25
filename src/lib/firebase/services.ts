@@ -1,6 +1,6 @@
 import { db } from './client';
 import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, onSnapshot, getDoc, Timestamp, where, writeBatch, setDoc, orderBy, limit } from 'firebase/firestore';
-import type { Client, Invoice, PurchaseOrder, DeliveryNote, LineItem, Transaction, CashRegister } from '../definitions';
+import type { Client, Invoice, PurchaseOrder, DeliveryNote, LineItem, Transaction, CashRegister, Subcontractor, SubcontractorService } from '../definitions';
 
 const getClientsMap = async (): Promise<Map<string, Client>> => {
     const clients = await getClients();
@@ -471,6 +471,80 @@ export const subscribeToCashRegisters = (callback: (registers: CashRegister[]) =
     });
     return unsubscribe;
 };
+
+// Subcontractor Services
+const processSubcontractorDoc = (docSnap: any, services: SubcontractorService[] = []) => {
+    return {
+        id: docSnap.id,
+        ...docSnap.data(),
+        services,
+    } as Subcontractor;
+};
+
+export const subscribeToSubcontractors = (callback: (subcontractors: Subcontractor[]) => void) => {
+    const q = query(collection(db, 'subcontractors'), orderBy('name'));
+    return onSnapshot(q, async (querySnapshot) => {
+        const subcontractors: Subcontractor[] = [];
+        for (const doc of querySnapshot.docs) {
+            const servicesQuery = query(collection(db, 'subcontractors', doc.id, 'services'));
+            const servicesSnapshot = await getDocs(servicesQuery);
+            const services = servicesSnapshot.docs.map(itemDoc => ({ id: itemDoc.id, ...itemDoc.data() } as SubcontractorService));
+            subcontractors.push(processSubcontractorDoc(doc, services));
+        }
+        callback(subcontractors);
+    });
+};
+
+export const addSubcontractor = async (subcontractorData: Omit<Subcontractor, 'id' | 'services'> & { services: Omit<SubcontractorService, 'id'>[] }) => {
+    const { services, ...subcontractor } = subcontractorData;
+    
+    const docRef = await addDoc(collection(db, 'subcontractors'), subcontractor);
+    
+    const batch = writeBatch(db);
+    const servicesCollection = collection(db, 'subcontractors', docRef.id, 'services');
+    services.forEach(service => {
+        const serviceRef = doc(servicesCollection);
+        batch.set(serviceRef, service);
+    });
+    await batch.commit();
+
+    return docRef.id;
+};
+
+export const updateSubcontractor = async (id: string, subcontractorData: Omit<Subcontractor, 'id' | 'services'> & { services: (Omit<SubcontractorService, 'id'> | SubcontractorService)[] }) => {
+    const { services, ...subcontractor } = subcontractorData;
+    
+    const subcontractorRef = doc(db, 'subcontractors', id);
+    await updateDoc(subcontractorRef, subcontractor as any);
+
+    const servicesCollection = collection(db, 'subcontractors', id, 'services');
+    
+    // Delete old services
+    const oldServicesSnap = await getDocs(servicesCollection);
+    const deleteBatch = writeBatch(db);
+    oldServicesSnap.forEach(doc => deleteBatch.delete(doc.ref));
+    await deleteBatch.commit();
+    
+    // Add new services
+    const addBatch = writeBatch(db);
+    services.forEach(service => {
+        const serviceRef = doc(servicesCollection); // Create new doc for each service
+        const { id: serviceId, ...serviceData } = service; // Remove potentially existing id
+        addBatch.set(serviceRef, serviceData);
+    });
+    await addBatch.commit();
+};
+
+export const deleteSubcontractor = async (id: string) => {
+    const servicesCollection = collection(db, 'subcontractors', id, 'services');
+    const servicesSnap = await getDocs(servicesCollection);
+    const batch = writeBatch(db);
+    servicesSnap.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+
+    await deleteDoc(doc(db, 'subcontractors', id));
+};
+
 
 // This is a helper for dashboard page loading state
 export { onSnapshot, collection };
