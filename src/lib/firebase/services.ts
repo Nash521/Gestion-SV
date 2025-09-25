@@ -243,7 +243,7 @@ const generateNewPurchaseOrderId = async (): Promise<string> => {
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const year = String(now.getFullYear()).slice(-2);
     
-    const prefix = 'B-SV-';
+    const prefix = 'C-SV-';
     const suffix = `-${month}-${year}`;
     
     const poRef = collection(db, "purchaseOrders");
@@ -345,23 +345,58 @@ export const getDeliveryNote = async (id: string): Promise<DeliveryNote | null> 
     return processDNDoc(docSnap, clientsMap, lineItems);
 }
 
+const generateNewDeliveryNoteId = async (): Promise<string> => {
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = String(now.getFullYear()).slice(-2);
+    
+    const prefix = 'L-SV-';
+    const suffix = `-${month}-${year}`;
+    
+    const dnRef = collection(db, "deliveryNotes");
+    const q = query(
+        dnRef,
+        where('id', '>=', `${prefix}000${suffix}`),
+        where('id', '<=', `${prefix}999${suffix}`),
+        orderBy('id', 'desc'),
+        limit(1)
+    );
+
+    const querySnapshot = await getDocs(q);
+    
+    let lastNumber = 0;
+    if (!querySnapshot.empty) {
+        const lastId = querySnapshot.docs[0].id;
+        const lastNumberStr = lastId.substring(prefix.length, lastId.indexOf(suffix));
+        lastNumber = parseInt(lastNumberStr, 10);
+    }
+    
+    const newNumber = lastNumber + 1;
+    return `${prefix}${String(newNumber).padStart(3, '0')}${suffix}`;
+};
+
+
 export const addDeliveryNote = async (dnData: Omit<DeliveryNote, 'id' | 'client' | 'lineItems'> & { lineItems: Omit<LineItem, 'id' | 'price'>[] }) => {
+    const newId = await generateNewDeliveryNoteId();
     const { lineItems, ...dn } = dnData;
     const dnPayload = {
         ...dn,
+        id: newId,
         deliveryDate: Timestamp.fromDate(dnData.deliveryDate),
     };
-    const newDnRef = await addDoc(collection(db, 'deliveryNotes'), dnPayload);
+    
+    const newDnRef = doc(db, 'deliveryNotes', newId);
+    await setDoc(newDnRef, dnPayload);
 
     const batch = writeBatch(db);
-    const itemsCollection = collection(db, 'deliveryNotes', newDnRef.id, 'lineItems');
+    const itemsCollection = collection(db, 'deliveryNotes', newId, 'lineItems');
     lineItems.forEach(item => {
         const itemRef = doc(itemsCollection);
         batch.set(itemRef, item);
     });
     await batch.commit();
 
-    return newDnRef.id;
+    return newId;
 };
 
 export const updateDeliveryNoteStatus = async (id: string, status: DeliveryNote['status']) => {
