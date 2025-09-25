@@ -141,9 +141,10 @@ const SidebarProvider = React.forwardRef<
               } as React.CSSProperties
             }
             className={cn(
-              "group/sidebar-wrapper peer flex min-h-svh w-full has-[[data-variant=inset]]:bg-sidebar",
+              "group/sidebar-wrapper flex min-h-screen w-full flex-row",
               className
             )}
+            data-state={state}
             ref={ref}
             {...props}
           >
@@ -175,7 +176,7 @@ const Sidebar = React.forwardRef<
     },
     ref
   ) => {
-    const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+    const { state, openMobile, setOpenMobile, isMobile } = useSidebar()
 
     if (collapsible === "none") {
       return (
@@ -216,8 +217,8 @@ const Sidebar = React.forwardRef<
       <div
         ref={ref}
         className={cn(
-          "hidden md:fixed md:top-0 z-30 md:flex md:h-screen flex-col text-sidebar-foreground",
-          "group-data-[collapsible=icon]:w-[--sidebar-width-icon]",
+          "hidden h-screen flex-col text-sidebar-foreground md:flex",
+          "group-data-[state=collapsed]:w-[--sidebar-width-icon]",
           "group-data-[state=expanded]:w-[--sidebar-width]",
           "transition-all duration-200",
           className
@@ -303,9 +304,7 @@ const SidebarInset = React.forwardRef<
     <main
       ref={ref}
       className={cn(
-        "flex min-h-svh flex-1 flex-col bg-background",
-        "md:peer-data-[state=expanded]:ml-[--sidebar-width] md:peer-data-[state=collapsed]:ml-[--sidebar-width-icon]",
-        "transition-all duration-200",
+        "flex min-h-screen flex-1 flex-col bg-background",
         className
       )}
       {...props}
