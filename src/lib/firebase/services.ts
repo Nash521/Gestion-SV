@@ -1,6 +1,6 @@
 import { db, auth } from './client';
 import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, onSnapshot, getDoc, Timestamp, where, writeBatch, setDoc, orderBy, limit } from 'firebase/firestore';
-import type { Client, Invoice, PurchaseOrder, DeliveryNote, LineItem, Transaction, CashRegister, Subcontractor, SubcontractorService, Project, TaskList, ProjectTask, Collaborator } from '../definitions';
+import type { Client, Invoice, PurchaseOrder, DeliveryNote, LineItem, Transaction, CashRegister, Subcontractor, SubcontractorService, Project, TaskList, ProjectTask, Collaborator, AppNotification } from '../definitions';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 
 
@@ -573,7 +573,7 @@ export const addCollaborator = async (collaboratorData: Omit<Collaborator, 'id'>
     return user.uid;
 };
 
-export const updateCollaborator = async (id: string, data: Partial<Pick<Collaborator, 'name' | 'role'>>) => {
+export const updateCollaborator = async (id: string, data: Partial<Pick<Collaborator, 'name' | 'role' | 'email'>>) => {
     if (!id) throw new Error("ID manquant pour la mise à jour");
     const collaboratorRef = doc(db, 'collaborators', id);
     await updateDoc(collaboratorRef, data);
@@ -678,6 +678,42 @@ export const reorderTasks = async (projectId: string, tasks: ProjectTask[]) => {
     tasks.forEach((task, index) => {
         const taskRef = doc(db, 'projects', projectId, 'tasks', task.id);
         batch.update(taskRef, { order: index, listId: task.listId });
+    });
+    await batch.commit();
+};
+
+// Notification Services
+export const subscribeToNotifications = (callback: (notifications: AppNotification[]) => void) => {
+    const q = query(collection(db, "notifications"), orderBy("timestamp", "desc"), limit(50));
+    return onSnapshot(q, (snapshot) => {
+        const notifications = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            timestamp: doc.data().timestamp.toDate(),
+        } as AppNotification));
+        callback(notifications);
+    });
+};
+
+export const addNotification = async (notificationData: Omit<AppNotification, 'id' | 'timestamp' | 'read'>) => {
+    const payload = {
+        ...notificationData,
+        timestamp: Timestamp.now(),
+        read: false,
+    };
+    await addDoc(collection(db, "notifications"), payload);
+};
+
+export const markNotificationAsRead = async (id: string) => {
+    const notifRef = doc(db, 'notifications', id);
+    await updateDoc(notifRef, { read: true });
+};
+
+export const markAllNotificationsAsRead = async (unreadIds: string[]) => {
+    const batch = writeBatch(db);
+    unreadIds.forEach(id => {
+        const notifRef = doc(db, 'notifications', id);
+        batch.update(notifRef, { read: true });
     });
     await batch.commit();
 };

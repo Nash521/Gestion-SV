@@ -1,8 +1,9 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { AppNotification } from '@/lib/definitions';
-import { mockNotifications } from '@/lib/data';
+import type { AppNotification } from '@/lib/definitions';
+import { useAuth } from '@/contexts/auth-context';
+import { subscribeToNotifications, addNotification as addNotificationToDB, markNotificationAsRead, markAllNotificationsAsRead } from '@/lib/firebase/services';
 
 interface NotificationContextType {
     notifications: AppNotification[];
@@ -21,31 +22,45 @@ const NotificationContext = createContext<NotificationContextType>({
 });
 
 export const NotificationProvider = ({ children }: { children: React.ReactNode }) => {
-    const [notifications, setNotifications] = useState<AppNotification[]>(mockNotifications);
+    const { currentUser } = useAuth();
+    const [notifications, setNotifications] = useState<AppNotification[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
+
+    useEffect(() => {
+        if (currentUser) {
+            const unsubscribe = subscribeToNotifications(setNotifications);
+            return () => unsubscribe();
+        }
+    }, [currentUser]);
 
     useEffect(() => {
         setUnreadCount(notifications.filter(n => !n.read).length);
     }, [notifications]);
 
-    const addNotification = (notificationData: Omit<AppNotification, 'id' | 'timestamp' | 'read'>) => {
-        const newNotification: AppNotification = {
-            id: `notif-${Date.now()}`,
-            ...notificationData,
-            timestamp: new Date(),
-            read: false,
-        };
-        setNotifications(prev => [newNotification, ...prev]);
+    const addNotification = async (notificationData: Omit<AppNotification, 'id' | 'timestamp' | 'read'>) => {
+        try {
+            await addNotificationToDB(notificationData);
+        } catch (error) {
+            console.error("Failed to add notification:", error);
+        }
     };
 
-    const markAsRead = (id: string) => {
-        setNotifications(prev => 
-            prev.map(n => n.id === id ? { ...n, read: true } : n)
-        );
+    const markAsRead = async (id: string) => {
+        try {
+            await markNotificationAsRead(id);
+        } catch (error) {
+            console.error("Failed to mark notification as read:", error);
+        }
     };
     
-    const markAllAsRead = () => {
-        setNotifications(prev => prev.map(n => ({...n, read: true})));
+    const markAllAsRead = async () => {
+        const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
+        if (unreadIds.length === 0) return;
+        try {
+            await markAllNotificationsAsRead(unreadIds);
+        } catch (error) {
+            console.error("Failed to mark all notifications as read:", error);
+        }
     };
 
     return (
