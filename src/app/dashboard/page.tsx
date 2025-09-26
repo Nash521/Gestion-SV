@@ -7,7 +7,7 @@ import { subscribeToInvoices, subscribeToTransactions, subscribeToCashRegisters,
 import { db } from '@/lib/firebase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowUpRight, DollarSign, Users, FileText, Wallet, Loader2 } from 'lucide-react';
+import { ArrowUpRight, DollarSign, Users, FileText, Wallet, Loader2, Info } from 'lucide-react';
 import Link from 'next/link';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { StatusBadge } from '@/components/shared/status-badge';
@@ -17,6 +17,7 @@ import { RevenueComparisonChart } from '@/components/dashboard/revenue-compariso
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, subMonths, getMonth, getYear } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 
 const StatCard = ({ title, value, description, icon, isLoading, className }: { title: string, value: string, description: string, icon: React.ReactNode, isLoading: boolean, className?: string }) => (
@@ -173,6 +174,14 @@ export default function DashboardPage() {
 
   return (
     <div className="grid gap-6">
+        <Alert>
+            <Info className="h-4 w-4" />
+            <AlertTitle>À propos de la facturation</AlertTitle>
+            <AlertDescription>
+                Cette application utilise les services Firebase (Base de données, Hébergement) qui ont un forfait gratuit généreux. La facturation ne s'appliquera que si votre application connaît une croissance importante et dépasse ces limites.
+            </AlertDescription>
+        </Alert>
+
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
              <StatCard
                 title="Revenu Total"
@@ -297,3 +306,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
