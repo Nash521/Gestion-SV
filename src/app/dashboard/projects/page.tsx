@@ -5,11 +5,10 @@ import { ProjectBoard } from '@/components/projects/project-board';
 import { ProjectTableView } from '@/components/projects/project-table-view';
 import { ProjectCalendarView } from '@/components/projects/project-calendar-view';
 import { ProjectGanttView } from '@/components/projects/project-gantt-view';
-import { subscribeToProjects, subscribeToTaskLists, subscribeToProjectTasks } from '@/lib/firebase/services';
+import { subscribeToProjects, subscribeToTaskLists, subscribeToProjectTasks, subscribeToCollaborators } from '@/lib/firebase/services';
 import type { Project, TaskList, ProjectTask, Collaborator } from '@/lib/definitions';
 import { useAuth } from '@/contexts/auth-context';
 import { Skeleton } from '@/components/ui/skeleton';
-import { mockCollaborators } from '@/lib/data'; // Collaborators are still mock for now
 import { Button } from '@/components/ui/button';
 
 export default function ProjectsPage() {
@@ -17,12 +16,15 @@ export default function ProjectsPage() {
     const [projects, setProjects] = useState<Project[]>([]);
     const [lists, setLists] = useState<TaskList[]>([]);
     const [tasks, setTasks] = useState<ProjectTask[]>([]);
+    const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     const activeProject = projects[0];
 
     useEffect(() => {
         setIsLoading(true);
+
+        const unsubCollaborators = subscribeToCollaborators(setCollaborators);
 
         const unsubProjects = subscribeToProjects((newProjects) => {
             setProjects(newProjects);
@@ -46,6 +48,7 @@ export default function ProjectsPage() {
         
         return () => {
             unsubProjects();
+            unsubCollaborators();
         };
     }, []);
 
@@ -72,7 +75,7 @@ export default function ProjectsPage() {
                         project={activeProject}
                         lists={lists}
                         tasks={tasks}
-                        collaborators={mockCollaborators} // Using mock collaborators for now
+                        collaborators={collaborators}
                         currentView={view}
                         onViewChange={setView}
                     />
@@ -82,7 +85,7 @@ export default function ProjectsPage() {
                     <ProjectTableView
                         tasks={tasks}
                         lists={lists}
-                        collaborators={mockCollaborators}
+                        collaborators={collaborators}
                         currentView={view}
                         onViewChange={setView}
                     />
