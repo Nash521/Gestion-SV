@@ -16,7 +16,7 @@ export default function LoginPage() {
     const { toast } = useToast();
     const { login } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
-    const [email, setEmail] = useState('admin@gestiosv.com');
+    const [email, setEmail] = useState('test-admin@gestiosv.com');
     const [password, setPassword] = useState('password');
     const [error, setError] = useState<string | null>(null);
 
