@@ -1,5 +1,7 @@
 import { ReportGenerator } from '@/components/reporting/report-generator';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Info } from 'lucide-react';
 
 export default function ReportingPage() {
   return (
@@ -15,6 +17,15 @@ export default function ReportingPage() {
         <CardContent>
           <ReportGenerator />
         </CardContent>
+        <CardFooter>
+            <Alert>
+                <Info className="h-4 w-4" />
+                <AlertTitle>Note sur la facturation</AlertTitle>
+                <AlertDescription>
+                    Cette fonctionnalité utilise des modèles d'IA de Google (via Genkit) qui peuvent entraîner des coûts facturables sur votre compte Google Cloud, au-delà du forfait gratuit.
+                </AlertDescription>
+            </Alert>
+        </CardFooter>
       </Card>
     </div>
   );
