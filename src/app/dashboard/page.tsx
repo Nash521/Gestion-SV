@@ -174,14 +174,6 @@ export default function DashboardPage() {
 
   return (
     <div className="grid gap-6">
-        <Alert>
-            <Info className="h-4 w-4" />
-            <AlertTitle>À propos de la facturation</AlertTitle>
-            <AlertDescription>
-                Cette application utilise les services Firebase (Base de données, Hébergement) qui ont un forfait gratuit généreux. La facturation ne s'appliquera que si votre application connaît une croissance importante et dépasse ces limites.
-            </AlertDescription>
-        </Alert>
-
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
              <StatCard
                 title="Revenu Total"
