@@ -33,7 +33,6 @@ const navItems = [
     { href: '/dashboard/subcontractors', icon: <HardHat />, label: 'Sous-traitants', requiredRole: ['Admin', 'Employee'] },
     { href: '/dashboard/collaborators', icon: <UsersRound />, label: 'Collaborateurs', requiredRole: ['Admin'] },
     { href: '/dashboard/accounting', icon: <Wallet />, label: 'Comptabilité', requiredRole: ['Admin', 'Employee'] },
-    { href: '/dashboard/reporting', icon: <FilePieChart />, label: 'Rapports', requiredRole: ['Admin', 'Employee'] },
     { href: '/dashboard/notifications', icon: <Bell />, label: 'Notifications', requiredRole: ['Admin', 'Employee'] },
 ];
 

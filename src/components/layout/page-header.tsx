@@ -16,7 +16,6 @@ const titles: { [key: string]: string } = {
     '/dashboard/subcontractors': 'Sous-traitants',
     '/dashboard/collaborators': 'Collaborateurs',
     '/dashboard/accounting': 'Comptabilité',
-    '/dashboard/reporting': 'Rapports IA',
     '/dashboard/notifications': 'Notifications',
 };
 
