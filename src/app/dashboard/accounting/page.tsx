@@ -47,6 +47,12 @@ const TransactionTable = ({
         return cashRegisters.find(c => c.id === id)?.name || 'Inconnue';
     };
 
+    const getExpenseDescription = (expenseId?: string) => {
+        if (!expenseId) return null;
+        const expense = transactions.find(t => t.id === expenseId);
+        return expense ? expense.description : 'Dépense inconnue';
+    }
+
     if (isLoading) {
         return (
              <Table>
@@ -85,6 +91,7 @@ const TransactionTable = ({
                     <TableHead>Catégorie</TableHead>
                     <TableHead>Caisse</TableHead>
                     <TableHead>Date</TableHead>
+                    <TableHead>Détails</TableHead>
                     <TableHead className="text-right">Montant</TableHead>
                     <TableHead className="w-[50px] text-right">Actions</TableHead>
                 </TableRow>
@@ -96,6 +103,17 @@ const TransactionTable = ({
                         <TableCell>{transaction.category}</TableCell>
                         <TableCell>{getCashRegisterName(transaction.cashRegisterId)}</TableCell>
                         <TableCell>{format(new Date(transaction.date), 'PPP', { locale: fr })}</TableCell>
+                        <TableCell className="text-xs">
+                             {transaction.type === 'income' && transaction.linkedExpenseId && (
+                                <div className="text-muted-foreground">Lié à: <span className="font-semibold">{getExpenseDescription(transaction.linkedExpenseId)}</span></div>
+                            )}
+                            {transaction.type === 'income' && transaction.advance != null && (
+                                <div>Avance: <span className="font-semibold">{transaction.advance.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF' })}</span></div>
+                            )}
+                            {transaction.type === 'income' && transaction.remainder != null && (
+                                <div>Reste: <span className="font-semibold">{transaction.remainder.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF' })}</span></div>
+                            )}
+                        </TableCell>
                         <TableCell className={`text-right font-semibold ${type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
                             {transaction.amount.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF' })}
                         </TableCell>
@@ -222,7 +240,8 @@ const AddOrEditTransactionDialog = ({
     onAddTransaction, 
     onEditTransaction,
     transactionToEdit,
-    cashRegisters
+    cashRegisters,
+    allTransactions,
 }: { 
     isOpen: boolean;
     setIsOpen: (isOpen: boolean) => void;
@@ -230,6 +249,7 @@ const AddOrEditTransactionDialog = ({
     onEditTransaction: (transaction: Transaction) => Promise<void>;
     transactionToEdit?: Transaction | null;
     cashRegisters: CashRegister[];
+    allTransactions: Transaction[];
 }) => {
     const { currentUser } = useAuth();
     const [type, setType] = useState<'income' | 'expense' | ''>('');
@@ -238,8 +258,13 @@ const AddOrEditTransactionDialog = ({
     const [amount, setAmount] = useState('');
     const [cashRegisterId, setCashRegisterId] = useState<string | undefined>('');
     const [date, setDate] = useState<Date | undefined>(new Date());
+    const [linkedExpenseId, setLinkedExpenseId] = useState<string | undefined>('');
+    const [advance, setAdvance] = useState<string>('');
+    const [remainder, setRemainder] = useState<string>('');
     
     const isEditMode = !!transactionToEdit;
+    
+    const expenseTransactions = allTransactions.filter(t => t.type === 'expense');
 
     useEffect(() => {
         if (isOpen) {
@@ -250,6 +275,9 @@ const AddOrEditTransactionDialog = ({
                 setAmount(String(transactionToEdit.amount));
                 setCashRegisterId(transactionToEdit.cashRegisterId);
                 setDate(new Date(transactionToEdit.date));
+                setLinkedExpenseId(transactionToEdit.linkedExpenseId || '');
+                setAdvance(transactionToEdit.advance != null ? String(transactionToEdit.advance) : '');
+                setRemainder(transactionToEdit.remainder != null ? String(transactionToEdit.remainder) : '');
             } else {
                 setType('');
                 setDescription('');
@@ -257,6 +285,9 @@ const AddOrEditTransactionDialog = ({
                 setAmount('');
                 setCashRegisterId(cashRegisters.length > 0 ? cashRegisters[0].id : '');
                 setDate(new Date());
+                setLinkedExpenseId('');
+                setAdvance('');
+                setRemainder('');
             }
         }
     }, [isOpen, transactionToEdit, isEditMode, cashRegisters]);
@@ -264,7 +295,7 @@ const AddOrEditTransactionDialog = ({
 
     const handleSubmit = async () => {
         if (!type || !description || !category || !amount || !cashRegisterId) {
-            alert('Veuillez remplir tous les champs.');
+            alert('Veuillez remplir tous les champs obligatoires.');
             return;
         }
 
@@ -274,7 +305,10 @@ const AddOrEditTransactionDialog = ({
             category: category,
             amount: parseFloat(amount),
             cashRegisterId: cashRegisterId,
-            date: date
+            date: date,
+            linkedExpenseId: type === 'income' ? linkedExpenseId : undefined,
+            advance: type === 'income' && advance !== '' ? parseFloat(advance) : undefined,
+            remainder: type === 'income' && remainder !== '' ? parseFloat(remainder) : undefined,
         };
 
         if (isEditMode && transactionToEdit) {
@@ -300,7 +334,7 @@ const AddOrEditTransactionDialog = ({
                        {isEditMode ? 'Mettez à jour les détails de la transaction.' : 'Remplissez les détails de la transaction.'}
                     </DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-4 py-4">
+                <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
                     {currentUser?.role === 'Admin' && (
                          <div className="grid grid-cols-4 items-center gap-4">
                              <Label className="text-right">Date</Label>
@@ -364,6 +398,33 @@ const AddOrEditTransactionDialog = ({
                         <Label htmlFor="amount" className="text-right">Montant (XOF)</Label>
                         <Input id="amount" type="number" placeholder="15000" className="col-span-3" value={amount} onChange={(e) => setAmount(e.target.value)} />
                     </div>
+
+                    {type === 'income' && (
+                        <>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="linked-expense" className="text-right">Dépense Liée</Label>
+                                <Select onValueChange={setLinkedExpenseId} value={linkedExpenseId}>
+                                    <SelectTrigger className="col-span-3">
+                                        <SelectValue placeholder="Lier à une dépense (optionnel)" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="">Aucune</SelectItem>
+                                        {expenseTransactions.map(t => (
+                                            <SelectItem key={t.id} value={t.id}>{t.description}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                             <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="advance" className="text-right">Avance</Label>
+                                <Input id="advance" type="number" placeholder="Montant de l'avance (optionnel)" className="col-span-3" value={advance} onChange={(e) => setAdvance(e.target.value)} />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="remainder" className="text-right">Reste</Label>
+                                <Input id="remainder" type="number" placeholder="Montant restant (optionnel)" className="col-span-3" value={remainder} onChange={(e) => setRemainder(e.target.value)} />
+                            </div>
+                        </>
+                    )}
                 </div>
                 <DialogFooter>
                     <DialogClose asChild>
@@ -628,6 +689,7 @@ export default function AccountingPage() {
                 onEditTransaction={handleEditTransaction}
                 transactionToEdit={transactionToEdit}
                 cashRegisters={cashRegisters}
+                allTransactions={transactions}
             />
 
             <Card className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/50 dark:via-indigo-950/50 dark:to-purple-950/50">

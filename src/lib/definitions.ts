@@ -55,6 +55,9 @@ export type Transaction = {
     amount: number;
     date: Date;
     cashRegisterId?: string;
+    linkedExpenseId?: string;
+    advance?: number;
+    remainder?: number;
 }
 
 export type CashRegister = {

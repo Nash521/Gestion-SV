@@ -425,21 +425,49 @@ export const subscribeToTransactions = (callback: (transactions: Transaction[]) 
     return unsubscribe;
 }
 
-export const addTransaction = async (transaction: Omit<Transaction, 'id'|'date'> & { date?: Date }) => {
-    const transactionPayload = {
-        ...transaction,
-        date: transaction.date ? Timestamp.fromDate(transaction.date) : Timestamp.fromDate(new Date()),
+export const addTransaction = async (transaction: Omit<Transaction, 'id' | 'date'> & { date?: Date }) => {
+    const { date, ...rest } = transaction;
+
+    const transactionPayload: any = {
+        ...rest,
+        date: date ? Timestamp.fromDate(date) : Timestamp.fromDate(new Date()),
+    };
+    
+    // Explicitly set fields to null if they are empty strings to remove them from Firestore
+    if (transaction.linkedExpenseId === '') {
+        transactionPayload.linkedExpenseId = null;
     }
+    if (transaction.advance === undefined) {
+         transactionPayload.advance = null;
+    }
+     if (transaction.remainder === undefined) {
+         transactionPayload.remainder = null;
+    }
+
     await addDoc(collection(db, 'transactions'), transactionPayload);
 }
 
 export const updateTransaction = async (id: string, transaction: Omit<Transaction, 'id'>) => {
     const transactionRef = doc(db, 'transactions', id);
-    const payload = {
-        ...transaction,
-        date: Timestamp.fromDate(new Date(transaction.date))
+    const { date, ...rest } = transaction;
+
+    const payload: any = {
+        ...rest,
+        date: Timestamp.fromDate(new Date(date))
     };
-    await updateDoc(transactionRef, payload as any);
+    
+    if (transaction.linkedExpenseId === '') {
+        payload.linkedExpenseId = null;
+    }
+    if (transaction.advance === undefined || transaction.advance === null) {
+         payload.advance = null;
+    }
+     if (transaction.remainder === undefined || transaction.remainder === null) {
+         payload.remainder = null;
+    }
+
+
+    await updateDoc(transactionRef, payload);
 }
 
 export const deleteTransaction = async (id: string) => {
