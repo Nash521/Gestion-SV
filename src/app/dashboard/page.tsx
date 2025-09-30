@@ -14,6 +14,7 @@ import { StatusBadge } from '@/components/shared/status-badge';
 import { RevenueChart } from '@/components/dashboard/revenue-chart';
 import { ExpenseChart } from '@/components/dashboard/expense-chart';
 import { RevenueComparisonChart } from '@/components/dashboard/revenue-comparison-chart';
+import { IncomeExpensePieChart } from '@/components/dashboard/income-expense-pie-chart';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, subMonths, getMonth, getYear } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -109,7 +110,7 @@ export default function DashboardPage() {
 
     }, [clients]);
 
-     const { revenueChartData, expenseChartData, revenueComparisonData } = useMemo(() => {
+     const { revenueChartData, expenseChartData, revenueComparisonData, incomeExpensePieData } = useMemo(() => {
         const now = new Date();
         
         // Revenue and Comparison Charts Data (Last 6 months)
@@ -164,12 +165,18 @@ export default function DashboardPage() {
             .sort((a, b) => b.expenses - a.expenses)
             .slice(0, 5); // Take top 5 categories
 
+        const finalIncomeExpensePieData = [
+            { name: 'Entrées', value: totalIncome, fill: 'hsl(var(--chart-1))' },
+            { name: 'Sorties', value: totalExpenses, fill: 'hsl(var(--chart-2))' },
+        ];
+
         return {
             revenueChartData: finalMonthlyData.map(d => ({ month: d.month, revenue: d.revenue })),
             expenseChartData: finalExpenseData,
             revenueComparisonData: finalMonthlyData,
+            incomeExpensePieData: finalIncomeExpensePieData,
         };
-    }, [transactions]);
+    }, [transactions, totalIncome, totalExpenses]);
 
 
   return (
@@ -209,8 +216,8 @@ export default function DashboardPage() {
             />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <Card className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/50 dark:via-indigo-950/50 dark:to-purple-950/50">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <Card className="lg:col-span-2 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/50 dark:via-indigo-950/50 dark:to-purple-950/50">
                 <CardHeader>
                     <CardTitle>Revenus Mensuels</CardTitle>
                     <CardDescription>Aperçu des revenus des 6 derniers mois.</CardDescription>
@@ -230,15 +237,26 @@ export default function DashboardPage() {
             </Card>
         </div>
 
-        <Card className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/50 dark:via-indigo-950/50 dark:to-purple-950/50">
-            <CardHeader>
-                <CardTitle>Comparaison Revenus vs. Dépenses</CardTitle>
-                <CardDescription>Vue d'ensemble de la rentabilité mensuelle.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <RevenueComparisonChart data={revenueComparisonData} isLoading={isLoading}/>
-            </CardContent>
-        </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+             <Card className="lg:col-span-2 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/50 dark:via-indigo-950/50 dark:to-purple-950/50">
+                <CardHeader>
+                    <CardTitle>Comparaison Revenus vs. Dépenses</CardTitle>
+                    <CardDescription>Vue d'ensemble de la rentabilité mensuelle.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <RevenueComparisonChart data={revenueComparisonData} isLoading={isLoading}/>
+                </CardContent>
+            </Card>
+             <Card className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/50 dark:via-indigo-950/50 dark:to-purple-950/50">
+                <CardHeader>
+                    <CardTitle>Caisse Principale</CardTitle>
+                    <CardDescription>Rapport Entrées / Sorties</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <IncomeExpensePieChart data={incomeExpensePieData} total={totalRevenue} isLoading={isLoading} />
+                </CardContent>
+            </Card>
+        </div>
 
         <Card className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/50 dark:via-indigo-950/50 dark:to-purple-950/50">
             <CardHeader className="flex flex-row items-center">
@@ -298,5 +316,7 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
 
     
