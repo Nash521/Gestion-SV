@@ -313,8 +313,8 @@ const AddOrEditTransactionDialog = ({
 
         if (isEditMode && transactionToEdit) {
              await onEditTransaction({
+                ...transactionToEdit,
                 ...transactionData,
-                id: transactionToEdit.id,
                 date: date || new Date(transactionToEdit.date),
             });
         } else {
@@ -739,15 +739,5 @@ export default function AccountingPage() {
         </>
     );
 }
-
-
-    
-
-
-    
-
-    
-
-    
 
     
