@@ -434,8 +434,8 @@ export const addTransaction = async (transaction: Omit<Transaction, 'id' | 'date
     };
     
     // Explicitly set fields to null if they are empty strings to remove them from Firestore
-    if (transaction.linkedExpenseId === '') {
-        transactionPayload.linkedExpenseId = null;
+    if (!transaction.linkedExpenseIds || transaction.linkedExpenseIds.length === 0) {
+        transactionPayload.linkedExpenseIds = [];
     }
     if (transaction.advance === undefined) {
          transactionPayload.advance = null;
@@ -456,8 +456,8 @@ export const updateTransaction = async (id: string, transaction: Omit<Transactio
         date: Timestamp.fromDate(new Date(date))
     };
     
-    if (transaction.linkedExpenseId === '') {
-        payload.linkedExpenseId = null;
+    if (!transaction.linkedExpenseIds || transaction.linkedExpenseIds.length === 0) {
+        payload.linkedExpenseIds = [];
     }
     if (transaction.advance === undefined || transaction.advance === null) {
          payload.advance = null;

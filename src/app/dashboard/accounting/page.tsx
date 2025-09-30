@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuCheckboxItem } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { MoreHorizontal, PlusCircle, FileDown, CalendarIcon } from 'lucide-react';
@@ -32,14 +32,16 @@ const TransactionTable = ({
     onDelete, 
     onEdit, 
     cashRegisters,
-    isLoading 
+    isLoading,
+    allTransactions,
 }: { 
     transactions: Transaction[], 
     type: 'income' | 'expense', 
     onDelete: (transactionId: string) => void, 
     onEdit: (transaction: Transaction) => void, 
     cashRegisters: CashRegister[],
-    isLoading: boolean
+    isLoading: boolean,
+    allTransactions: Transaction[],
 }) => {
     
     const getCashRegisterName = (id?: string) => {
@@ -49,7 +51,7 @@ const TransactionTable = ({
 
     const getExpenseDescription = (expenseId?: string) => {
         if (!expenseId) return null;
-        const expense = transactions.find(t => t.id === expenseId);
+        const expense = allTransactions.find(t => t.id === expenseId);
         return expense ? expense.description : 'Dépense inconnue';
     }
 
@@ -104,8 +106,15 @@ const TransactionTable = ({
                         <TableCell>{getCashRegisterName(transaction.cashRegisterId)}</TableCell>
                         <TableCell>{format(new Date(transaction.date), 'PPP', { locale: fr })}</TableCell>
                         <TableCell className="text-xs">
-                             {transaction.type === 'income' && transaction.linkedExpenseId && (
-                                <div className="text-muted-foreground">Lié à: <span className="font-semibold">{getExpenseDescription(transaction.linkedExpenseId)}</span></div>
+                             {transaction.type === 'income' && transaction.linkedExpenseIds && transaction.linkedExpenseIds.length > 0 && (
+                                <div className="text-muted-foreground">
+                                    Lié à:
+                                    <ul className="list-disc pl-4">
+                                        {transaction.linkedExpenseIds.map(id => (
+                                            <li key={id} className="font-semibold">{getExpenseDescription(id)}</li>
+                                        ))}
+                                    </ul>
+                                </div>
                             )}
                             {transaction.type === 'income' && transaction.advance != null && (
                                 <div>Avance: <span className="font-semibold">{transaction.advance.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF' })}</span></div>
@@ -258,7 +267,7 @@ const AddOrEditTransactionDialog = ({
     const [amount, setAmount] = useState('');
     const [cashRegisterId, setCashRegisterId] = useState<string | undefined>('');
     const [date, setDate] = useState<Date | undefined>(new Date());
-    const [linkedExpenseId, setLinkedExpenseId] = useState<string | undefined>('');
+    const [linkedExpenseIds, setLinkedExpenseIds] = useState<string[]>([]);
     const [advance, setAdvance] = useState<string>('');
     const [remainder, setRemainder] = useState<string>('');
     
@@ -275,7 +284,7 @@ const AddOrEditTransactionDialog = ({
                 setAmount(String(transactionToEdit.amount));
                 setCashRegisterId(transactionToEdit.cashRegisterId);
                 setDate(new Date(transactionToEdit.date));
-                setLinkedExpenseId(transactionToEdit.linkedExpenseId || undefined);
+                setLinkedExpenseIds(transactionToEdit.linkedExpenseIds || []);
                 setAdvance(transactionToEdit.advance != null ? String(transactionToEdit.advance) : '');
                 setRemainder(transactionToEdit.remainder != null ? String(transactionToEdit.remainder) : '');
             } else {
@@ -285,7 +294,7 @@ const AddOrEditTransactionDialog = ({
                 setAmount('');
                 setCashRegisterId(cashRegisters.length > 0 ? cashRegisters[0].id : '');
                 setDate(new Date());
-                setLinkedExpenseId(undefined);
+                setLinkedExpenseIds([]);
                 setAdvance('');
                 setRemainder('');
             }
@@ -306,7 +315,7 @@ const AddOrEditTransactionDialog = ({
             amount: parseFloat(amount),
             cashRegisterId: cashRegisterId,
             date: date,
-            linkedExpenseId: type === 'income' ? linkedExpenseId : undefined,
+            linkedExpenseIds: type === 'income' ? linkedExpenseIds : [],
             advance: type === 'income' && advance !== '' ? parseFloat(advance) : undefined,
             remainder: type === 'income' && remainder !== '' ? parseFloat(remainder) : undefined,
         };
@@ -323,6 +332,14 @@ const AddOrEditTransactionDialog = ({
         }
         
         setIsOpen(false);
+    };
+
+    const handleExpenseSelection = (expenseId: string) => {
+        setLinkedExpenseIds(prev => 
+            prev.includes(expenseId) 
+                ? prev.filter(id => id !== expenseId) 
+                : [...prev, expenseId]
+        );
     };
 
     return (
@@ -402,21 +419,28 @@ const AddOrEditTransactionDialog = ({
                     {type === 'income' && (
                         <>
                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="linked-expense" className="text-right">Dépense Liée</Label>
-                                <Select
-                                    onValueChange={(value) => setLinkedExpenseId(value === 'none' ? undefined : value)}
-                                    value={linkedExpenseId || 'none'}
-                                >
-                                    <SelectTrigger className="col-span-3">
-                                        <SelectValue placeholder="Lier à une dépense (optionnel)" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="none">Aucune</SelectItem>
+                                <Label className="text-right">Dépenses Liées</Label>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="outline" className="col-span-3 justify-start">
+                                            {linkedExpenseIds.length === 0 ? "Lier à des dépenses" : `${linkedExpenseIds.length} dépense(s) liée(s)`}
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent className="w-64" align="start">
+                                        <DropdownMenuLabel>Sélectionner les dépenses</DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
                                         {expenseTransactions.map(t => (
-                                            <SelectItem key={t.id} value={t.id}>{t.description}</SelectItem>
+                                            <DropdownMenuCheckboxItem
+                                                key={t.id}
+                                                checked={linkedExpenseIds.includes(t.id)}
+                                                onCheckedChange={() => handleExpenseSelection(t.id)}
+                                                onSelect={(e) => e.preventDefault()}
+                                            >
+                                                {t.description}
+                                            </DropdownMenuCheckboxItem>
                                         ))}
-                                    </SelectContent>
-                                </Select>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             </div>
                              <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="advance" className="text-right">Avance</Label>
@@ -731,10 +755,10 @@ export default function AccountingPage() {
                             <TabsTrigger value="expense">Dépenses</TabsTrigger>
                         </TabsList>
                         <TabsContent value="income">
-                           <TransactionTable transactions={filteredTransactions} type="income" onDelete={handleDeleteRequest} onEdit={handleOpenEditDialog} cashRegisters={cashRegisters} isLoading={isLoading} />
+                           <TransactionTable transactions={filteredTransactions} type="income" onDelete={handleDeleteRequest} onEdit={handleOpenEditDialog} cashRegisters={cashRegisters} isLoading={isLoading} allTransactions={transactions} />
                         </TabsContent>
                         <TabsContent value="expense">
-                           <TransactionTable transactions={filteredTransactions} type="expense" onDelete={handleDeleteRequest} onEdit={handleOpenEditDialog} cashRegisters={cashRegisters} isLoading={isLoading} />
+                           <TransactionTable transactions={filteredTransactions} type="expense" onDelete={handleDeleteRequest} onEdit={handleOpenEditDialog} cashRegisters={cashRegisters} isLoading={isLoading} allTransactions={transactions} />
                         </TabsContent>
                     </Tabs>
                 </CardContent>
