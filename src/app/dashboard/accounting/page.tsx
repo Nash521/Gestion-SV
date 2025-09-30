@@ -275,7 +275,7 @@ const AddOrEditTransactionDialog = ({
                 setAmount(String(transactionToEdit.amount));
                 setCashRegisterId(transactionToEdit.cashRegisterId);
                 setDate(new Date(transactionToEdit.date));
-                setLinkedExpenseId(transactionToEdit.linkedExpenseId || '');
+                setLinkedExpenseId(transactionToEdit.linkedExpenseId || undefined);
                 setAdvance(transactionToEdit.advance != null ? String(transactionToEdit.advance) : '');
                 setRemainder(transactionToEdit.remainder != null ? String(transactionToEdit.remainder) : '');
             } else {
@@ -285,7 +285,7 @@ const AddOrEditTransactionDialog = ({
                 setAmount('');
                 setCashRegisterId(cashRegisters.length > 0 ? cashRegisters[0].id : '');
                 setDate(new Date());
-                setLinkedExpenseId('');
+                setLinkedExpenseId(undefined);
                 setAdvance('');
                 setRemainder('');
             }
@@ -403,12 +403,15 @@ const AddOrEditTransactionDialog = ({
                         <>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="linked-expense" className="text-right">Dépense Liée</Label>
-                                <Select onValueChange={setLinkedExpenseId} value={linkedExpenseId}>
+                                <Select
+                                    onValueChange={(value) => setLinkedExpenseId(value === 'none' ? undefined : value)}
+                                    value={linkedExpenseId || 'none'}
+                                >
                                     <SelectTrigger className="col-span-3">
                                         <SelectValue placeholder="Lier à une dépense (optionnel)" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="">Aucune</SelectItem>
+                                        <SelectItem value="none">Aucune</SelectItem>
                                         {expenseTransactions.map(t => (
                                             <SelectItem key={t.id} value={t.id}>{t.description}</SelectItem>
                                         ))}
