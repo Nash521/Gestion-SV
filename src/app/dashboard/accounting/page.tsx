@@ -106,14 +106,19 @@ const TransactionTable = ({
             </TableHeader>
             <TableBody>
                 {transactions.filter(t => t.type === type).map((transaction) => (
-                    <TableRow key={transaction.id}>
+                    <TableRow 
+                        key={transaction.id}
+                        className={cn(
+                            transaction.type === 'income' && transaction.remainder && transaction.remainder > 0 ? "bg-red-50 dark:bg-red-950/30" : ""
+                        )}
+                    >
                         <TableCell className="font-medium">{transaction.description}</TableCell>
                         <TableCell>{transaction.category}</TableCell>
                         <TableCell>{getCashRegisterName(transaction.cashRegisterId)}</TableCell>
                         <TableCell>{format(new Date(transaction.date), 'PPP', { locale: fr })}</TableCell>
                         <TableCell>
                             <div className="flex items-center gap-2">
-                                {transaction.type === 'income' && transaction.remainder && transaction.remainder > 0 && (
+                                {transaction.type === 'income' && transaction.remainder != null && transaction.remainder > 0 && (
                                      <Tooltip>
                                         <TooltipTrigger><Hourglass className="h-4 w-4 text-orange-500" /></TooltipTrigger>
                                         <TooltipContent><p>Reste à percevoir</p></TooltipContent>
@@ -952,3 +957,5 @@ export default function AccountingPage() {
         </>
     );
 }
+
+    
