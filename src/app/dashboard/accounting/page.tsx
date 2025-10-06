@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuCheckboxItem } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { MoreHorizontal, PlusCircle, FileDown, CalendarIcon, Search, Eye } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, FileDown, CalendarIcon, Search, Eye, Link as LinkIcon, Hourglass, CheckCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -27,9 +27,12 @@ import { useAuth } from '@/contexts/auth-context';
 import { subscribeToTransactions, addTransaction, updateTransaction, deleteTransaction, subscribeToCashRegisters } from '@/lib/firebase/services';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
 
 const TransactionTable = ({ 
     transactions, 
+    allTransactions,
     type, 
     onDelete, 
     onEdit, 
@@ -37,7 +40,8 @@ const TransactionTable = ({
     cashRegisters,
     isLoading,
 }: { 
-    transactions: Transaction[], 
+    transactions: Transaction[],
+    allTransactions: Transaction[],
     type: 'income' | 'expense', 
     onDelete: (transactionId: string) => void, 
     onEdit: (transaction: Transaction) => void, 
@@ -51,6 +55,10 @@ const TransactionTable = ({
         return cashRegisters.find(c => c.id === id)?.name || 'Inconnue';
     };
 
+    const isExpenseLinked = (expenseId: string) => {
+        return allTransactions.some(t => t.type === 'income' && t.linkedExpenseIds?.includes(expenseId));
+    };
+
     if (isLoading) {
         return (
              <Table>
@@ -60,6 +68,7 @@ const TransactionTable = ({
                         <TableHead>Catégorie</TableHead>
                         <TableHead>Caisse</TableHead>
                         <TableHead>Date</TableHead>
+                        <TableHead>Statut</TableHead>
                         <TableHead className="text-right">Montant</TableHead>
                         <TableHead className="w-[50px] text-right">Actions</TableHead>
                     </TableRow>
@@ -71,6 +80,7 @@ const TransactionTable = ({
                             <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                             <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                             <TableCell><Skeleton className="h-5 w-28" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-8" /></TableCell>
                             <TableCell className="text-right"><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
                             <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
                         </TableRow>
@@ -81,7 +91,7 @@ const TransactionTable = ({
     }
 
     return (
-    <>
+    <TooltipProvider>
         <Table>
             <TableHeader>
                 <TableRow>
@@ -89,6 +99,7 @@ const TransactionTable = ({
                     <TableHead>Catégorie</TableHead>
                     <TableHead>Caisse</TableHead>
                     <TableHead>Date</TableHead>
+                    <TableHead>Statut</TableHead>
                     <TableHead className="text-right">Montant</TableHead>
                     <TableHead className="w-[50px] text-right">Actions</TableHead>
                 </TableRow>
@@ -100,6 +111,28 @@ const TransactionTable = ({
                         <TableCell>{transaction.category}</TableCell>
                         <TableCell>{getCashRegisterName(transaction.cashRegisterId)}</TableCell>
                         <TableCell>{format(new Date(transaction.date), 'PPP', { locale: fr })}</TableCell>
+                        <TableCell>
+                            <div className="flex items-center gap-2">
+                                {transaction.type === 'income' && transaction.remainder && transaction.remainder > 0 && (
+                                     <Tooltip>
+                                        <TooltipTrigger><Hourglass className="h-4 w-4 text-orange-500" /></TooltipTrigger>
+                                        <TooltipContent><p>Reste à percevoir</p></TooltipContent>
+                                    </Tooltip>
+                                )}
+                                {transaction.type === 'income' && transaction.linkedExpenseIds && transaction.linkedExpenseIds.length > 0 && (
+                                     <Tooltip>
+                                        <TooltipTrigger><LinkIcon className="h-4 w-4 text-blue-500" /></TooltipTrigger>
+                                        <TooltipContent><p>Liée à une ou plusieurs dépenses</p></TooltipContent>
+                                    </Tooltip>
+                                )}
+                                 {transaction.type === 'expense' && isExpenseLinked(transaction.id) && (
+                                     <Tooltip>
+                                        <TooltipTrigger><CheckCircle className="h-4 w-4 text-green-500" /></TooltipTrigger>
+                                        <TooltipContent><p>Dépense liée à une entrée</p></TooltipContent>
+                                    </Tooltip>
+                                )}
+                            </div>
+                        </TableCell>
                         <TableCell className={`text-right font-semibold ${type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
                             {transaction.amount.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF' })}
                         </TableCell>
@@ -139,7 +172,7 @@ const TransactionTable = ({
                 Aucune transaction de type "{type === 'income' ? 'entrée' : 'dépense'}" trouvée.
             </div>
         )}
-    </>
+    </TooltipProvider>
 )};
 
 
@@ -908,10 +941,10 @@ export default function AccountingPage() {
                             <TabsTrigger value="expense">Dépenses</TabsTrigger>
                         </TabsList>
                         <TabsContent value="income">
-                           <TransactionTable transactions={filteredTransactions} type="income" onDelete={handleDeleteRequest} onEdit={handleOpenEditDialog} onViewDetails={handleOpenViewDetailsDialog} cashRegisters={cashRegisters} isLoading={isLoading} />
+                           <TransactionTable transactions={filteredTransactions} allTransactions={transactions} type="income" onDelete={handleDeleteRequest} onEdit={handleOpenEditDialog} onViewDetails={handleOpenViewDetailsDialog} cashRegisters={cashRegisters} isLoading={isLoading} />
                         </TabsContent>
                         <TabsContent value="expense">
-                           <TransactionTable transactions={filteredTransactions} type="expense" onDelete={handleDeleteRequest} onEdit={handleOpenEditDialog} onViewDetails={handleOpenViewDetailsDialog} cashRegisters={cashRegisters} isLoading={isLoading} />
+                           <TransactionTable transactions={filteredTransactions} allTransactions={transactions} type="expense" onDelete={handleDeleteRequest} onEdit={handleOpenEditDialog} onViewDetails={handleOpenViewDetailsDialog} cashRegisters={cashRegisters} isLoading={isLoading} />
                         </TabsContent>
                     </Tabs>
                 </CardContent>
