@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuCheckboxItem } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { MoreHorizontal, PlusCircle, FileDown, CalendarIcon } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, FileDown, CalendarIcon, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -26,6 +26,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/auth-context';
 import { subscribeToTransactions, addTransaction, updateTransaction, deleteTransaction, subscribeToCashRegisters } from '@/lib/firebase/services';
 import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const TransactionTable = ({ 
     transactions, 
@@ -271,10 +272,16 @@ const AddOrEditTransactionDialog = ({
     const [linkedExpenseIds, setLinkedExpenseIds] = useState<string[]>([]);
     const [advance, setAdvance] = useState<string>('');
     const [remainder, setRemainder] = useState<string>('');
+    const [expenseSearch, setExpenseSearch] = useState("");
     
     const isEditMode = !!transactionToEdit;
     
-    const expenseTransactions = allTransactions.filter(t => t.type === 'expense');
+    const expenseTransactions = useMemo(() => {
+        return allTransactions
+            .filter(t => t.type === 'expense')
+            .filter(t => t.description.toLowerCase().includes(expenseSearch.toLowerCase()));
+    }, [allTransactions, expenseSearch]);
+
 
     useEffect(() => {
         if (isOpen) {
@@ -299,6 +306,7 @@ const AddOrEditTransactionDialog = ({
                 setAdvance('');
                 setRemainder('');
             }
+            setExpenseSearch('');
         }
     }, [isOpen, transactionToEdit, isEditMode, cashRegisters]);
 
@@ -439,19 +447,32 @@ const AddOrEditTransactionDialog = ({
                                             </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent className="w-64" align="start">
-                                            <DropdownMenuLabel>Sélectionner les dépenses</DropdownMenuLabel>
+                                            <div className="p-2">
+                                                <div className="relative">
+                                                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                                                    <Input
+                                                        placeholder="Rechercher une dépense..."
+                                                        value={expenseSearch}
+                                                        onChange={(e) => setExpenseSearch(e.target.value)}
+                                                        className="pl-8"
+                                                    />
+                                                </div>
+                                            </div>
                                             <DropdownMenuSeparator />
-                                            {expenseTransactions.map(t => (
-                                                <DropdownMenuCheckboxItem
-                                                    key={t.id}
-                                                    checked={linkedExpenseIds.includes(t.id)}
-                                                    onCheckedChange={() => handleExpenseSelection(t.id)}
-                                                    onSelect={(e) => e.preventDefault()}
-                                                >
-                                                    {t.description}
-                                                </DropdownMenuCheckboxItem>
-                                            ))}
-                                            {expenseTransactions.length === 0 && <DropdownMenuItem disabled>Aucune dépense disponible</DropdownMenuItem>}
+                                            <ScrollArea className="h-[200px]">
+                                                {expenseTransactions.map(t => (
+                                                    <DropdownMenuCheckboxItem
+                                                        key={t.id}
+                                                        checked={linkedExpenseIds.includes(t.id)}
+                                                        onCheckedChange={() => handleExpenseSelection(t.id)}
+                                                        onSelect={(e) => e.preventDefault()}
+                                                    >
+                                                        {t.description}
+                                                    </DropdownMenuCheckboxItem>
+                                                ))}
+                                            </ScrollArea>
+                                            {allTransactions.filter(t => t.type === 'expense').length === 0 && <DropdownMenuItem disabled>Aucune dépense disponible</DropdownMenuItem>}
+                                            {expenseTransactions.length === 0 && allTransactions.filter(t => t.type === 'expense').length > 0 && <DropdownMenuItem disabled>Aucun résultat</DropdownMenuItem>}
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                 </div>
