@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuCheckboxItem } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { MoreHorizontal, PlusCircle, FileDown, CalendarIcon, Search } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, FileDown, CalendarIcon, Search, Eye } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -33,29 +33,23 @@ const TransactionTable = ({
     type, 
     onDelete, 
     onEdit, 
+    onViewDetails,
     cashRegisters,
     isLoading,
-    allTransactions,
 }: { 
     transactions: Transaction[], 
     type: 'income' | 'expense', 
     onDelete: (transactionId: string) => void, 
     onEdit: (transaction: Transaction) => void, 
+    onViewDetails: (transaction: Transaction) => void,
     cashRegisters: CashRegister[],
     isLoading: boolean,
-    allTransactions: Transaction[],
 }) => {
     
     const getCashRegisterName = (id?: string) => {
         if (!id) return 'N/A';
         return cashRegisters.find(c => c.id === id)?.name || 'Inconnue';
     };
-
-    const getExpenseDescription = (expenseId?: string) => {
-        if (!expenseId) return null;
-        const expense = allTransactions.find(t => t.id === expenseId);
-        return expense ? expense.description : 'Dépense inconnue';
-    }
 
     if (isLoading) {
         return (
@@ -95,7 +89,6 @@ const TransactionTable = ({
                     <TableHead>Catégorie</TableHead>
                     <TableHead>Caisse</TableHead>
                     <TableHead>Date</TableHead>
-                    <TableHead>Détails</TableHead>
                     <TableHead className="text-right">Montant</TableHead>
                     <TableHead className="w-[50px] text-right">Actions</TableHead>
                 </TableRow>
@@ -107,24 +100,6 @@ const TransactionTable = ({
                         <TableCell>{transaction.category}</TableCell>
                         <TableCell>{getCashRegisterName(transaction.cashRegisterId)}</TableCell>
                         <TableCell>{format(new Date(transaction.date), 'PPP', { locale: fr })}</TableCell>
-                        <TableCell className="text-xs">
-                             {transaction.type === 'income' && transaction.linkedExpenseIds && transaction.linkedExpenseIds.length > 0 && (
-                                <div className="text-muted-foreground">
-                                    Lié à:
-                                    <ul className="list-disc pl-4">
-                                        {transaction.linkedExpenseIds.map(id => (
-                                            <li key={id} className="font-semibold">{getExpenseDescription(id)}</li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-                            {transaction.type === 'income' && transaction.advance != null && (
-                                <div>Avance: <span className="font-semibold">{transaction.advance.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF' })}</span></div>
-                            )}
-                            {transaction.type === 'income' && transaction.remainder != null && (
-                                <div>Reste: <span className="font-semibold">{transaction.remainder.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF' })}</span></div>
-                            )}
-                        </TableCell>
                         <TableCell className={`text-right font-semibold ${type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
                             {transaction.amount.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF' })}
                         </TableCell>
@@ -138,6 +113,12 @@ const TransactionTable = ({
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                     {transaction.type === 'income' && (
+                                        <DropdownMenuItem onClick={() => onViewDetails(transaction)}>
+                                            <Eye className="mr-2 h-4 w-4" />
+                                            Voir détails
+                                        </DropdownMenuItem>
+                                    )}
                                     <DropdownMenuItem onClick={() => onEdit(transaction)}>Modifier</DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem 
@@ -160,6 +141,92 @@ const TransactionTable = ({
         )}
     </>
 )};
+
+
+const ViewTransactionDetailsDialog = ({ 
+    isOpen, 
+    setIsOpen, 
+    transaction, 
+    allTransactions 
+} : { 
+    isOpen: boolean, 
+    setIsOpen: (isOpen: boolean) => void, 
+    transaction: Transaction | null,
+    allTransactions: Transaction[]
+}) => {
+    if (!transaction) return null;
+
+    const linkedExpenses = transaction.linkedExpenseIds?.map(id => allTransactions.find(t => t.id === id)).filter(Boolean) as Transaction[];
+
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogContent className="sm:max-w-xl">
+                <DialogHeader>
+                    <DialogTitle>Détails de l'entrée</DialogTitle>
+                    <DialogDescription>
+                        Récapitulatif de la transaction "{transaction.description}".
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-6 py-4 max-h-[70vh] overflow-y-auto pr-4">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <p className="text-muted-foreground">Montant Total</p>
+                            <p className="font-semibold text-lg text-green-600">{transaction.amount.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF' })}</p>
+                        </div>
+                        <div>
+                            <p className="text-muted-foreground">Date</p>
+                            <p className="font-semibold">{format(new Date(transaction.date), 'PPP', { locale: fr })}</p>
+                        </div>
+                         {transaction.advance != null && (
+                            <div>
+                                <p className="text-muted-foreground">Avance perçue</p>
+                                <p className="font-semibold">{transaction.advance.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF' })}</p>
+                            </div>
+                         )}
+                         {transaction.remainder != null && (
+                            <div>
+                                <p className="text-muted-foreground">Reste à percevoir</p>
+                                <p className="font-semibold">{transaction.remainder.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF' })}</p>
+                            </div>
+                         )}
+                    </div>
+                     {linkedExpenses && linkedExpenses.length > 0 && (
+                        <div className="space-y-3">
+                             <h4 className="font-semibold">Dépenses Liées</h4>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Description</TableHead>
+                                        <TableHead className="text-right">Montant</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {linkedExpenses.map(expense => (
+                                        <TableRow key={expense.id}>
+                                            <TableCell>{expense.description}</TableCell>
+                                            <TableCell className="text-right font-medium text-red-600">
+                                                {expense.amount.toLocaleString('fr-FR', { style: 'currency', currency: 'XOF' })}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                     )}
+                     {(!linkedExpenses || linkedExpenses.length === 0) && transaction.advance == null && transaction.remainder == null && (
+                        <p className="text-center text-muted-foreground py-4">Aucun détail supplémentaire pour cette transaction.</p>
+                     )}
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                         <Button type="button" variant="outline">Fermer</Button>
+                    </DialogClose>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
 
 const ExportDialog = ({ onExport, toast }: { onExport: (startDate?: Date, endDate?: Date) => void; toast: any }) => {
     const [startDate, setStartDate] = useState<Date | undefined>();
@@ -507,8 +574,10 @@ export default function AccountingPage() {
     const [cashRegisters, setCashRegisters] = useState<CashRegister[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [transactionIdToDelete, setTransactionIdToDelete] = useState<string | null>(null);
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [isAddEditDialogOpen, setIsAddEditDialogOpen] = useState(false);
+    const [isViewDetailsDialogOpen, setIsViewDetailsDialogOpen] = useState(false);
     const [transactionToEdit, setTransactionToEdit] = useState<Transaction | null>(null);
+    const [transactionToView, setTransactionToView] = useState<Transaction | null>(null);
     const [selectedCashRegister, setSelectedCashRegister] = useState<string>('all');
     
     useEffect(() => {
@@ -555,12 +624,17 @@ export default function AccountingPage() {
 
     const handleOpenAddDialog = () => {
         setTransactionToEdit(null);
-        setIsDialogOpen(true);
+        setIsAddEditDialogOpen(true);
     };
 
     const handleOpenEditDialog = (transaction: Transaction) => {
         setTransactionToEdit(transaction);
-        setIsDialogOpen(true);
+        setIsAddEditDialogOpen(true);
+    };
+
+    const handleOpenViewDetailsDialog = (transaction: Transaction) => {
+        setTransactionToView(transaction);
+        setIsViewDetailsDialogOpen(true);
     };
 
     const handleDeleteRequest = (transactionId: string) => {
@@ -745,12 +819,19 @@ export default function AccountingPage() {
             </AlertDialog>
             
             <AddOrEditTransactionDialog 
-                isOpen={isDialogOpen}
-                setIsOpen={setIsDialogOpen}
+                isOpen={isAddEditDialogOpen}
+                setIsOpen={setIsAddEditDialogOpen}
                 onAddTransaction={handleAddTransaction}
                 onEditTransaction={handleEditTransaction}
                 transactionToEdit={transactionToEdit}
                 cashRegisters={cashRegisters}
+                allTransactions={transactions}
+            />
+
+            <ViewTransactionDetailsDialog
+                isOpen={isViewDetailsDialogOpen}
+                setIsOpen={setIsViewDetailsDialogOpen}
+                transaction={transactionToView}
                 allTransactions={transactions}
             />
 
@@ -790,10 +871,10 @@ export default function AccountingPage() {
                             <TabsTrigger value="expense">Dépenses</TabsTrigger>
                         </TabsList>
                         <TabsContent value="income">
-                           <TransactionTable transactions={filteredTransactions} type="income" onDelete={handleDeleteRequest} onEdit={handleOpenEditDialog} cashRegisters={cashRegisters} isLoading={isLoading} allTransactions={transactions} />
+                           <TransactionTable transactions={filteredTransactions} type="income" onDelete={handleDeleteRequest} onEdit={handleOpenEditDialog} onViewDetails={handleOpenViewDetailsDialog} cashRegisters={cashRegisters} isLoading={isLoading} />
                         </TabsContent>
                         <TabsContent value="expense">
-                           <TransactionTable transactions={filteredTransactions} type="expense" onDelete={handleDeleteRequest} onEdit={handleOpenEditDialog} cashRegisters={cashRegisters} isLoading={isLoading} allTransactions={transactions} />
+                           <TransactionTable transactions={filteredTransactions} type="expense" onDelete={handleDeleteRequest} onEdit={handleOpenEditDialog} onViewDetails={handleOpenViewDetailsDialog} cashRegisters={cashRegisters} isLoading={isLoading} />
                         </TabsContent>
                     </Tabs>
                 </CardContent>
