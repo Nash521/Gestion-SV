@@ -666,7 +666,7 @@ export default function AccountingPage() {
                 variant: "destructive",
                 title: "Dates requises",
                 description: "Veuillez sélectionner une date de début et de fin.",
-            })
+            });
             return;
         }
 
@@ -675,8 +675,9 @@ export default function AccountingPage() {
 
         const end = new Date(endDate);
         end.setHours(23, 59, 59, 999);
-        
+
         const petiteCaisseId = cashRegisters.find(cr => cr.name === 'Petite caisse')?.id;
+        const cashRegisterMap = new Map(cashRegisters.map(cr => [cr.id, cr.name]));
 
         const filteredTransactions = transactions.filter(t => {
             const transactionDate = new Date(t.date);
@@ -689,7 +690,7 @@ export default function AccountingPage() {
                 variant: "destructive",
                 title: "Aucune donnée à exporter",
                 description: "Aucune transaction (hors petite caisse) n'a été trouvée pour la période sélectionnée.",
-            })
+            });
             return;
         }
         
@@ -697,54 +698,93 @@ export default function AccountingPage() {
             const doc = new jsPDF();
             const pageWidth = doc.internal.pageSize.getWidth();
             const margin = 15;
-            
+
             // Header
             doc.setFillColor(76, 81, 191);
             doc.rect(0, 0, pageWidth, 30, 'F');
-
-            if (logoImage) {
-                doc.addImage(logoImage, 'JPEG', margin, 5, 40, 20);
-            }
-
+            if (logoImage) doc.addImage(logoImage, 'JPEG', margin, 5, 40, 20);
             doc.setTextColor(255, 255, 255);
             doc.setFontSize(18);
             doc.setFont('helvetica', 'bold');
             doc.text('Bilan Comptable', pageWidth - margin, 20, { align: 'right' });
-            
             doc.setTextColor(51, 51, 51);
             doc.setFontSize(11);
             doc.setFont('helvetica', 'normal');
             doc.text(`Période du ${format(startDate, 'PPP', { locale: fr })} au ${format(endDate, 'PPP', { locale: fr })}`, margin, 45);
 
             let totalIncome = 0;
-            let totalExpenses = 0;
-
-            const tableData = filteredTransactions.map(t => {
-                if (t.type === 'income') totalIncome += t.amount;
-                if (t.type === 'expense') totalExpenses += t.amount;
-
-                return [
-                    format(new Date(t.date), 'dd/MM/yyyy', { locale: fr }),
-                    t.description,
-                    t.category,
-                    t.type === 'income' ? t.amount.toLocaleString('de-DE') + ' XOF' : '',
-                    t.type === 'expense' ? t.amount.toLocaleString('de-DE') + ' XOF' : ''
-                ];
+            let totalExpense = 0;
+            let totalProfit = 0;
+            
+            const linkedExpenseIds = new Set<string>();
+            filteredTransactions.forEach(t => {
+                if (t.type === 'income' && t.linkedExpenseIds) {
+                    t.linkedExpenseIds.forEach(id => linkedExpenseIds.add(id));
+                }
             });
+
+            const processedTransactions = filteredTransactions
+                .map(t => {
+                    if (t.type === 'income') {
+                        const linked = t.linkedExpenseIds?.map(id => filteredTransactions.find(exp => exp.id === id)).filter(Boolean) as Transaction[] || [];
+                        const linkedExpenseAmount = linked.reduce((sum, exp) => sum + exp.amount, 0);
+                        const profit = t.amount - linkedExpenseAmount;
+                        
+                        const linkedCashRegisters = new Set(linked.map(exp => cashRegisterMap.get(exp.cashRegisterId!)).filter(Boolean));
+                        
+                        totalIncome += t.amount;
+                        totalExpense += linkedExpenseAmount;
+                        totalProfit += profit;
+
+                        return {
+                            date: format(new Date(t.date), 'dd/MM/yyyy'),
+                            description: t.description,
+                            category: t.category,
+                            income: t.amount,
+                            linkedExpense: linkedExpenseAmount,
+                            profit: profit,
+                            cashRegister: Array.from(linkedCashRegisters).join(', ') || cashRegisterMap.get(t.cashRegisterId!) || 'N/A'
+                        };
+                    } else if (t.type === 'expense' && !linkedExpenseIds.has(t.id)) {
+                        totalExpense += t.amount;
+                        totalProfit -= t.amount;
+                        return {
+                            date: format(new Date(t.date), 'dd/MM/yyyy'),
+                            description: t.description,
+                            category: t.category,
+                            income: 0,
+                            linkedExpense: t.amount,
+                            profit: -t.amount,
+                            cashRegister: cashRegisterMap.get(t.cashRegisterId!) || 'N/A'
+                        };
+                    }
+                    return null;
+                })
+                .filter(Boolean)
+                .sort((a:any, b:any) => new Date(a.date.split('/').reverse().join('-')).getTime() - new Date(b.date.split('/').reverse().join('-')).getTime());
+
+            const tableData = processedTransactions.map((t: any) => [
+                t.date,
+                t.description,
+                t.category,
+                t.income > 0 ? t.income.toLocaleString('de-DE') + ' XOF' : '',
+                t.linkedExpense > 0 ? t.linkedExpense.toLocaleString('de-DE') + ' XOF' : '',
+                t.profit.toLocaleString('de-DE') + ' XOF',
+                t.cashRegister
+            ]);
 
             (doc as any).autoTable({
                 startY: 55,
-                head: [['Date', 'Description', 'Catégorie', 'Entrée', 'Dépense']],
+                head: [['Date', 'Description', 'Catégorie', 'Entrée', 'Dépense', 'Profit', 'Caisse']],
                 body: tableData,
                 theme: 'grid',
                 headStyles: { fillColor: [76, 81, 191], font: 'helvetica' },
-                styles: { font: 'helvetica' },
+                styles: { font: 'helvetica', fontSize: 9 },
                 columnStyles: {
-                    3: { halign: 'left' },
-                    4: { halign: 'left' }
+                    3: { halign: 'right' }, 4: { halign: 'right' }, 5: { halign: 'right' },
                 }
             });
-            
+
             const finalY = (doc as any).lastAutoTable.finalY || 40;
             doc.setFontSize(12);
             doc.setFont('helvetica', 'bold');
@@ -752,19 +792,16 @@ export default function AccountingPage() {
 
             const summaryData = [
                 ['Total des Entrées:', `${totalIncome.toLocaleString('de-DE')} XOF`],
-                ['Total des Dépenses:', `${totalExpenses.toLocaleString('de-DE')} XOF`],
-                ['Bénéfice Net:', `${(totalIncome - totalExpenses).toLocaleString('de-DE')} XOF`],
+                ['Total des Dépenses:', `${totalExpense.toLocaleString('de-DE')} XOF`],
+                ['Bénéfice Net:', `${totalProfit.toLocaleString('de-DE')} XOF`],
             ];
 
             (doc as any).autoTable({
                 startY: finalY + 20,
                 body: summaryData,
                 theme: 'plain',
-                styles: { font: 'helvetica' },
-                columnStyles: {
-                    0: { fontStyle: 'bold' },
-                    1: { halign: 'right' },
-                }
+                styles: { font: 'helvetica', fontStyle: 'bold' },
+                columnStyles: { 1: { halign: 'right' } }
             });
 
             doc.save(`bilan-comptable-${format(startDate, 'yyyy-MM-dd')}-${format(endDate, 'yyyy-MM-dd')}.pdf`);
