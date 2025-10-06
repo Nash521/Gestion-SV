@@ -957,5 +957,3 @@ export default function AccountingPage() {
         </>
     );
 }
-
-    
