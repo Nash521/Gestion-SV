@@ -716,6 +716,20 @@ export default function AccountingPage() {
 
         const petiteCaisseId = cashRegisters.find(cr => cr.name === 'Petite caisse')?.id;
         const cashRegisterMap = new Map(cashRegisters.map(cr => [cr.id, cr.name]));
+        
+        // Calculate previous balance
+        const previousTransactions = transactions.filter(t => {
+            const transactionDate = new Date(t.date);
+            const isPetiteCaisse = t.cashRegisterId === petiteCaisseId;
+            return transactionDate < start && !isPetiteCaisse;
+        });
+
+        const previousBalance = previousTransactions.reduce((acc, t) => {
+            if (t.type === 'income') return acc + t.amount;
+            if (t.type === 'expense') return acc - t.amount;
+            return acc;
+        }, 0);
+
 
         const filteredTransactions = transactions.filter(t => {
             const transactionDate = new Date(t.date);
@@ -752,7 +766,6 @@ export default function AccountingPage() {
 
             let totalIncome = 0;
             let totalExpense = 0;
-            let totalProfit = 0;
             
             const linkedExpenseIds = new Set<string>();
             filteredTransactions.forEach(t => {
@@ -772,7 +785,6 @@ export default function AccountingPage() {
                         
                         totalIncome += t.amount;
                         totalExpense += linkedExpenseAmount;
-                        totalProfit += profit;
 
                         return {
                             date: format(new Date(t.date), 'dd/MM/yyyy'),
@@ -785,7 +797,6 @@ export default function AccountingPage() {
                         };
                     } else if (t.type === 'expense' && !linkedExpenseIds.has(t.id)) {
                         totalExpense += t.amount;
-                        totalProfit -= t.amount;
                         return {
                             date: format(new Date(t.date), 'dd/MM/yyyy'),
                             description: t.description,
@@ -800,6 +811,8 @@ export default function AccountingPage() {
                 })
                 .filter(Boolean)
                 .sort((a:any, b:any) => new Date(a.date.split('/').reverse().join('-')).getTime() - new Date(b.date.split('/').reverse().join('-')).getTime());
+            
+            const finalBalance = previousBalance + totalIncome - totalExpense;
 
             const tableData = processedTransactions.map((t: any) => [
                 t.date,
@@ -829,9 +842,10 @@ export default function AccountingPage() {
             doc.text('Résumé', 14, finalY + 15);
 
             const summaryData = [
+                ['Solde Période Précédente:', `${previousBalance.toLocaleString('de-DE')} XOF`],
                 ['Total des Entrées:', `${totalIncome.toLocaleString('de-DE')} XOF`],
                 ['Total des Dépenses:', `${totalExpense.toLocaleString('de-DE')} XOF`],
-                ['Bénéfice Net:', `${totalProfit.toLocaleString('de-DE')} XOF`],
+                ['Solde Final:', `${finalBalance.toLocaleString('de-DE')} XOF`],
             ];
 
             (doc as any).autoTable({
@@ -839,7 +853,16 @@ export default function AccountingPage() {
                 body: summaryData,
                 theme: 'plain',
                 styles: { font: 'helvetica', fontStyle: 'bold' },
-                columnStyles: { 1: { halign: 'right' } }
+                columnStyles: { 
+                    1: { halign: 'right' },
+                    0: { fontStyle: 'bold' } 
+                },
+                didParseCell: function(data: any) {
+                    if (data.row.index === summaryData.length - 1) { // Final balance row
+                        data.cell.styles.fontStyle = 'bold';
+                        data.cell.styles.fontSize = 11;
+                    }
+                }
             });
 
             doc.save(`bilan-comptable-${format(startDate, 'yyyy-MM-dd')}-${format(endDate, 'yyyy-MM-dd')}.pdf`);
@@ -957,3 +980,5 @@ export default function AccountingPage() {
         </>
     );
 }
+
+    
