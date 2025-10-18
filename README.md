@@ -1,85 +1,191 @@
- # projetc 
+@startuml GestioSV
 
-## Modèle Conceptuel de Données (MCD) - Méthode Merise
+skinparam classAttributeIconSize 0
 
-Ce document décrit la structure des données de l'application GestioSV en utilisant une approche inspirée du Modèle Conceptuel de Données (MCD) de la méthode Merise.
+enum CollaboratorRole {
+  Admin
+  Employee
+}
 
-### Entités Principales
+enum InvoiceStatus {
+  Draft
+  Sent
+  Paid
+  Overdue
+}
 
-1.  **COLLABORATEUR**
-    *   `id_collaborateur` (PK) : Identifiant unique
-    *   `nom`
-    *   `email`
-    *   `role` (Admin, Employé)
+enum PurchaseOrderStatus {
+  Draft
+  Sent
+  Approved
+  Rejected
+}
 
-2.  **CLIENT**
-    *   `id_client` (PK) : Identifiant unique
-    *   `nom`
-    *   `email`
-    *   `adresse`
-    *   `telephone`
+enum DeliveryNoteStatus {
+  Draft
+  Delivered
+  Canceled
+}
 
-3.  **PROJET**
-    *   `id_projet` (PK) : Identifiant unique
-    *   `nom`
-    *   `description`
+enum TransactionType {
+  income
+  expense
+}
 
-4.  **LISTE_TACHE** (Colonnes du Kanban, ex: "À faire", "En cours")
-    *   `id_liste` (PK) : Identifiant unique
-    *   `titre`
-    *   `ordre`
-    *   `couleur`
+enum ServiceUnit {
+  par_heure
+  par_jour
+  forfait
+  par_m2
+  par_unite
+}
 
-5.  **TACHE**
-    *   `id_tache` (PK) : Identifiant unique
-    *   `titre`
-    *   `contenu`
-    *   `ordre`
-    *   `date_debut`
-    *   `date_echeance`
+class Collaborator {
+  + id: string
+  + name: string
+  + email: string
+  + role: CollaboratorRole
+}
 
-6.  **PROFORMA**
-    *   `id_proforma` (PK) : Identifiant unique
-    *   `date_emission`
-    *   `date_echeance`
-    *   `statut`
-    *   `montant_reduction`
+class Client {
+  + id: string
+  + name: string
+  + email: string
+  + address: string
+  + phone: string
+}
 
-7.  **TRANSACTION**
-    *   `id_transaction` (PK) : Identifiant unique
-    *   `type` (Entrée, Dépense)
-    *   `description`
-    *   `categorie`
-    *   `montant`
-    *   `date`
-    *   `montant_avance`
-    *   `montant_reste`
+class Invoice {
+  + id: string
+  + issueDate: Date
+  + dueDate: Date
+  + status: InvoiceStatus
+  + discountAmount: number
+  + notes: string
+}
 
-8.  **CAISSE**
-    *   `id_caisse` (PK) : Identifiant unique
-    *   `nom`
+class LineItem {
+  + description: string
+  + quantity: number
+  + price: number
+}
 
-### Relations (Associations)
+class PurchaseOrder {
+  + id: string
+  + issueDate: Date
+  + deliveryDate: Date
+  + status: PurchaseOrderStatus
+  + notes: string
+}
 
-*   **Gérer (Collaborateur -> Tâche)** : Un `COLLABORATEUR` peut être assigné à 0,n `TACHE`. Une `TACHE` est assignée à 0,n `COLLABORATEUR`.
-    *   `ASSIGNER (0,n)` --- `COLLABORATEUR`
-    *   `ASSIGNER (0,n)` --- `TACHE`
+class DeliveryNote {
+  + id: string
+  + deliveryDate: Date
+  + status: DeliveryNoteStatus
+  + notes: string
+}
 
-*   **Appartenir (Projet -> Liste)** : Un `PROJET` contient 1,n `LISTE_TACHE`. Une `LISTE_TACHE` appartient à 1,1 `PROJET`.
-    *   `PROJET` --- `(1,1)` Contenir `(1,n)` --- `LISTE_TACHE`
+class DeliveryLineItem {
+  + description: string
+  + quantity: number
+}
 
-*   **Contenir (Liste -> Tâche)** : Une `LISTE_TACHE` contient 0,n `TACHE`. Une `TACHE` appartient à 1,1 `LISTE_TACHE`.
-    *   `LISTE_TACHE` --- `(1,1)` Contenir `(0,n)` --- `TACHE`
+class Transaction {
+  + id: string
+  + type: TransactionType
+  + description: string
+  + category: string
+  + amount: number
+  + date: Date
+  + advance: number
+  + remainder: number
+}
 
-*   **Établir (Client -> Proforma)** : Un `CLIENT` peut avoir 0,n `PROFORMA`. Une `PROFORMA` est établie pour 1,1 `CLIENT`.
-    *   `CLIENT` --- `(1,1)` Établir `(0,n)` --- `PROFORMA`
+class CashRegister {
+  + id: string
+  + name: string
+}
 
-*   **Effectuer (Transaction -> Caisse)** : Une `TRANSACTION` est effectuée depuis 1,1 `CAISSE`. Une `CAISSE` peut enregistrer 0,n `TRANSACTION`.
-    *   `TRANSACTION` --- `(1,1)` Effectuer `(0,n)` --- `CAISSE`
+class Subcontractor {
+  + id: string
+  + name: string
+  + domain: string
+  + address: string
+  + phone: string
+}
 
-*   **Lier (Transaction -> Transaction)** : Une `TRANSACTION` de type "Entrée" peut être liée à 0,n `TRANSACTION` de type "Dépense".
-    *   C'est une relation réflexive sur l'entité `TRANSACTION`.
-    *   `LIER (0,n)` --- `TRANSACTION` (Entrée)
-    *   `LIER (0,1)` --- `TRANSACTION` (Dépense)
+class SubcontractorService {
+  + description: string
+  + price: number
+  + unit: ServiceUnit
+}
 
-Ce modèle représente la structure fondamentale de la base de données et les règles de gestion qui régissent les interactions entre les différentes entités du système GestioSV.
+class Project {
+  + id: string
+  + name: string
+  + description: string
+}
+
+class TaskList {
+  + id: string
+  + title: string
+  + order: number
+  + color: string
+}
+
+class ProjectTask {
+  + id: string
+  + title: string
+  + content: string
+  + order: number
+  + startDate: Date
+  + dueDate: Date
+  + completed: boolean
+}
+
+class ChecklistItem {
+  + text: string
+  + completed: boolean
+}
+
+class Attachment {
+  + name: string
+  + url: string
+  + type: string
+}
+
+class AppNotification {
+    + id: string
+    + message: string
+    + timestamp: Date
+    + read: boolean
+    + href: string
+}
+
+
+' --- Relations ---
+
+Client "1" -- "0..*" Invoice : établit pour >
+Client "1" -- "0..*" PurchaseOrder : commande pour >
+Client "1" -- "0..*" DeliveryNote : livre à >
+
+Invoice "1" -- "1..*" LineItem : contient
+PurchaseOrder "1" -- "1..*" LineItem : contient
+DeliveryNote "1" -- "1..*" DeliveryLineItem : contient
+
+Collaborator "1" -- "0..*" AppNotification : est acteur de >
+
+Project "1" -- "1..*" TaskList : contient >
+TaskList "1" -- "0..*" ProjectTask : contient >
+
+Collaborator "0..*" -- "0..*" ProjectTask : est assigné à
+
+ProjectTask "1" -- "0..*" ChecklistItem : a pour checklist
+ProjectTask "1" -- "0..*" Attachment : a pour pièce jointe
+
+Transaction "1" -- "1" CashRegister : est effectuée depuis >
+Transaction "1" -- "0..*" Transaction : est liée à
+
+Subcontractor "1" -- "1..*" SubcontractorService : propose >
+
+@enduml
