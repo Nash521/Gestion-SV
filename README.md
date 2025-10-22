@@ -1,191 +1,37 @@
-@startuml GestioSV
+@startuml GestioSV_Use_Cases
 
-skinparam classAttributeIconSize 0
+left to right direction
 
-enum CollaboratorRole {
-  Admin
-  Employee
+actor Administrateur
+actor Employe
+
+Administrateur --|> Employe
+
+rectangle "Système GestioSV" {
+  usecase "Se connecter" as UC_Login
+  usecase "Gérer les proformas" as UC_Invoices
+  usecase "Gérer les bons de commande" as UC_PO
+  usecase "Gérer les bons de livraison" as UC_DN
+  usecase "Gérer les clients" as UC_Clients
+  usecase "Gérer les sous-traitants" as UC_Subcontractors
+  usecase "Gérer les transactions comptables" as UC_Accounting
+  usecase "Exporter un bilan" as UC_Export
+  usecase "Gérer les projets et tâches" as UC_Projects
+  usecase "Consulter les notifications" as UC_Notifications
+  usecase "Gérer les collaborateurs" as UC_Users
+
+  Employe -- UC_Login
+  Employe -- UC_Invoices
+  Employe -- UC_PO
+  Employe -- UC_DN
+  Employe -- UC_Clients
+  Employe -- UC_Subcontractors
+  Employe -- UC_Accounting
+  Employe -- UC_Export
+  Employe -- UC_Projects
+  Employe -- UC_Notifications
+  
+  Administrateur -- UC_Users
 }
-
-enum InvoiceStatus {
-  Draft
-  Sent
-  Paid
-  Overdue
-}
-
-enum PurchaseOrderStatus {
-  Draft
-  Sent
-  Approved
-  Rejected
-}
-
-enum DeliveryNoteStatus {
-  Draft
-  Delivered
-  Canceled
-}
-
-enum TransactionType {
-  income
-  expense
-}
-
-enum ServiceUnit {
-  par_heure
-  par_jour
-  forfait
-  par_m2
-  par_unite
-}
-
-class Collaborator {
-  + id: string
-  + name: string
-  + email: string
-  + role: CollaboratorRole
-}
-
-class Client {
-  + id: string
-  + name: string
-  + email: string
-  + address: string
-  + phone: string
-}
-
-class Invoice {
-  + id: string
-  + issueDate: Date
-  + dueDate: Date
-  + status: InvoiceStatus
-  + discountAmount: number
-  + notes: string
-}
-
-class LineItem {
-  + description: string
-  + quantity: number
-  + price: number
-}
-
-class PurchaseOrder {
-  + id: string
-  + issueDate: Date
-  + deliveryDate: Date
-  + status: PurchaseOrderStatus
-  + notes: string
-}
-
-class DeliveryNote {
-  + id: string
-  + deliveryDate: Date
-  + status: DeliveryNoteStatus
-  + notes: string
-}
-
-class DeliveryLineItem {
-  + description: string
-  + quantity: number
-}
-
-class Transaction {
-  + id: string
-  + type: TransactionType
-  + description: string
-  + category: string
-  + amount: number
-  + date: Date
-  + advance: number
-  + remainder: number
-}
-
-class CashRegister {
-  + id: string
-  + name: string
-}
-
-class Subcontractor {
-  + id: string
-  + name: string
-  + domain: string
-  + address: string
-  + phone: string
-}
-
-class SubcontractorService {
-  + description: string
-  + price: number
-  + unit: ServiceUnit
-}
-
-class Project {
-  + id: string
-  + name: string
-  + description: string
-}
-
-class TaskList {
-  + id: string
-  + title: string
-  + order: number
-  + color: string
-}
-
-class ProjectTask {
-  + id: string
-  + title: string
-  + content: string
-  + order: number
-  + startDate: Date
-  + dueDate: Date
-  + completed: boolean
-}
-
-class ChecklistItem {
-  + text: string
-  + completed: boolean
-}
-
-class Attachment {
-  + name: string
-  + url: string
-  + type: string
-}
-
-class AppNotification {
-    + id: string
-    + message: string
-    + timestamp: Date
-    + read: boolean
-    + href: string
-}
-
-
-' --- Relations ---
-
-Client "1" -- "0..*" Invoice : établit pour >
-Client "1" -- "0..*" PurchaseOrder : commande pour >
-Client "1" -- "0..*" DeliveryNote : livre à >
-
-Invoice "1" -- "1..*" LineItem : contient
-PurchaseOrder "1" -- "1..*" LineItem : contient
-DeliveryNote "1" -- "1..*" DeliveryLineItem : contient
-
-Collaborator "1" -- "0..*" AppNotification : est acteur de >
-
-Project "1" -- "1..*" TaskList : contient >
-TaskList "1" -- "0..*" ProjectTask : contient >
-
-Collaborator "0..*" -- "0..*" ProjectTask : est assigné à
-
-ProjectTask "1" -- "0..*" ChecklistItem : a pour checklist
-ProjectTask "1" -- "0..*" Attachment : a pour pièce jointe
-
-Transaction "1" -- "1" CashRegister : est effectuée depuis >
-Transaction "1" -- "0..*" Transaction : est liée à
-
-Subcontractor "1" -- "1..*" SubcontractorService : propose >
 
 @enduml
