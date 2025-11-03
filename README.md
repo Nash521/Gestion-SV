@@ -49,6 +49,19 @@ rectangle "Gestion de l'Application" {
 note right of Admin : L'Administrateur a accès à toutes les fonctionnalités de l'Employé et peut en plus gérer les comptes des collaborateurs.
 @enduml
 
+### Explication du Diagramme de Cas d'Utilisation (SAT)
+
+Le **Diagramme de Cas d'Utilisation** (ou Schéma d'Analyse des Tâches) décrit "qui fait quoi" dans l'application. Il met en scène les acteurs et les grandes fonctionnalités qu'ils peuvent utiliser.
+
+*   **Acteurs :**
+    *   `Administrateur` : A tous les droits. Il peut gérer l'ensemble des données de l'entreprise (clients, factures, projets) et, en plus, gérer les comptes des autres utilisateurs.
+    *   `Employe` : A des droits opérationnels. Il peut utiliser l'application au quotidien pour la gestion commerciale et de projet, mais ne peut pas gérer les comptes utilisateurs. La note à droite de l'administrateur précise bien que l'Admin hérite de toutes les capacités de l'Employé.
+
+*   **Cas d'Utilisation (Les fonctionnalités) :**
+    *   Les rectangles comme `Gérer les clients` ou `Gérer les proformas` représentent les grandes fonctionnalités. Les lignes continues (`--`) montrent quel acteur peut utiliser quelle fonctionnalité.
+    *   **Relations `include` :** Elles indiquent une action obligatoire. Par exemple, pour `Gérer les collaborateurs`, on *doit* pouvoir `Créer un utilisateur`, le `Modifier` ou le `Supprimer`. Ces actions sont incluses dans la gestion des collaborateurs.
+    *   **Relations `extends` :** Elles montrent une fonctionnalité optionnelle qui peut être déclenchée. Par exemple, la création d'un `Bon de commande` peut *étendre* ses actions en générant une notification. Cela n'arrive pas à chaque fois mais c'est une possibilité.
+
 @startuml
 ' Titre du diagramme
 title Modèle Conceptuel de Données (MCD) - GestioSV
@@ -197,3 +210,18 @@ Transaction "0..*" -- "0..1" Transaction : est liée à
 
 Sous_traitant "1" -- "1..*" Service : propose
 @enduml
+
+### Explication du Modèle Conceptuel de Données (MCD)
+
+Le **Modèle Conceptuel de Données** (MCD) est le plan de votre base de données. Il décrit les "objets" importants (entités) et comment ils sont connectés entre eux.
+
+*   **Entités (Les "objets" principaux) :**
+    *   `Client`, `Collaborateur`, `Projet`, `Sous_traitant` : Ce sont les entités fondamentales qui représentent les personnes et les concepts clés.
+    *   `Document_Commercial` : C'est une entité "abstraite" (générique). Elle regroupe les propriétés communes (date, statut, etc.) à `Proforma`, `Bon_Commande`, et `Bon_Livraison`, qui en héritent. C'est une façon élégante de ne pas répéter le code.
+    *   `Transaction` et `Caisse` : Modélisent votre comptabilité, où chaque transaction est liée à une caisse.
+    *   `Liste_Taches` et `Tache` : Structurent le module de projet. Un projet est composé de plusieurs listes, qui elles-mêmes contiennent des tâches.
+
+*   **Relations (Les liens entre les objets) :**
+    *   Les lignes connectent les entités. Les chiffres (`1`, `0..*`) sont des **cardinalités**, qui signifient "combien".
+    *   Exemple : `Client "1" -- "0..*"` `Proforma` se lit comme suit : "Une proforma est passée par **un et un seul** client (`1`), et un client peut passer de **zéro à plusieurs** proformas (`0..*`)".
+    *   De même, `Projet "1" -- "1..*"` `Liste_Taches` signifie qu'une liste de tâches appartient à **un seul** projet, et qu'un projet doit contenir **au moins une** liste de tâches (`1..*`).
