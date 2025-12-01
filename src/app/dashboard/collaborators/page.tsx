@@ -19,6 +19,7 @@ import {
   DialogTrigger,
   DialogFooter,
   DialogDescription,
+  DialogClose,
 } from "@/components/ui/dialog";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -33,56 +34,88 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { addCollaborator } from '@/lib/firebase/services'; // Make sure this function is implemented correctly
+import { addCollaborator, updateCollaborator, deleteCollaborator, subscribeToCollaborators } from '@/lib/firebase/services';
+import { useToast } from '@/hooks/use-toast';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+
 
 export default function CollaboratorsPage() {
   const { currentUser, loading } = useAuth();
-  const [users, setUsers] = useState([]);
+  const { toast } = useToast();
+  const [users, setUsers] = useState<any[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
   const [newUserName, setNewUserName] = useState("");
   const [newUserEmail, setNewUserEmail] = useState("");
   const [newUserPassword, setNewUserPassword] = useState("");
   const [newUserRole, setNewUserRole] = useState("Employee");
+  const [showPassword, setShowPassword] = useState(false);
 
   const [editUserName, setEditUserName] = useState("");
   const [editUserEmail, setEditUserEmail] = useState("");
   const [editUserRole, setEditUserRole] = useState("");
-  const [showEditPassword, setShowEditPassword] = useState(false);
 
   const fetchUsers = async () => {
     if (currentUser?.role === 'Admin') {
-      const usersCollection = collection(db, "collaborators");
-      const usersSnapshot = await getDocs(usersCollection);
-      const usersList = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setUsers(usersList);
+      const unsubscribe = subscribeToCollaborators((collaboratorsData) => {
+        setUsers(collaboratorsData);
+      });
+      return unsubscribe;
     }
   };
 
   useEffect(() => {
-    fetchUsers();
+    const unsubscribe = fetchUsers();
+    return () => {
+      // @ts-ignore
+      if (unsubscribe && typeof unsubscribe === 'function') {
+        // @ts-ignore
+        unsubscribe();
+      }
+    };
   }, [currentUser]);
 
   const handleAddUser = async () => {
+    if (newUserPassword.length < 6) {
+        toast({
+            variant: "destructive",
+            title: "Mot de passe trop court",
+            description: "Le mot de passe doit contenir au moins 6 caractères.",
+        });
+        return;
+    }
     if (newUserName && newUserEmail && newUserPassword && newUserRole) {
       try {
         await addCollaborator({
           name: newUserName,
           email: newUserEmail,
-          role: newUserRole,
+          role: newUserRole as 'Admin' | 'Employee',
         }, newUserPassword);
-        alert("Collaborateur ajouté avec succès !");
+        
+        toast({
+          title: "Collaborateur ajouté",
+          description: `${newUserName} a été ajouté avec succès.`,
+        });
+
         setNewUserName("");
         setNewUserEmail("");
         setNewUserPassword("");
         setNewUserRole("Employee");
         setIsAddDialogOpen(false);
-        fetchUsers();
-      } catch (error) {
-        console.error("Error adding user: ", error);
-        alert(`Erreur lors de l'ajout du collaborateur: ${error.message}`);
+      } catch (error: any) {
+        let description = "Une erreur est survenue lors de l'ajout du collaborateur.";
+        if (error.code === 'auth/email-already-in-use') {
+            description = "Cette adresse e-mail est déjà utilisée par un autre compte.";
+        } else if (error.code === 'auth/invalid-email') {
+            description = "L'adresse e-mail n'est pas valide.";
+        }
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: description,
+        });
       }
     }
   };
@@ -90,25 +123,26 @@ export default function CollaboratorsPage() {
   const handleEditUser = async () => {
     if (selectedUser && editUserName && editUserEmail && editUserRole) {
       try {
-        const userDocRef = doc(db, "collaborators", selectedUser.id);
-        const updateData = {
+        const updateData: Partial<{ name: string; email: string; role: 'Admin' | 'Employee' }> = {
           name: editUserName,
           email: editUserEmail,
-          role: editUserRole,
+          role: editUserRole as 'Admin' | 'Employee',
         };
         
-        await updateDoc(userDocRef, updateData);
+        await updateCollaborator(selectedUser.id, updateData);
 
-        alert("Collaborateur mis à jour !");
-        setEditUserName("");
-        setEditUserEmail("");
-        setEditUserRole("");
+        toast({
+          title: "Collaborateur mis à jour",
+          description: `Les informations de ${editUserName} ont été modifiées.`,
+        });
         setSelectedUser(null);
         setIsEditDialogOpen(false);
-        fetchUsers();
       } catch (error) {
-        console.error("Error updating user: ", error);
-        alert("Erreur lors de la modification du collaborateur.");
+        toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: "Erreur lors de la modification du collaborateur."
+        });
       }
     }
   };
@@ -116,16 +150,20 @@ export default function CollaboratorsPage() {
   const handleDeleteUser = async () => {
     if (selectedUser) {
       try {
-        // This only deletes the Firestore record. Deleting from Firebase Auth should be done in a Cloud Function for security.
-        console.warn("WARNING: Deleting users directly from Firestore without Firebase Authentication is INSECURE and incomplete for production apps.");
-        await deleteDoc(doc(db, "collaborators", selectedUser.id));
-        alert("Collaborateur supprimé de la liste ! (La suppression de l'authentification doit être faite côté serveur).");
+        await deleteCollaborator(selectedUser.id);
+        toast({
+            variant: 'destructive',
+            title: "Collaborateur supprimé",
+            description: `${selectedUser.name} a été supprimé. (La suppression de l'authentification doit être faite côté serveur).`
+        });
         setSelectedUser(null);
         setIsDeleteDialogOpen(false);
-        fetchUsers();
       } catch (error) {
-        console.error("Error deleting user: ", error);
-        alert("Erreur lors de la suppression du collaborateur.");
+        toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: "Erreur lors de la suppression du collaborateur."
+        });
       }
     }
   };
@@ -154,7 +192,7 @@ export default function CollaboratorsPage() {
             <DialogHeader>
               <DialogTitle>Ajouter un nouveau collaborateur</DialogTitle>
               <DialogDescription>
-                Remplissez les informations pour le nouveau collaborateur.
+                Remplissez les informations pour le nouveau collaborateur. Le mot de passe doit contenir au moins 6 caractères.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -168,7 +206,12 @@ export default function CollaboratorsPage() {
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="password" className="text-right">Mot de passe</Label>
-                <Input id="password" type="password" value={newUserPassword} onChange={(e) => setNewUserPassword(e.target.value)} className="col-span-3" />
+                 <div className="relative col-span-3">
+                    <Input id="password" type={showPassword ? 'text' : 'password'} value={newUserPassword} onChange={(e) => setNewUserPassword(e.target.value)} />
+                    <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowPassword(!showPassword)}>
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                </div>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="role" className="text-right">Rôle</Label>
@@ -232,64 +275,12 @@ export default function CollaboratorsPage() {
                             setSelectedUser(user);
                             setIsDeleteDialogOpen(true);
                           }}
-                          className="text-red-600"
+                          className="text-red-600 focus:text-red-500"
                         >
                           Supprimer
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
-
-                    {/* Edit User Dialog */}
-                    <Dialog open={isEditDialogOpen && selectedUser?.id === user.id} onOpenChange={setIsEditDialogOpen}>
-                      <DialogContent className="sm:max-w-[425px]">
-                        <DialogHeader>
-                          <DialogTitle>Modifier le collaborateur</DialogTitle>
-                          <DialogDescription>
-                            Mettez à jour les informations du collaborateur.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="grid gap-4 py-4">
-                          <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="edit-name" className="text-right">Nom</Label>
-                            <Input id="edit-name" value={editUserName} onChange={(e) => setEditUserName(e.target.value)} className="col-span-3" />
-                          </div>
-                          <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="edit-email" className="text-right">Email</Label>
-                            <Input id="edit-email" type="email" value={editUserEmail} onChange={(e) => setEditUserEmail(e.target.value)} className="col-span-3" />
-                          </div>
-                          <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="edit-role" className="text-right">Rôle</Label>
-                            <Select onValueChange={setEditUserRole} defaultValue={editUserRole}>
-                              <SelectTrigger className="col-span-3"><SelectValue placeholder="Sélectionner un rôle" /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="Admin">Admin</SelectItem>
-                                <SelectItem value="Employee">Employé</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <p className='text-sm text-muted-foreground text-center pt-2'>La modification du mot de passe doit être gérée via un flux de réinitialisation sécurisé.</p>
-                        </div>
-                        <DialogFooter>
-                          <Button onClick={handleEditUser}>Enregistrer les modifications</Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-
-                    {/* Delete User Dialog */}
-                    <Dialog open={isDeleteDialogOpen && selectedUser?.id === user.id} onOpenChange={setIsDeleteDialogOpen}>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Confirmer la suppression</DialogTitle>
-                          <DialogDescription>
-                            Êtes-vous sûr de vouloir supprimer le collaborateur {selectedUser?.name} ? Cette action est irréversible.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <DialogFooter>
-                          <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Annuler</Button>
-                          <Button variant="destructive" onClick={handleDeleteUser}>Supprimer</Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
                   </TableCell>
                 </TableRow>
               ))
@@ -303,6 +294,61 @@ export default function CollaboratorsPage() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Edit User Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Modifier le collaborateur</DialogTitle>
+              <DialogDescription>
+                Mettez à jour les informations du collaborateur.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-name" className="text-right">Nom</Label>
+                <Input id="edit-name" value={editUserName} onChange={(e) => setEditUserName(e.target.value)} className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-email" className="text-right">Email</Label>
+                <Input id="edit-email" type="email" value={editUserEmail} onChange={(e) => setEditUserEmail(e.target.value)} className="col-span-3" disabled />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-role" className="text-right">Rôle</Label>
+                <Select onValueChange={setEditUserRole} value={editUserRole}>
+                  <SelectTrigger className="col-span-3"><SelectValue placeholder="Sélectionner un rôle" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Admin">Admin</SelectItem>
+                    <SelectItem value="Employee">Employé</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className='text-sm text-muted-foreground text-center pt-2'>La modification du mot de passe doit être gérée via un flux de réinitialisation sécurisé.</p>
+            </div>
+            <DialogFooter>
+                <DialogClose asChild>
+                    <Button variant="outline">Annuler</Button>
+                </DialogClose>
+              <Button onClick={handleEditUser}>Enregistrer</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete User Dialog */}
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+                <AlertDialogDescription>
+                Êtes-vous sûr de vouloir supprimer le collaborateur {selectedUser?.name} ? Cette action est irréversible.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setIsDeleteDialogOpen(false)}>Annuler</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteUser}>Supprimer</AlertDialogAction>
+            </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
     </div>
   );
 }
