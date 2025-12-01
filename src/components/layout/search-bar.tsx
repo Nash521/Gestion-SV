@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 const placeholderMap: { [key: string]: string } = {
     '/dashboard/invoices': 'Rechercher par client ou ID...',
     '/dashboard/clients': 'Rechercher par nom ou email...',
+    '/dashboard/prospects': 'Rechercher par nom ou email...',
     '/dashboard/accounting': 'Rechercher par description...',
     '/dashboard/purchase-orders': 'Rechercher par client ou ID...',
     '/dashboard/delivery-notes': 'Rechercher par client ou ID...',

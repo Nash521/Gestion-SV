@@ -34,6 +34,7 @@ const searchablePages = [
     '/dashboard/delivery-notes',
     '/dashboard/clients',
     '/dashboard/accounting',
+    '/dashboard/prospects',
 ];
 
 
@@ -51,26 +52,16 @@ export default function DashboardLayout({
     if (!loading && !currentUser) {
       router.push('/login');
     }
-  }, [currentUser, loading, router]);
+     if (!loading && currentUser?.role === 'Employee' && pathname !== '/dashboard/prospects') {
+      router.push('/dashboard/prospects');
+    }
+  }, [currentUser, loading, router, pathname]);
 
 
   if (loading || !currentUser) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  // If current user is an Employee, display access denied message instead of redirecting
-  if (currentUser?.role === 'Employee') {
-    return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Accès non autorisé</h1>
-          <p className="text-muted-foreground">Vous n'avez pas la permission d'accéder à cette section.</p>
-          <Button onClick={() => logout()} className="mt-4">Se déconnecter</Button>
-        </div>
       </div>
     );
   }

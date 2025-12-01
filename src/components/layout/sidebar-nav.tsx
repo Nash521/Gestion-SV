@@ -15,6 +15,7 @@ import {
   HardHat,
   ClipboardCheck,
   Bell,
+  Contact,
 } from 'lucide-react';
 import {
   SidebarMenu,
@@ -24,15 +25,16 @@ import {
 import type { CollaboratorRole } from '@/lib/definitions';
 
 const navItems = [
-    { href: '/dashboard', icon: <LayoutDashboard />, label: 'Tableau de bord', requiredRole: ['Admin', 'Employee'] },
-    { href: '/dashboard/projects', icon: <ClipboardCheck />, label: 'Projets', requiredRole: ['Admin', 'Employee'] },
-    { href: '/dashboard/invoices', icon: <FileText />, label: 'Proformas', requiredRole: ['Admin', 'Employee'] },
-    { href: '/dashboard/purchase-orders', icon: <ShoppingCart />, label: 'Bons de commande', requiredRole: ['Admin', 'Employee'] },
-    { href: '/dashboard/delivery-notes', icon: <Truck />, label: 'Bons de livraison', requiredRole: ['Admin', 'Employee'] },
-    { href: '/dashboard/clients', icon: <Users />, label: 'Clients', requiredRole: ['Admin', 'Employee'] },
-    { href: '/dashboard/subcontractors', icon: <HardHat />, label: 'Sous-traitants', requiredRole: ['Admin', 'Employee'] },
+    { href: '/dashboard', icon: <LayoutDashboard />, label: 'Tableau de bord', requiredRole: ['Admin'] },
+    { href: '/dashboard/projects', icon: <ClipboardCheck />, label: 'Projets', requiredRole: ['Admin'] },
+    { href: '/dashboard/invoices', icon: <FileText />, label: 'Proformas', requiredRole: ['Admin'] },
+    { href: '/dashboard/purchase-orders', icon: <ShoppingCart />, label: 'Bons de commande', requiredRole: ['Admin'] },
+    { href: '/dashboard/delivery-notes', icon: <Truck />, label: 'Bons de livraison', requiredRole: ['Admin'] },
+    { href: '/dashboard/clients', icon: <Users />, label: 'Clients', requiredRole: ['Admin'] },
+    { href: '/dashboard/prospects', icon: <Contact />, label: 'Prospects', requiredRole: ['Admin', 'Employee'] },
+    { href: '/dashboard/subcontractors', icon: <HardHat />, label: 'Sous-traitants', requiredRole: ['Admin'] },
     { href: '/dashboard/collaborators', icon: <UsersRound />, label: 'Collaborateurs', requiredRole: ['Admin'] },
-    { href: '/dashboard/accounting', icon: <Wallet />, label: 'Comptabilité', requiredRole: ['Admin', 'Employee'] },
+    { href: '/dashboard/accounting', icon: <Wallet />, label: 'Comptabilité', requiredRole: ['Admin'] },
     { href: '/dashboard/notifications', icon: <Bell />, label: 'Notifications', requiredRole: ['Admin', 'Employee'] },
 ];
 
