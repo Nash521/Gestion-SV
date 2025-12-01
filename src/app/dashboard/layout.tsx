@@ -62,6 +62,19 @@ export default function DashboardLayout({
     );
   }
 
+  // If current user is an Employee, display access denied message instead of redirecting
+  if (currentUser?.role === 'Employee') {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Accès non autorisé</h1>
+          <p className="text-muted-foreground">Vous n'avez pas la permission d'accéder à cette section.</p>
+          <Button onClick={() => logout()} className="mt-4">Se déconnecter</Button>
+        </div>
+      </div>
+    );
+  }
+
   const handleLogout = async () => {
     try {
       await logout();

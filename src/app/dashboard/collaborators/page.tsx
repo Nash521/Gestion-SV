@@ -1,351 +1,342 @@
-"use client"
+"use client";
 import React, { useState, useEffect } from 'react';
-import type { Collaborator, CollaboratorRole } from '@/lib/definitions';
+import { collection, getDocs, doc, updateDoc, deleteDoc, addDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { MoreHorizontal, PlusCircle, ShieldCheck, User, ShieldAlert } from 'lucide-react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/contexts/auth-context';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { subscribeToCollaborators, addCollaborator, updateCollaborator, deleteCollaborator } from '@/lib/firebase/services';
-import { Skeleton } from '@/components/ui/skeleton';
-
-const AddOrEditCollaboratorDialog = ({ 
-    isOpen, 
-    setIsOpen, 
-    onSave,
-    collaboratorToEdit 
-}: { 
-    isOpen: boolean, 
-    setIsOpen: (open: boolean) => void, 
-    onSave: (collaborator: Omit<Collaborator, 'id'> | Collaborator, password?: string) => Promise<void>,
-    collaboratorToEdit?: Collaborator | null
-}) => {
-    const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [role, setRole] = useState<CollaboratorRole | ''>('');
-    
-    const isEditMode = !!collaboratorToEdit;
-
-    useEffect(() => {
-        if (isOpen) {
-            if (isEditMode && collaboratorToEdit) {
-                setName(collaboratorToEdit.name);
-                setEmail(collaboratorToEdit.email);
-                setRole(collaboratorToEdit.role);
-                setPassword(''); // Password is not edited here for security
-            } else {
-                setName('');
-                setEmail('');
-                setPassword('');
-                setRole('');
-            }
-        }
-    }, [isOpen, collaboratorToEdit, isEditMode]);
-
-    const handleSubmit = async () => {
-        if (!name || !email || !role) {
-            alert('Veuillez remplir le nom, l\'email et le rôle.');
-            return;
-        }
-
-        if (!isEditMode && !password) {
-            alert('Le mot de passe est requis pour un nouvel utilisateur.');
-            return;
-        }
-
-        if (isEditMode && collaboratorToEdit) {
-            await onSave({ id: collaboratorToEdit.id, name, email, role: role as CollaboratorRole });
-        } else {
-            await onSave({ name, email, role: role as CollaboratorRole }, password);
-        }
-        
-        setIsOpen(false);
-    };
-
-    return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                    <DialogTitle>{isEditMode ? 'Modifier le collaborateur' : 'Ajouter un collaborateur'}</DialogTitle>
-                    <DialogDescription>
-                        {isEditMode ? 'Mettez à jour les informations du collaborateur.' : 'Invitez un nouveau membre dans votre équipe.'}
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="name" className="text-right">Nom</Label>
-                        <Input id="name" value={name} onChange={(e) => setName(e.target.value)} className="col-span-3" />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="email" className="text-right">Email</Label>
-                        <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="col-span-3" disabled={isEditMode} />
-                    </div>
-                    {!isEditMode && (
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="password" className="text-right">Mot de passe</Label>
-                            <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="col-span-3" />
-                        </div>
-                    )}
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="role" className="text-right">Rôle</Label>
-                        <Select onValueChange={(value: CollaboratorRole) => setRole(value)} value={role}>
-                            <SelectTrigger className="col-span-3">
-                                <SelectValue placeholder="Sélectionner un rôle" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="Admin">Administrateur</SelectItem>
-                                <SelectItem value="Employee">Employé</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </div>
-                <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>Annuler</Button>
-                    <Button onClick={handleSubmit}>Enregistrer</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    );
-};
-
-
-function AccessDenied() {
-    return (
-        <Card className="w-full max-w-md mx-auto">
-            <CardHeader className="text-center">
-                 <ShieldAlert className="mx-auto h-12 w-12 text-destructive" />
-                <CardTitle className="text-2xl mt-4">Accès Refusé</CardTitle>
-                <CardDescription>
-                    Vous n'avez pas les permissions nécessaires pour accéder à cette page. Veuillez contacter un administrateur.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Button className="w-full" asChild>
-                    <a href="/dashboard">Retour au tableau de bord</a>
-                </Button>
-            </CardContent>
-        </Card>
-    );
-}
-
-const CollaboratorListSkeleton = () => (
-    <TableBody>
-        {[...Array(3)].map((_, i) => (
-             <TableRow key={i}>
-                <TableCell><Skeleton className="h-5 w-32" /></TableCell>
-                <TableCell><Skeleton className="h-5 w-48" /></TableCell>
-                <TableCell><Skeleton className="h-8 w-28" /></TableCell>
-                <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
-            </TableRow>
-        ))}
-    </TableBody>
-  );
+import { Loader2, MoreHorizontal, Eye, EyeOff } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function CollaboratorsPage() {
-    const { toast } = useToast();
-    const { currentUser } = useAuth();
-    const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [collaboratorToEdit, setCollaboratorToEdit] = useState<Collaborator | null>(null);
-    const [collaboratorToDelete, setCollaboratorToDelete] = useState<Collaborator | null>(null);
+  const { currentUser, loading } = useAuth();
+  const [users, setUsers] = useState([]);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [newUserName, setNewUserName] = useState("");
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserPassword, setNewUserPassword] = useState("");
+  const [newUserRole, setNewUserRole] = useState("Employee");
 
+  const [editUserName, setEditUserName] = useState("");
+  const [editUserEmail, setEditUserEmail] = useState("");
+  const [editUserPassword, setEditUserPassword] = useState("");
+  const [editUserRole, setEditUserRole] = useState("");
+  const [showEditPassword, setShowEditPassword] = useState(false);
 
-    useEffect(() => {
-        if (currentUser?.role !== 'Admin') {
-            setIsLoading(false);
-            return;
-        };
+  const fetchUsers = async () => {
+    if (currentUser?.role === 'Admin') {
+      const usersCollection = collection(db, "collaborators");
+      const usersSnapshot = await getDocs(usersCollection);
+      const usersList = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setUsers(usersList);
+    }
+  };
 
-        const unsubscribe = subscribeToCollaborators((data) => {
-            setCollaborators(data);
-            setIsLoading(false);
+  useEffect(() => {
+    fetchUsers();
+  }, [currentUser]);
+
+  const handleAddUser = async () => {
+    if (newUserName && newUserEmail && newUserPassword && newUserRole) {
+      try {
+        console.warn("WARNING: Storing passwords directly in Firestore is INSECURE for production apps. Use Firebase Authentication.");
+        await addDoc(collection(db, "collaborators"), {
+          name: newUserName,
+          email: newUserEmail,
+          role: newUserRole,
+          password: newUserPassword, // Re-enabled for demo purposes. NOT SECURE.
         });
-
-        return () => unsubscribe();
-    }, [currentUser]);
-
-
-    if (isLoading) {
-        return <Card><CardHeader><CardTitle>Collaborateurs</CardTitle></CardHeader><CardContent><Table><TableHeader><TableRow><TableHead>Nom</TableHead><TableHead>Email</TableHead><TableHead>Rôle</TableHead><TableHead></TableHead></TableRow></TableHeader><CollaboratorListSkeleton/></Table></CardContent></Card>
+        alert("Collaborateur ajouté ! (Attention: Le mot de passe n'est pas géré de manière sécurisée dans cette démo).");
+        setNewUserName("");
+        setNewUserEmail("");
+        setNewUserPassword("");
+        setNewUserRole("Employee");
+        setIsAddDialogOpen(false);
+        fetchUsers();
+      } catch (error) {
+        console.error("Error adding user: ", error);
+        alert("Erreur lors de l'ajout du collaborateur.");
+      }
     }
+  };
 
-    if (currentUser?.role !== 'Admin') {
-        return <AccessDenied />;
+  const handleEditUser = async () => {
+    if (selectedUser && editUserName && editUserEmail && editUserRole) {
+      try {
+        const userDocRef = doc(db, "collaborators", selectedUser.id);
+        const updateData: { name: string; email: string; role: string; password?: string } = {
+          name: editUserName,
+          email: editUserEmail,
+          role: editUserRole,
+        };
+        if (editUserPassword) {
+          console.warn("WARNING: Updating passwords directly in Firestore is INSECURE for production apps. Use Firebase Authentication.");
+          updateData.password = editUserPassword; // Re-enabled for demo purposes. NOT SECURE.
+          alert("Mot de passe mis à jour ! (Attention: Le mot de passe n'est pas géré de manière sécurisée dans cette démo).");
+        }
+
+        await updateDoc(userDocRef, updateData);
+        alert("Collaborateur mis à jour !");
+        setEditUserName("");
+        setEditUserEmail("");
+        setEditUserPassword("");
+        setEditUserRole("");
+        setSelectedUser(null);
+        setIsEditDialogOpen(false);
+        fetchUsers();
+      } catch (error) {
+        console.error("Error updating user: ", error);
+        alert("Erreur lors de la modification du collaborateur.");
+      }
     }
-    
-    const handleOpenAddDialog = () => {
-        setCollaboratorToEdit(null);
-        setIsDialogOpen(true);
-    };
+  };
 
-    const handleOpenEditDialog = (collaborator: Collaborator) => {
-        setCollaboratorToEdit(collaborator);
-        setIsDialogOpen(true);
-    };
+  const handleDeleteUser = async () => {
+    if (selectedUser) {
+      try {
+        console.warn("WARNING: Deleting users directly from Firestore without Firebase Authentication is INSECURE and incomplete for production apps.");
+        await deleteDoc(doc(db, "collaborators", selectedUser.id));
+        alert("Collaborateur supprimé ! (Attention: La suppression réelle de l'utilisateur doit être faite via Firebase Auth).");
+        setSelectedUser(null);
+        setIsDeleteDialogOpen(false);
+        fetchUsers();
+      } catch (error) {
+        console.error("Error deleting user: ", error);
+        alert("Erreur lors de la suppression du collaborateur.");
+      }
+    }
+  };
 
-    const handleSaveCollaborator = async (data: Omit<Collaborator, 'id'> | Collaborator, password?: string) => {
-        if ('id' in data) {
-            // Edit mode
-            try {
-                await updateCollaborator(data.id, { name: data.name, role: data.role });
-                toast({
-                    title: "Collaborateur mis à jour",
-                    description: `Le profil de ${data.name} a été mis à jour.`,
-                });
-            } catch (error: any) {
-                toast({ variant: "destructive", title: "Erreur", description: error.message });
-            }
-        } else {
-            // Add mode
-            if (!password) {
-                 toast({ variant: "destructive", title: "Erreur", description: "Le mot de passe est manquant." });
-                 return;
-            }
-            try {
-                await addCollaborator(data, password);
-                toast({
-                    title: "Collaborateur ajouté",
-                    description: `Le compte pour ${data.email} a été créé.`,
-                });
-            } catch (error: any) {
-                console.error("Error creating user:", error);
-                toast({
-                    variant: "destructive",
-                    title: "Erreur lors de la création",
-                    description: "Cette adresse e-mail est peut-être déjà utilisée.",
-                });
-            }
-        }
-    };
-
-
-    const handleDeleteRequest = (collaborator: Collaborator) => {
-        setCollaboratorToDelete(collaborator);
-    };
-
-    const handleConfirmDelete = async () => {
-        if (!collaboratorToDelete) return;
-        
-        try {
-            await deleteCollaborator(collaboratorToDelete.id);
-            toast({
-                variant: "destructive",
-                title: "Collaborateur supprimé",
-                description: `${collaboratorToDelete.name} a été retiré de la liste.`,
-            });
-        } catch (error: any) {
-             toast({
-                variant: "destructive",
-                title: "Erreur",
-                description: `Impossible de supprimer ${collaboratorToDelete.name}.`,
-            });
-        } finally {
-            setCollaboratorToDelete(null);
-        }
-    };
-
-    const roleTranslations: Record<CollaboratorRole, string> = {
-        'Admin': 'Administrateur',
-        'Employee': 'Employé'
-    };
-
+  if (loading) {
     return (
-        <>
-            <AlertDialog open={!!collaboratorToDelete} onOpenChange={(open) => !open && setCollaboratorToDelete(null)}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Cette action supprimera {collaboratorToDelete?.name} de la base de données. Note : Ceci ne supprime pas le compte utilisateur de l'authentification Firebase, qui doit être gérée manuellement depuis la console Firebase pour des raisons de sécurité.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => setCollaboratorToDelete(null)}>Annuler</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleConfirmDelete}>Confirmer</AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-            <AddOrEditCollaboratorDialog 
-                isOpen={isDialogOpen}
-                setIsOpen={setIsDialogOpen}
-                onSave={handleSaveCollaborator}
-                collaboratorToEdit={collaboratorToEdit}
-            />
-
-            <Card className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/50 dark:via-indigo-950/50 dark:to-purple-950/50">
-                <CardHeader>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <CardTitle>Collaborateurs</CardTitle>
-                            <CardDescription>Gérez les membres de votre équipe et leurs permissions.</CardDescription>
-                        </div>
-                        <Button size="sm" onClick={handleOpenAddDialog}>
-                            <PlusCircle className="mr-2 h-4 w-4" /> Ajouter un collaborateur
-                        </Button>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Nom</TableHead>
-                                <TableHead>Email</TableHead>
-                                <TableHead>Rôle</TableHead>
-                                <TableHead className="w-[50px] text-right">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                         {isLoading ? <CollaboratorListSkeleton /> : (
-                            <TableBody>
-                                {collaborators.map((collaborator) => (
-                                    <TableRow key={collaborator.id}>
-                                        <TableCell className="font-medium">{collaborator.name}</TableCell>
-                                        <TableCell>{collaborator.email}</TableCell>
-                                        <TableCell>
-                                            <Badge variant={collaborator.role === 'Admin' ? 'default' : 'secondary'}>
-                                                {collaborator.role === 'Admin' ? <ShieldCheck className="mr-2 h-4 w-4" /> : <User className="mr-2 h-4 w-4" />}
-                                                {roleTranslations[collaborator.role]}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" className="h-8 w-8 p-0" disabled={collaborator.id === currentUser?.id}>
-                                                        <span className="sr-only">Ouvrir le menu</span>
-                                                        <MoreHorizontal className="h-4 w-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                    <DropdownMenuItem onClick={() => handleOpenEditDialog(collaborator)}>
-                                                        Modifier
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuSeparator />
-                                                    <DropdownMenuItem 
-                                                        className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                                                        onClick={() => handleDeleteRequest(collaborator)}
-                                                    >
-                                                        Supprimer
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                         )}
-                    </Table>
-                </CardContent>
-            </Card>
-        </>
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
     );
+  }
+  
+  if (currentUser?.role !== 'Admin') {
+    return <div className="flex items-center justify-center h-full">Accès non autorisé.</div>;
+  }
+
+  return (
+    <div className="animate-fade-in-up">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Gestion des collaborateurs</h1>
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>Ajouter un collaborateur</Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Ajouter un nouveau collaborateur</DialogTitle>
+              <DialogDescription>
+                Remplissez les informations pour le nouveau collaborateur.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="name" className="text-right">Nom</Label>
+                <Input id="name" value={newUserName} onChange={(e) => setNewUserName(e.target.value)} className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="email" className="text-right">Email</Label>
+                <Input id="email" type="email" value={newUserEmail} onChange={(e) => setNewUserEmail(e.target.value)} className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="password" className="text-right">Mot de passe</Label>
+                <Input id="password" type="password" value={newUserPassword} onChange={(e) => setNewUserPassword(e.target.value)} className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="role" className="text-right">Rôle</Label>
+                <Select onValueChange={setNewUserRole} defaultValue={newUserRole}>
+                  <SelectTrigger className="col-span-3"><SelectValue placeholder="Sélectionner un rôle" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Admin">Admin</SelectItem>
+                    <SelectItem value="Employee">Employé</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button onClick={handleAddUser}>Ajouter</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="border rounded-lg">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nom</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Rôle</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {users.length > 0 ? (
+              users.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell className="font-medium">{user.name}</TableCell>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell>{user.role}</TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <span className="sr-only">Ouvrir le menu</span>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setEditUserName(user.name);
+                            setEditUserEmail(user.email);
+                            setEditUserRole(user.role);
+                            setEditUserPassword(user.password || "");
+                            setShowEditPassword(false); // Reset password visibility
+                            setIsEditDialogOpen(true);
+                          }}
+                        >
+                          Modifier
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setIsDeleteDialogOpen(true);
+                          }}
+                          className="text-red-600"
+                        >
+                          Supprimer
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    {/* Edit User Dialog */}
+                    <Dialog open={isEditDialogOpen && selectedUser?.id === user.id} onOpenChange={setIsEditDialogOpen}>
+                      <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                          <DialogTitle>Modifier le collaborateur</DialogTitle>
+                          <DialogDescription>
+                            Mettez à jour les informations du collaborateur.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="edit-name" className="text-right">Nom</Label>
+                            <Input id="edit-name" value={editUserName} onChange={(e) => setEditUserName(e.target.value)} className="col-span-3" />
+                          </div>
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="edit-email" className="text-right">Email</Label>
+                            <Input id="edit-email" type="email" value={editUserEmail} onChange={(e) => setEditUserEmail(e.target.value)} className="col-span-3" />
+                          </div>
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="edit-password" className="text-right">Mot de passe</Label>
+                            <div className="relative col-span-3">
+                              <Input
+                                id="edit-password"
+                                type={showEditPassword ? "text" : "password"}
+                                value={editUserPassword}
+                                onChange={(e) => setEditUserPassword(e.target.value)}
+                                className="pr-10"
+                                placeholder="Nouveau mot de passe"
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                onClick={() => setShowEditPassword((prev) => !prev)}
+                              >
+                                {showEditPassword ? (
+                                  <EyeOff className="h-4 w-4" aria-hidden="true" />
+                                ) : (
+                                  <Eye className="h-4 w-4" aria-hidden="true" />
+                                )}
+                                <span className="sr-only">Toggle password visibility</span>
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="edit-role" className="text-right">Rôle</Label>
+                            <Select onValueChange={setEditUserRole} defaultValue={editUserRole}>
+                              <SelectTrigger className="col-span-3"><SelectValue placeholder="Sélectionner un rôle" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Admin">Admin</SelectItem>
+                                <SelectItem value="Employee">Employé</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button onClick={handleEditUser}>Enregistrer les modifications</Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+
+                    {/* Delete User Dialog */}
+                    <Dialog open={isDeleteDialogOpen && selectedUser?.id === user.id} onOpenChange={setIsDeleteDialogOpen}>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Confirmer la suppression</DialogTitle>
+                          <DialogDescription>
+                            Êtes-vous sûr de vouloir supprimer le collaborateur {selectedUser?.name} ? Cette action est irréversible.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                          <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Annuler</Button>
+                          <Button variant="destructive" onClick={handleDeleteUser}>Supprimer</Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center h-24">
+                  Aucun collaborateur trouvé.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
 }
