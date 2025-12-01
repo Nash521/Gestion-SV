@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, doc, updateDoc, deleteDoc, addDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase/client';
+import { collection, getDocs, doc, updateDoc, deleteDoc, addDoc, setDoc } from 'firebase/firestore';
+import { db, auth as firebaseAuth } from '@/lib/firebase/client';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -33,6 +33,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { addCollaborator } from '@/lib/firebase/services'; // Make sure this function is implemented correctly
 
 export default function CollaboratorsPage() {
   const { currentUser, loading } = useAuth();
@@ -48,7 +49,6 @@ export default function CollaboratorsPage() {
 
   const [editUserName, setEditUserName] = useState("");
   const [editUserEmail, setEditUserEmail] = useState("");
-  const [editUserPassword, setEditUserPassword] = useState("");
   const [editUserRole, setEditUserRole] = useState("");
   const [showEditPassword, setShowEditPassword] = useState(false);
 
@@ -68,14 +68,12 @@ export default function CollaboratorsPage() {
   const handleAddUser = async () => {
     if (newUserName && newUserEmail && newUserPassword && newUserRole) {
       try {
-        console.warn("WARNING: Storing passwords directly in Firestore is INSECURE for production apps. Use Firebase Authentication.");
-        await addDoc(collection(db, "collaborators"), {
+        await addCollaborator({
           name: newUserName,
           email: newUserEmail,
           role: newUserRole,
-          password: newUserPassword, // Re-enabled for demo purposes. NOT SECURE.
-        });
-        alert("Collaborateur ajouté ! (Attention: Le mot de passe n'est pas géré de manière sécurisée dans cette démo).");
+        }, newUserPassword);
+        alert("Collaborateur ajouté avec succès !");
         setNewUserName("");
         setNewUserEmail("");
         setNewUserPassword("");
@@ -84,7 +82,7 @@ export default function CollaboratorsPage() {
         fetchUsers();
       } catch (error) {
         console.error("Error adding user: ", error);
-        alert("Erreur lors de l'ajout du collaborateur.");
+        alert(`Erreur lors de l'ajout du collaborateur: ${error.message}`);
       }
     }
   };
@@ -93,22 +91,17 @@ export default function CollaboratorsPage() {
     if (selectedUser && editUserName && editUserEmail && editUserRole) {
       try {
         const userDocRef = doc(db, "collaborators", selectedUser.id);
-        const updateData: { name: string; email: string; role: string; password?: string } = {
+        const updateData = {
           name: editUserName,
           email: editUserEmail,
           role: editUserRole,
         };
-        if (editUserPassword) {
-          console.warn("WARNING: Updating passwords directly in Firestore is INSECURE for production apps. Use Firebase Authentication.");
-          updateData.password = editUserPassword; // Re-enabled for demo purposes. NOT SECURE.
-          alert("Mot de passe mis à jour ! (Attention: Le mot de passe n'est pas géré de manière sécurisée dans cette démo).");
-        }
-
+        
         await updateDoc(userDocRef, updateData);
+
         alert("Collaborateur mis à jour !");
         setEditUserName("");
         setEditUserEmail("");
-        setEditUserPassword("");
         setEditUserRole("");
         setSelectedUser(null);
         setIsEditDialogOpen(false);
@@ -123,9 +116,10 @@ export default function CollaboratorsPage() {
   const handleDeleteUser = async () => {
     if (selectedUser) {
       try {
+        // This only deletes the Firestore record. Deleting from Firebase Auth should be done in a Cloud Function for security.
         console.warn("WARNING: Deleting users directly from Firestore without Firebase Authentication is INSECURE and incomplete for production apps.");
         await deleteDoc(doc(db, "collaborators", selectedUser.id));
-        alert("Collaborateur supprimé ! (Attention: La suppression réelle de l'utilisateur doit être faite via Firebase Auth).");
+        alert("Collaborateur supprimé de la liste ! (La suppression de l'authentification doit être faite côté serveur).");
         setSelectedUser(null);
         setIsDeleteDialogOpen(false);
         fetchUsers();
@@ -227,8 +221,6 @@ export default function CollaboratorsPage() {
                             setEditUserName(user.name);
                             setEditUserEmail(user.email);
                             setEditUserRole(user.role);
-                            setEditUserPassword(user.password || "");
-                            setShowEditPassword(false); // Reset password visibility
                             setIsEditDialogOpen(true);
                           }}
                         >
@@ -266,33 +258,6 @@ export default function CollaboratorsPage() {
                             <Input id="edit-email" type="email" value={editUserEmail} onChange={(e) => setEditUserEmail(e.target.value)} className="col-span-3" />
                           </div>
                           <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="edit-password" className="text-right">Mot de passe</Label>
-                            <div className="relative col-span-3">
-                              <Input
-                                id="edit-password"
-                                type={showEditPassword ? "text" : "password"}
-                                value={editUserPassword}
-                                onChange={(e) => setEditUserPassword(e.target.value)}
-                                className="pr-10"
-                                placeholder="Nouveau mot de passe"
-                              />
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                                onClick={() => setShowEditPassword((prev) => !prev)}
-                              >
-                                {showEditPassword ? (
-                                  <EyeOff className="h-4 w-4" aria-hidden="true" />
-                                ) : (
-                                  <Eye className="h-4 w-4" aria-hidden="true" />
-                                )}
-                                <span className="sr-only">Toggle password visibility</span>
-                              </Button>
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="edit-role" className="text-right">Rôle</Label>
                             <Select onValueChange={setEditUserRole} defaultValue={editUserRole}>
                               <SelectTrigger className="col-span-3"><SelectValue placeholder="Sélectionner un rôle" /></SelectTrigger>
@@ -302,6 +267,7 @@ export default function CollaboratorsPage() {
                               </SelectContent>
                             </Select>
                           </div>
+                          <p className='text-sm text-muted-foreground text-center pt-2'>La modification du mot de passe doit être gérée via un flux de réinitialisation sécurisé.</p>
                         </div>
                         <DialogFooter>
                           <Button onClick={handleEditUser}>Enregistrer les modifications</Button>
