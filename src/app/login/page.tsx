@@ -41,13 +41,11 @@ export default function LoginPage() {
             });
             router.push('/dashboard');
         } catch (err: any) {
-             console.error("Login error code:", err.code);
             if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
                  setError("L'adresse e-mail ou le mot de passe est incorrect.");
             } else {
                 setError("Une erreur inattendue est survenue.");
             }
-            console.error(err);
         } finally {
             setIsLoading(false);
         }
