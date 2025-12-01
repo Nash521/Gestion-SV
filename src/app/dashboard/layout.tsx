@@ -37,6 +37,14 @@ const searchablePages = [
     '/dashboard/prospects',
 ];
 
+const employeeAllowedPaths = [
+    '/dashboard/prospects',
+    '/dashboard/invoices',
+    '/dashboard/purchase-orders',
+    '/dashboard/delivery-notes',
+    '/dashboard/clients',
+    '/dashboard/notifications',
+];
 
 export default function DashboardLayout({
   children,
@@ -52,8 +60,12 @@ export default function DashboardLayout({
     if (!loading && !currentUser) {
       router.push('/login');
     }
-     if (!loading && currentUser?.role === 'Employee' && pathname !== '/dashboard/prospects') {
-      router.push('/dashboard/prospects');
+    
+    if (!loading && currentUser?.role === 'Employee') {
+        const isAllowed = employeeAllowedPaths.some(allowedPath => pathname.startsWith(allowedPath));
+        if (!isAllowed) {
+            router.push('/dashboard/prospects');
+        }
     }
   }, [currentUser, loading, router, pathname]);
 
