@@ -66,7 +66,7 @@ const initialLabels = [
 ];
 
 const colorPalette = ['bg-red-500', 'bg-purple-500', 'bg-blue-500', 'bg-green-500', 'bg-orange-500', 'bg-pink-500', 'bg-yellow-500', 'bg-indigo-500', 'bg-teal-500'];
-const taskColorPalette = ['border-red-500', 'border-purple-500', 'border-blue-500', 'border-green-500', 'border-orange-500', 'border-pink-500', 'border-yellow-500', 'border-indigo-500', 'border-teal-500'];
+const taskColorPalette = ['bg-red-200/50 dark:bg-red-900/30', 'bg-purple-200/50 dark:bg-purple-900/30', 'bg-blue-200/50 dark:bg-blue-900/30', 'bg-green-200/50 dark:bg-green-900/30', 'bg-orange-200/50 dark:bg-orange-900/30', 'bg-pink-200/50 dark:bg-pink-900/30', 'bg-yellow-200/50 dark:bg-yellow-900/30', 'bg-indigo-200/50 dark:bg-indigo-900/30', 'bg-teal-200/50 dark:bg-teal-900/30'];
 
 
 const listColorPalette = [
@@ -139,9 +139,9 @@ const TaskCard = ({ task, collaborators, onTaskClick, availableLabels, onSetColo
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
         <Card 
             className={cn(
-                "mb-4 bg-background/80 backdrop-blur-sm hover:shadow-lg transition-shadow duration-200 cursor-pointer relative group/task",
+                "mb-4 backdrop-blur-sm hover:shadow-lg transition-shadow duration-200 cursor-pointer relative group/task",
                 task.completed && "opacity-60",
-                task.color && `border-l-4 ${task.color}`
+                task.color ? task.color : "bg-background/80"
             )}
         >
         <CardContent 
@@ -181,7 +181,7 @@ const TaskCard = ({ task, collaborators, onTaskClick, availableLabels, onSetColo
                                                 className="h-6 w-6 rounded-full"
                                                 onClick={() => onSetColor(colorClass)}
                                             >
-                                                <div className={cn("h-4 w-4 rounded-full border", colorClass.replace('border-', 'bg-'))} />
+                                                <div className={cn("h-4 w-4 rounded-full border", colorClass)} />
                                             </Button>
                                         ))}
                                         <Button
