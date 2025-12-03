@@ -243,7 +243,7 @@ const TaskListColumn = ({ list, tasks, collaborators, onTaskClick, onAddTask, av
                                         variant="outline"
                                         size="icon"
                                         className="h-8 w-8"
-                                        onClick={() => updateTaskListColor(projectId, list.id, color)}
+                                        onClick={() => onListColorChange(list.id, color)}
                                     >
                                         <div className={cn("h-4 w-4 rounded-full", color)} />
                                     </Button>
@@ -956,7 +956,7 @@ export const ProjectBoard = ({ project, lists, tasks: initialTasks, collaborator
                                 onTaskClick={handleOpenTaskDialog}
                                 onAddTask={handleOpenAddTaskDialog}
                                 availableLabels={availableLabels}
-                                onListColorChange={updateTaskListColor}
+                                onListColorChange={(listId, color) => updateTaskListColor(project.id, listId, color)}
                             />
                         );
                     })}
