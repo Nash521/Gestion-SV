@@ -44,6 +44,7 @@ const employeeAllowedPaths = [
     '/dashboard/delivery-notes',
     '/dashboard/clients',
     '/dashboard/notifications',
+    '/dashboard/subcontractors',
 ];
 
 export default function DashboardLayout({
