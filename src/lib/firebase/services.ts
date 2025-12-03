@@ -697,6 +697,10 @@ export const updateProjectTask = async (projectId: string, taskId: string, taskD
     return updateDoc(doc(db, 'projects', projectId, 'tasks', taskId), payload);
 };
 
+export const deleteProjectTask = async (projectId: string, taskId: string) => {
+    return deleteDoc(doc(db, 'projects', projectId, 'tasks', taskId));
+};
+
 export const updateTaskListColor = async (projectId: string, listId: string, color: string) => {
     return updateDoc(doc(db, "projects", projectId, "lists", listId), { color });
 };

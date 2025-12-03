@@ -116,6 +116,7 @@ export type ProjectTask = {
   completed?: boolean;
   checklist?: ChecklistItem[];
   attachments?: Attachment[];
+  color?: string; // e.g., 'border-red-500'
 };
 
 export type TaskList = {

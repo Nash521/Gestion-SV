@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import type { Project, TaskList, ProjectTask, Collaborator, ChecklistItem, Attachment } from '@/lib/definitions';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Plus, Tag, X, Calendar as CalendarSwitchIcon, Paperclip, CheckSquare, CalendarIcon, Settings, Trash2, File as FileIcon, LayoutGrid, List, BarChartHorizontal, Palette } from 'lucide-react';
+import { MoreHorizontal, Plus, Tag, X, Calendar as CalendarSwitchIcon, Paperclip, CheckSquare, CalendarIcon, Settings, Trash2, File as FileIcon, LayoutGrid, List, BarChartHorizontal, Palette, CheckCircle, CircleDot } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -16,6 +16,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuPortal,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -53,7 +54,7 @@ import {
 } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { addProjectTask, updateProjectTask, reorderTasks, updateTaskListColor } from '@/lib/firebase/services';
+import { addProjectTask, updateProjectTask, deleteProjectTask, reorderTasks, updateTaskListColor } from '@/lib/firebase/services';
 
 const initialLabels = [
     { name: 'Urgent', color: 'bg-red-500' },
@@ -65,6 +66,8 @@ const initialLabels = [
 ];
 
 const colorPalette = ['bg-red-500', 'bg-purple-500', 'bg-blue-500', 'bg-green-500', 'bg-orange-500', 'bg-pink-500', 'bg-yellow-500', 'bg-indigo-500', 'bg-teal-500'];
+const taskColorPalette = ['border-red-500', 'border-purple-500', 'border-blue-500', 'border-green-500', 'border-orange-500', 'border-pink-500', 'border-yellow-500', 'border-indigo-500', 'border-teal-500'];
+
 
 const listColorPalette = [
     'bg-gray-100 dark:bg-gray-900/30',
@@ -82,9 +85,12 @@ interface TaskCardProps {
   collaborators: Collaborator[];
   onTaskClick: (task: ProjectTask) => void;
   availableLabels: { name: string; color: string }[];
+  onSetColor: (color: string) => void;
+  onSetCompleted: (completed: boolean) => void;
+  onDelete: () => void;
 }
 
-const TaskCard = ({ task, collaborators, onTaskClick, availableLabels }: TaskCardProps) => {
+const TaskCard = ({ task, collaborators, onTaskClick, availableLabels, onSetColor, onSetCompleted, onDelete }: TaskCardProps) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
     data: {
@@ -132,10 +138,73 @@ const TaskCard = ({ task, collaborators, onTaskClick, availableLabels }: TaskCar
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
         <Card 
-        className="mb-4 bg-background/80 backdrop-blur-sm hover:shadow-lg transition-shadow duration-200 cursor-pointer"
-        onClick={() => onTaskClick(task)}
+            className={cn(
+                "mb-4 bg-background/80 backdrop-blur-sm hover:shadow-lg transition-shadow duration-200 cursor-pointer relative group/task",
+                task.completed && "opacity-60",
+                task.color && `border-l-4 ${task.color}`
+            )}
         >
-        <CardContent className="p-3 space-y-3">
+        <CardContent 
+            className={cn("p-3 space-y-3", task.completed && "line-through text-muted-foreground")}
+            onClick={() => onTaskClick(task)}
+        >
+            <div className="absolute top-1 right-1">
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                         <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 opacity-0 group-hover/task:opacity-100"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <MoreHorizontal className="h-4 w-4"/>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenuItem onClick={() => onSetCompleted(!task.completed)}>
+                            {task.completed ? <CircleDot className="mr-2 h-4 w-4" /> : <CheckCircle className="mr-2 h-4 w-4" />}
+                            {task.completed ? 'Marquer comme non terminée' : 'Marquer comme terminée'}
+                        </DropdownMenuItem>
+                        <DropdownMenuSub>
+                            <DropdownMenuSubTrigger>
+                                <Palette className="mr-2 h-4 w-4"/>
+                                Changer la couleur
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuPortal>
+                                <DropdownMenuSubContent>
+                                    <div className="grid grid-cols-5 gap-1 p-1">
+                                        {taskColorPalette.map(colorClass => (
+                                            <Button
+                                                key={colorClass}
+                                                variant="outline"
+                                                size="icon"
+                                                className="h-6 w-6 rounded-full"
+                                                onClick={() => onSetColor(colorClass)}
+                                            >
+                                                <div className={cn("h-4 w-4 rounded-full border", colorClass.replace('border-', 'bg-'))} />
+                                            </Button>
+                                        ))}
+                                        <Button
+                                            variant="outline"
+                                            size="icon"
+                                            className="h-6 w-6 rounded-full"
+                                            onClick={() => onSetColor('')}
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </DropdownMenuSubContent>
+                            </DropdownMenuPortal>
+                        </DropdownMenuSub>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={onDelete}>
+                            <Trash2 className="mr-2 h-4 w-4"/>
+                            Supprimer
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
+
             {task.labels && task.labels.length > 0 && (
             <div className="flex flex-wrap gap-1">
                 {task.labels.map(labelName => {
@@ -148,7 +217,7 @@ const TaskCard = ({ task, collaborators, onTaskClick, availableLabels }: TaskCar
                 })}
             </div>
             )}
-            <p className="font-medium text-sm">{task.title}</p>
+            <p className="font-medium text-sm pr-6">{task.title}</p>
             
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
             {task.dueDate && (
@@ -203,9 +272,11 @@ interface TaskListColumnProps {
   availableLabels: { name: string; color: string }[];
   onListColorChange: (listId: string, color: string) => void;
   projectId: string;
+  onUpdateTask: (projectId: string, taskId: string, data: Partial<ProjectTask>) => void;
+  onDeleteTask: (projectId: string, taskId: string) => void;
 }
 
-const TaskListColumn = ({ list, tasks, collaborators, onTaskClick, onAddTask, availableLabels, onListColorChange, projectId }: TaskListColumnProps) => {
+const TaskListColumn = ({ list, tasks, collaborators, onTaskClick, onAddTask, availableLabels, onListColorChange, projectId, onUpdateTask, onDeleteTask }: TaskListColumnProps) => {
     const { setNodeRef } = useSortable({
       id: list.id,
       data: {
@@ -260,7 +331,16 @@ const TaskListColumn = ({ list, tasks, collaborators, onTaskClick, onAddTask, av
         <SortableContext items={tasksIds}>
             <div className="pr-1">
             {tasks.map(task => (
-                <TaskCard key={task.id} task={task} collaborators={collaborators} onTaskClick={onTaskClick} availableLabels={availableLabels} />
+                <TaskCard 
+                    key={task.id} 
+                    task={task} 
+                    collaborators={collaborators} 
+                    onTaskClick={onTaskClick} 
+                    availableLabels={availableLabels}
+                    onSetColor={(color) => onUpdateTask(projectId, task.id, { color })}
+                    onSetCompleted={(completed) => onUpdateTask(projectId, task.id, { completed })}
+                    onDelete={() => onDeleteTask(projectId, task.id)}
+                />
             ))}
             </div>
         </SortableContext>
@@ -741,6 +821,7 @@ export const ProjectBoard = ({ project, lists, tasks: initialTasks, collaborator
             dueDate: undefined,
             checklist: [],
             attachments: [],
+            completed: false,
         });
         setIsTaskDialogOpen(true);
     };
@@ -763,6 +844,15 @@ export const ProjectBoard = ({ project, lists, tasks: initialTasks, collaborator
         setIsTaskDialogOpen(false);
     };
     
+    const handleDeleteTask = async (projectId: string, taskId: string) => {
+        await deleteProjectTask(projectId, taskId);
+        toast({
+            variant: 'destructive',
+            title: 'Tâche supprimée',
+            description: 'La tâche a été supprimée avec succès.',
+        });
+    }
+
     const handleLabelsChange = (newLabels: { name: string; color: string }[]) => {
         const oldLabels = availableLabels;
         setAvailableLabels(newLabels);
@@ -957,6 +1047,8 @@ export const ProjectBoard = ({ project, lists, tasks: initialTasks, collaborator
                                 onAddTask={handleOpenAddTaskDialog}
                                 availableLabels={availableLabels}
                                 onListColorChange={(listId, color) => updateTaskListColor(project.id, listId, color)}
+                                onUpdateTask={updateProjectTask}
+                                onDeleteTask={handleDeleteTask}
                             />
                         );
                     })}
