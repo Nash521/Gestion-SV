@@ -1,6 +1,6 @@
 import { db, auth } from './client';
 import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, onSnapshot, getDoc, Timestamp, where, writeBatch, setDoc, orderBy, limit } from 'firebase/firestore';
-import type { Client, Invoice, PurchaseOrder, DeliveryNote, LineItem, Transaction, CashRegister, Subcontractor, SubcontractorService, Project, TaskList, ProjectTask, Collaborator, AppNotification } from '../definitions';
+import type { Client, Invoice, PurchaseOrder, DeliveryNote, LineItem, Transaction, CashRegister, Subcontractor, SubcontractorService, Project, TaskList, ProjectTask, Collaborator, AppNotification, Prospect } from '../definitions';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 
 
@@ -61,6 +61,36 @@ export const deleteClient = async (id: string) => {
         throw new Error("Could not delete client");
     }
 };
+
+// Prospect Services
+export const subscribeToProspects = (callback: (data: Prospect[]) => void) => {
+    const q = query(collection(db, 'prospects'), orderBy('date', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        const prospectsData = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            date: doc.data().date.toDate(),
+        } as Prospect));
+        callback(prospectsData);
+    });
+    return unsubscribe;
+};
+
+export const addProspect = (data: Omit<Prospect, 'id'>) => {
+    return addDoc(collection(db, 'prospects'), {
+        ...data,
+        date: Timestamp.fromDate(data.date),
+    });
+};
+export const updateProspect = (id: string, data: Partial<Omit<Prospect, 'id'>>) => {
+    const payload: Partial<Omit<Prospect, 'id' | 'date'> & { date?: Timestamp }> = {...data};
+    if (data.date) {
+        payload.date = Timestamp.fromDate(data.date);
+    }
+    return updateDoc(doc(db, 'prospects', id), payload);
+};
+export const deleteProspect = (id: string) => deleteDoc(doc(db, 'prospects', id));
+export const addClientFromProspect = (data: Omit<Client, 'id'>) => addDoc(collection(db, 'clients'), data);
 
 
 // Invoice Services

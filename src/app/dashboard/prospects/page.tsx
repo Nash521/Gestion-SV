@@ -1,39 +1,27 @@
 "use client";
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import type { Client } from '@/lib/definitions'; // Re-using Client type for prospects for simplicity
+import type { Prospect, Client } from '@/lib/definitions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { MoreHorizontal, PlusCircle, Mail, MessageSquare, UserPlus } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Mail, MessageSquare, UserPlus, CalendarIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
 import { useNotifications } from '@/contexts/notification-context';
-import { addDoc, updateDoc, deleteDoc, onSnapshot, collection, doc } from 'firebase/firestore';
-import { db } from '@/lib/firebase/client';
+import { subscribeToProspects, addProspect, updateProspect, deleteProspect, addClientFromProspect } from '@/lib/firebase/services';
 import { Skeleton } from '@/components/ui/skeleton';
-
-// For simplicity, we'll name the collection 'prospects' but reuse the Client type
-type Prospect = Client;
-
-const subscribeToProspects = (callback: (data: Prospect[]) => void) => {
-    const prospectsCollection = collection(db, 'prospects');
-    return onSnapshot(prospectsCollection, (snapshot) => {
-        const prospectsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Prospect));
-        callback(prospectsData);
-    });
-};
-
-const addProspect = (data: Omit<Prospect, 'id'>) => addDoc(collection(db, 'prospects'), data);
-const updateProspect = (id: string, data: Partial<Prospect>) => updateDoc(doc(db, 'prospects', id), data);
-const deleteProspect = (id: string) => deleteDoc(doc(db, 'prospects', id));
-const addClientFromProspect = (data: Omit<Client, 'id'>) => addDoc(collection(db, 'clients'), data);
-
+import { Textarea } from '@/components/ui/textarea';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 const AddOrEditProspectDialog = ({
     isOpen,
@@ -47,33 +35,33 @@ const AddOrEditProspectDialog = ({
     prospectToEdit?: Prospect | null;
 }) => {
     const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
-    const [address, setAddress] = useState('');
     const [phone, setPhone] = useState('');
+    const [date, setDate] = useState<Date | undefined>(new Date());
+    const [need, setNeed] = useState('');
 
     const isEditMode = !!prospectToEdit;
 
     useEffect(() => {
         if (isEditMode && prospectToEdit) {
             setName(prospectToEdit.name);
-            setEmail(prospectToEdit.email);
-            setAddress(prospectToEdit.address);
             setPhone(prospectToEdit.phone || '');
+            setDate(new Date(prospectToEdit.date));
+            setNeed(prospectToEdit.need);
         } else {
             setName('');
-            setEmail('');
-            setAddress('');
             setPhone('');
+            setDate(new Date());
+            setNeed('');
         }
     }, [prospectToEdit, isEditMode, isOpen]);
 
     const handleSubmit = () => {
-        if (!name || !email) {
-            alert('Veuillez remplir le nom et l\'email.');
+        if (!name || !need || !date) {
+            alert('Veuillez remplir tous les champs obligatoires.');
             return;
         }
 
-        const prospectData = { name, email, address, phone };
+        const prospectData = { name, phone, date, need };
 
         if (isEditMode && prospectToEdit) {
             onSave({ ...prospectData, id: prospectToEdit.id });
@@ -85,7 +73,7 @@ const AddOrEditProspectDialog = ({
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[525px]">
                 <DialogHeader>
                     <DialogTitle>{isEditMode ? 'Modifier le prospect' : 'Nouveau prospect'}</DialogTitle>
                     <DialogDescription>
@@ -93,21 +81,43 @@ const AddOrEditProspectDialog = ({
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="name" className="text-right">Nom</Label>
-                        <Input id="name" value={name} onChange={e => setName(e.target.value)} className="col-span-3" />
+                    <div className="space-y-2">
+                        <Label htmlFor="name">Nom et Prénom(s)</Label>
+                        <Input id="name" value={name} onChange={e => setName(e.target.value)} />
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="email" className="text-right">Email</Label>
-                        <Input id="email" value={email} onChange={e => setEmail(e.target.value)} className="col-span-3" />
+                     <div className="space-y-2">
+                        <Label htmlFor="phone">Téléphone</Label>
+                        <Input id="phone" value={phone} onChange={e => setPhone(e.target.value)} />
                     </div>
-                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="address" className="text-right">Adresse</Label>
-                        <Input id="address" value={address} onChange={e => setAddress(e.target.value)} className="col-span-3" placeholder="Optionnel" />
+                    <div className="space-y-2">
+                        <Label>Date</Label>
+                         <Popover>
+                            <PopoverTrigger asChild>
+                                 <Button
+                                    variant={"outline"}
+                                    className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !date && "text-muted-foreground"
+                                    )}
+                                >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {date ? format(date, "PPP", {locale: fr}) : <span>Choisir une date</span>}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                                <Calendar
+                                    mode="single"
+                                    selected={date}
+                                    onSelect={setDate}
+                                    initialFocus
+                                    locale={fr}
+                                />
+                            </PopoverContent>
+                        </Popover>
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="phone" className="text-right">Téléphone</Label>
-                        <Input id="phone" value={phone} onChange={e => setPhone(e.target.value)} className="col-span-3" placeholder="Optionnel" />
+                    <div className="space-y-2">
+                        <Label htmlFor="need">Besoin</Label>
+                        <Textarea id="need" value={need} onChange={e => setNeed(e.target.value)} />
                     </div>
                 </div>
                 <DialogFooter>
@@ -207,11 +217,13 @@ export default function ProspectsPage() {
 
   const handleConvertToClient = async (prospect: Prospect) => {
     try {
-        // Add to clients collection
+        // Here you decide what to do with the prospect data.
+        // A simple conversion might use the name and phone.
+        // The email and address fields are missing from the new prospect form.
         await addClientFromProspect({
             name: prospect.name,
-            email: prospect.email,
-            address: prospect.address,
+            email: `prospect-${prospect.id}@example.com`, // Placeholder email
+            address: 'Adresse non spécifiée', // Placeholder address
             phone: prospect.phone,
         });
 
@@ -239,7 +251,7 @@ export default function ProspectsPage() {
 
     return prospects.filter(p =>
       p.name.toLowerCase().includes(searchQuery) ||
-      p.email.toLowerCase().includes(searchQuery)
+      p.need.toLowerCase().includes(searchQuery)
     );
   }, [prospects, searchQuery]);
 
@@ -249,6 +261,7 @@ export default function ProspectsPage() {
              <TableRow key={i}>
                 <TableCell><Skeleton className="h-5 w-32" /></TableCell>
                 <TableCell><Skeleton className="h-5 w-40" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                 <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                 <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
             </TableRow>
@@ -296,19 +309,21 @@ export default function ProspectsPage() {
             <Table>
             <TableHeader>
                 <TableRow>
-                <TableHead>Nom</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Téléphone</TableHead>
-                <TableHead className="w-[50px] text-right">Actions</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Nom et Prénom(s)</TableHead>
+                    <TableHead>Téléphone</TableHead>
+                    <TableHead>Besoin</TableHead>
+                    <TableHead className="w-[50px] text-right">Actions</TableHead>
                 </TableRow>
             </TableHeader>
             {isLoading ? <ListSkeleton /> : (
             <TableBody>
                 {filteredProspects.map((prospect) => (
                 <TableRow key={prospect.id}>
+                    <TableCell>{format(prospect.date, 'PPP', { locale: fr })}</TableCell>
                     <TableCell className="font-medium">{prospect.name}</TableCell>
-                    <TableCell>{prospect.email}</TableCell>
                     <TableCell>{prospect.phone || 'N/A'}</TableCell>
+                    <TableCell className="max-w-xs truncate">{prospect.need}</TableCell>
                     <TableCell className="text-right">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -325,12 +340,6 @@ export default function ProspectsPage() {
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => handleOpenEditDialog(prospect)}>Modifier</DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem asChild>
-                                    <a href={`mailto:${prospect.email}`} className="flex items-center">
-                                        <Mail className="mr-2 h-4 w-4"/>
-                                        <span>Contacter par Email</span>
-                                    </a>
-                                </DropdownMenuItem>
                                 {prospect.phone && (
                                     <DropdownMenuItem asChild>
                                         <a href={`https://wa.me/${prospect.phone.replace(/\+/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center">

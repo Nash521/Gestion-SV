@@ -6,6 +6,14 @@ export type Client = {
   phone?: string;
 };
 
+export type Prospect = {
+  id: string;
+  name: string;
+  date: Date;
+  need: string;
+  phone?: string;
+};
+
 export type LineItem = {
   id?: string;
   description: string;
@@ -116,7 +124,7 @@ export type ProjectTask = {
   completed?: boolean;
   checklist?: ChecklistItem[];
   attachments?: Attachment[];
-  color?: string; // e.g., 'border-red-500'
+  color?: string; // e.g., 'bg-red-200/50 dark:bg-red-900/30'
 };
 
 export type TaskList = {
