@@ -201,13 +201,13 @@ const Sidebar = React.forwardRef<
             data-sidebar="sidebar"
             data-mobile="true"
             className="w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
-             style={{
-                "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
-                background: "var(--sidebar-background)"
-              } as React.CSSProperties}
+            style={{
+              "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
+              background: "var(--sidebar-background)"
+            } as React.CSSProperties}
             side={side}
           >
-             <SheetHeader className="sr-only">
+            <SheetHeader className="sr-only">
               <SheetTitle>Navigation principale</SheetTitle>
             </SheetHeader>
             <div className="flex h-full w-full flex-col">{children}</div>
@@ -221,8 +221,8 @@ const Sidebar = React.forwardRef<
         ref={ref}
         className={cn(
           "hidden h-screen flex-col text-sidebar-foreground md:flex sticky top-0",
-          "group-data-[state=collapsed]:w-[--sidebar-width-icon]",
-          "group-data-[state=expanded]:w-[--sidebar-width]",
+          "group-data-[state=collapsed]/sidebar-wrapper:w-[--sidebar-width-icon]",
+          "group-data-[state=expanded]/sidebar-wrapper:w-[--sidebar-width]",
           "transition-all duration-200",
           className
         )}
@@ -232,12 +232,12 @@ const Sidebar = React.forwardRef<
         data-side={side}
       >
         <div
-            data-sidebar="sidebar"
-            className="flex h-full w-full flex-col bg-sidebar shadow-glow-blue"
-             style={{ background: "var(--sidebar-background)" }}
-          >
-            {children}
-          </div>
+          data-sidebar="sidebar"
+          className="flex h-full w-full flex-col bg-sidebar shadow-glow-blue"
+          style={{ background: "var(--sidebar-background)" }}
+        >
+          {children}
+        </div>
       </div>
     )
   }
@@ -598,7 +598,7 @@ const SidebarMenuAction = React.forwardRef<
         "peer-data-[size=lg]/menu-button:top-2.5",
         "group-data-[collapsible=icon]:hidden",
         showOnHover &&
-          "group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 peer-data-[active=true]/menu-button:text-foreground md:opacity-0",
+        "group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 peer-data-[active=true]/menu-button:text-foreground md:opacity-0",
         className
       )}
       {...props}
