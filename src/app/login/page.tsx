@@ -14,7 +14,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 export default function LoginPage() {
     const router = useRouter();
     const { toast } = useToast();
-    const { login, currentUser, loading } = useAuth(); // Get currentUser and loading from auth context
+    const { login, currentUser, loading, firebaseConfigured } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
     const [email, setEmail] = useState('test-admin@gestiosv.com');
     const [password, setPassword] = useState('password');
@@ -43,6 +43,8 @@ export default function LoginPage() {
         } catch (err: any) {
             if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
                  setError("L'adresse e-mail ou le mot de passe est incorrect.");
+            } else if (err.message === 'firebase/not-configured') {
+                setError("Firebase n'est pas configure. Ajoute les variables NEXT_PUBLIC_FIREBASE_* dans .env.local.");
             } else {
                 setError("Une erreur inattendue est survenue.");
             }
@@ -76,6 +78,13 @@ export default function LoginPage() {
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleLogin} className="space-y-4">
+                        {!firebaseConfigured && (
+                            <Alert>
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertTitle>Configuration Firebase manquante</AlertTitle>
+                                <AlertDescription>Ajoute les variables NEXT_PUBLIC_FIREBASE_* dans le fichier .env.local puis redemarre le serveur.</AlertDescription>
+                            </Alert>
+                        )}
                         {error && (
                             <Alert variant="destructive">
                                 <AlertCircle className="h-4 w-4" />
@@ -121,7 +130,7 @@ export default function LoginPage() {
                                 </Button>
                             </div>
                         </div>
-                        <Button type="submit" className="w-full" disabled={isLoading}>
+                        <Button type="submit" className="w-full" disabled={isLoading || !firebaseConfigured}>
                              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                             Se connecter
                         </Button>

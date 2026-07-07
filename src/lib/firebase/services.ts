@@ -1,6 +1,6 @@
 import { db, auth } from './client';
 import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, onSnapshot, getDoc, Timestamp, where, writeBatch, setDoc, orderBy, limit } from 'firebase/firestore';
-import type { Client, Invoice, PurchaseOrder, DeliveryNote, LineItem, Transaction, CashRegister, Subcontractor, SubcontractorService, Project, TaskList, ProjectTask, Collaborator, AppNotification, Prospect } from '../definitions';
+import type { Client, Invoice, PurchaseOrder, DeliveryNote, LineItem, Transaction, CashRegister, Subcontractor, SubcontractorService, Project, TaskList, ProjectTask, Collaborator, AppNotification, Prospect, TransactionImportSeed } from '../definitions';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 
 
@@ -83,9 +83,10 @@ export const addProspect = (data: Omit<Prospect, 'id'>) => {
     });
 };
 export const updateProspect = (id: string, data: Partial<Omit<Prospect, 'id'>>) => {
-    const payload: Partial<Omit<Prospect, 'id' | 'date'> & { date?: Timestamp }> = {...data};
-    if (data.date) {
-        payload.date = Timestamp.fromDate(data.date);
+    const { date, ...rest } = data;
+    const payload: Partial<Omit<Prospect, 'id' | 'date'> & { date?: Timestamp }> = { ...rest };
+    if (date) {
+        payload.date = Timestamp.fromDate(date);
     }
     return updateDoc(doc(db, 'prospects', id), payload);
 };
@@ -442,6 +443,43 @@ export const deleteDeliveryNote = async (id: string) => {
 
 
 // Accounting / Transaction Services
+const MAIN_CASH_REGISTER_NAME = 'Caisse principale';
+
+const normalizeTransactionSignaturePart = (value: string) => {
+    return value
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+        .trim();
+};
+
+const buildTransactionSignature = (transaction: { type: Transaction['type']; description: string; amount: number; date: Date | string; }) => {
+    const transactionDate = transaction.date instanceof Date ? transaction.date : new Date(transaction.date);
+    const formattedDate = Number.isNaN(transactionDate.getTime())
+        ? String(transaction.date)
+        : transactionDate.toISOString().slice(0, 10);
+
+    return [
+        transaction.type,
+        normalizeTransactionSignaturePart(transaction.description),
+        String(transaction.amount),
+        formattedDate,
+    ].join('::');
+};
+
+const getOrCreateCashRegisterId = async (cashRegisterName: string) => {
+    const registersSnapshot = await getDocs(collection(db, 'cashRegisters'));
+    const existingRegister = registersSnapshot.docs.find(doc => doc.data().name === cashRegisterName);
+
+    if (existingRegister) {
+        return existingRegister.id;
+    }
+
+    const newRegisterRef = await addDoc(collection(db, 'cashRegisters'), { name: cashRegisterName });
+    return newRegisterRef.id;
+};
+
 export const subscribeToTransactions = (callback: (transactions: Transaction[]) => void) => {
     const q = query(collection(db, 'transactions'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -454,6 +492,98 @@ export const subscribeToTransactions = (callback: (transactions: Transaction[]) 
     });
     return unsubscribe;
 }
+
+export const importTransactionSeeds = async (
+    transactionSeeds: TransactionImportSeed[],
+    options?: { cashRegisterName?: string; importSource?: string; }
+) => {
+    const cashRegisterId = await getOrCreateCashRegisterId(options?.cashRegisterName ?? MAIN_CASH_REGISTER_NAME);
+    const existingTransactionsSnapshot = await getDocs(collection(db, 'transactions'));
+
+    const existingSignatureToId = new Map<string, string>();
+    const existingSourceIdToId = new Map<string, string>();
+
+    existingTransactionsSnapshot.forEach(docSnapshot => {
+        const data = docSnapshot.data();
+        const signature = buildTransactionSignature({
+            type: data.type as Transaction['type'],
+            description: data.description as string,
+            amount: data.amount as number,
+            date: data.date?.toDate ? data.date.toDate() : data.date,
+        });
+
+        if (!existingSignatureToId.has(signature)) {
+            existingSignatureToId.set(signature, docSnapshot.id);
+        }
+
+        if (typeof data.importSourceId === 'string') {
+            existingSourceIdToId.set(data.importSourceId, docSnapshot.id);
+        }
+    });
+
+    const sourceIdToFirestoreId = new Map<string, string>();
+    const docsToCreate = transactionSeeds.filter(seed => {
+        const existingId = existingSourceIdToId.get(seed.sourceId)
+            ?? existingSignatureToId.get(buildTransactionSignature(seed));
+
+        if (existingId) {
+            sourceIdToFirestoreId.set(seed.sourceId, existingId);
+            return false;
+        }
+
+        return true;
+    });
+
+    const transactionRefs = new Map<string, ReturnType<typeof doc>>();
+    docsToCreate.forEach(seed => {
+        const docRef = doc(collection(db, 'transactions'));
+        transactionRefs.set(seed.sourceId, docRef);
+        sourceIdToFirestoreId.set(seed.sourceId, docRef.id);
+    });
+
+    if (docsToCreate.length > 0) {
+        const batch = writeBatch(db);
+
+        docsToCreate.forEach(seed => {
+            const docRef = transactionRefs.get(seed.sourceId);
+            if (!docRef) {
+                return;
+            }
+
+            const linkedExpenseIds = seed.type === 'income'
+                ? (seed.linkedSourceIds ?? [])
+                    .map(linkedSourceId => sourceIdToFirestoreId.get(linkedSourceId))
+                    .filter((linkedId): linkedId is string => Boolean(linkedId))
+                : [];
+
+            batch.set(docRef, {
+                type: seed.type,
+                description: seed.description,
+                category: seed.category,
+                amount: seed.amount,
+                date: Timestamp.fromDate(new Date(`${seed.date}T00:00:00`)),
+                cashRegisterId,
+                linkedExpenseIds,
+                advance: null,
+                remainder: null,
+                importSource: options?.importSource ?? 'excel-import',
+                importSourceId: seed.sourceId,
+            });
+        });
+
+        await batch.commit();
+    }
+
+    const linkedExpenseCount = transactionSeeds
+        .filter(seed => seed.type === 'income')
+        .reduce((total, seed) => total + (seed.linkedSourceIds?.length ?? 0), 0);
+
+    return {
+        createdCount: docsToCreate.length,
+        skippedCount: transactionSeeds.length - docsToCreate.length,
+        linkedExpenseCount,
+    };
+};
 
 export const addTransaction = async (transaction: Omit<Transaction, 'id' | 'date'> & { date?: Date }) => {
     const { date, ...rest } = transaction;
@@ -589,7 +719,7 @@ export const updateSubcontractor = async (id: string, subcontractorData: Omit<Su
     const addBatch = writeBatch(db);
     services.forEach(service => {
         const serviceRef = doc(servicesCollection); // Create new doc for each service
-        const { id: serviceId, ...serviceData } = service; // Remove potentially existing id
+        const serviceData = 'id' in service ? (({ id, ...rest }) => rest)(service) : service;
         addBatch.set(serviceRef, serviceData);
     });
     await addBatch.commit();
@@ -618,6 +748,9 @@ export const addCollaborator = async (collaboratorData: Omit<Collaborator, 'id'>
     // This function is complex because it involves two Firebase services.
     // In a real, secure application, this should be handled by a Cloud Function
     // to avoid exposing user creation to the client in this way and to handle errors robustly.
+    if (!auth) {
+        throw new Error('firebase/not-configured');
+    }
     
     // 1. Create the user in Firebase Authentication
     const userCredential = await createUserWithEmailAndPassword(auth, collaboratorData.email, password);

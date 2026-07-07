@@ -24,10 +24,11 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/auth-context';
-import { subscribeToTransactions, addTransaction, updateTransaction, deleteTransaction, subscribeToCashRegisters } from '@/lib/firebase/services';
+import { subscribeToTransactions, addTransaction, updateTransaction, deleteTransaction, subscribeToCashRegisters, importTransactionSeeds } from '@/lib/firebase/services';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { CAISSE_SMART_VISUEL_2026_IMPORT, CAISSE_SMART_VISUEL_2026_IMPORT_NAME } from '@/lib/generated/caisse-smart-visuel-2026';
 
 
 const TransactionTable = ({ 
@@ -617,6 +618,7 @@ export default function AccountingPage() {
     const [transactionToEdit, setTransactionToEdit] = useState<Transaction | null>(null);
     const [transactionToView, setTransactionToView] = useState<Transaction | null>(null);
     const [selectedCashRegister, setSelectedCashRegister] = useState<string>('all');
+    const [isImportingTemplate, setIsImportingTemplate] = useState(false);
     
     useEffect(() => {
         setIsLoading(true);
@@ -694,6 +696,37 @@ export default function AccountingPage() {
             toast({ variant: 'destructive', title: 'Erreur', description: "Impossible de supprimer la transaction." });
         } finally {
             setTransactionIdToDelete(null);
+        }
+    };
+
+
+    const handleImportTemplate = async () => {
+        if (typeof window !== 'undefined') {
+            const confirmed = window.confirm("Importer les transactions du fichier CAISSE SMART VISUEL 2026 dans la caisse principale ?");
+            if (!confirmed) {
+                return;
+            }
+        }
+
+        setIsImportingTemplate(true);
+        try {
+            const result = await importTransactionSeeds(CAISSE_SMART_VISUEL_2026_IMPORT, {
+                cashRegisterName: 'Caisse principale',
+                importSource: CAISSE_SMART_VISUEL_2026_IMPORT_NAME,
+            });
+
+            toast({
+                title: "Import comptable termine",
+                description: `${result.createdCount} transaction(s) importee(s), ${result.skippedCount} ignoree(s), ${result.linkedExpenseCount} depense(s) liee(s).`,
+            });
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Erreur',
+                description: "Impossible d'importer les transactions Excel.",
+            });
+        } finally {
+            setIsImportingTemplate(false);
         }
     };
 
@@ -942,6 +975,14 @@ export default function AccountingPage() {
                         </div>
                         <div className="flex items-center gap-2">
                              <ExportDialog onExport={handleExport} toast={toast} />
+                             <Button
+                                variant="outline"
+                                size="sm"
+                                disabled
+                                className="cursor-not-allowed border-slate-300 bg-slate-100 text-slate-500 opacity-70 hover:bg-slate-100 hover:text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-400"
+                            >
+                                {isImportingTemplate ? 'Import en cours...' : 'Importer la caisse 2026'}
+                            </Button>
                               <Button size="sm" onClick={handleOpenAddDialog}>
                                 <PlusCircle className="mr-2 h-4 w-4" /> Ajouter une transaction
                             </Button>

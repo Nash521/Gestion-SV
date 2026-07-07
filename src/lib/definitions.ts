@@ -68,6 +68,16 @@ export type Transaction = {
     remainder?: number;
 }
 
+export type TransactionImportSeed = {
+    sourceId: string;
+    type: 'income' | 'expense';
+    description: string;
+    category: string;
+    amount: number;
+    date: string;
+    linkedSourceIds?: string[];
+}
+
 export type CashRegister = {
     id: string;
     name: string;
