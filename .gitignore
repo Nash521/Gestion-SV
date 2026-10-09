@@ -39,6 +39,8 @@ next-env.d.ts
 
 .genkit/*
 .env*
+__pycache__/
+*.pyc
 
 # Locally installed Century Gothic fonts (not licensed for repository distribution)
 /public/fonts/century-gothic*.ttf

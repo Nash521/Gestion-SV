@@ -576,7 +576,7 @@ export const importTransactionSeeds = async (
     const cashRegisterId = await getOrCreateCashRegisterId(options?.cashRegisterName ?? MAIN_CASH_REGISTER_NAME);
     const existingTransactionsSnapshot = await getDocs(collection(db, 'transactions'));
 
-    const existingSignatureToId = new Map<string, string>();
+    const existingSignatureToIds = new Map<string, string[]>();
     const existingSourceIdToId = new Map<string, string>();
 
     existingTransactionsSnapshot.forEach(docSnapshot => {
@@ -588,9 +588,7 @@ export const importTransactionSeeds = async (
             date: data.date?.toDate ? data.date.toDate() : data.date,
         });
 
-        if (!existingSignatureToId.has(signature)) {
-            existingSignatureToId.set(signature, docSnapshot.id);
-        }
+        existingSignatureToIds.set(signature, [...(existingSignatureToIds.get(signature) ?? []), docSnapshot.id]);
 
         if (typeof data.importSourceId === 'string') {
             existingSourceIdToId.set(data.importSourceId, docSnapshot.id);
@@ -598,11 +596,13 @@ export const importTransactionSeeds = async (
     });
 
     const sourceIdToFirestoreId = new Map<string, string>();
+    const matchedExistingIds = new Set<string>();
     const docsToCreate = transactionSeeds.filter(seed => {
         const existingId = existingSourceIdToId.get(seed.sourceId)
-            ?? existingSignatureToId.get(buildTransactionSignature(seed));
+            ?? existingSignatureToIds.get(buildTransactionSignature(seed))?.find(id => !matchedExistingIds.has(id));
 
         if (existingId) {
+            matchedExistingIds.add(existingId);
             sourceIdToFirestoreId.set(seed.sourceId, existingId);
             return false;
         }
@@ -618,9 +618,10 @@ export const importTransactionSeeds = async (
     });
 
     if (docsToCreate.length > 0) {
-        const batch = writeBatch(db);
+        for (let start = 0; start < docsToCreate.length; start += 400) {
+          const batch = writeBatch(db);
 
-        docsToCreate.forEach(seed => {
+          docsToCreate.slice(start, start + 400).forEach(seed => {
             const docRef = transactionRefs.get(seed.sourceId);
             if (!docRef) {
                 return;
@@ -645,9 +646,10 @@ export const importTransactionSeeds = async (
                 importSource: options?.importSource ?? 'excel-import',
                 importSourceId: seed.sourceId,
             });
-        });
+          });
 
-        await batch.commit();
+          await batch.commit();
+        }
     }
 
     const linkedExpenseCount = transactionSeeds
