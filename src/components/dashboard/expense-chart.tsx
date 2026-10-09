@@ -34,9 +34,10 @@ const chartColors = [
 interface ExpenseChartProps {
     data: { category: string; expenses: number }[];
     isLoading: boolean;
+    emptyMessage?: string;
 }
 
-export function ExpenseChart({ data, isLoading }: ExpenseChartProps) {
+export function ExpenseChart({ data, isLoading, emptyMessage = 'Aucune dépense pour cette période.' }: ExpenseChartProps) {
   const chartData = React.useMemo(() => {
     return data.map((item, index) => ({
       ...item,
@@ -73,7 +74,7 @@ export function ExpenseChart({ data, isLoading }: ExpenseChartProps) {
   if (!chartData || chartData.length === 0) {
       return (
           <div className="flex h-[300px] w-full items-center justify-center text-muted-foreground">
-              Aucune dépense ce mois-ci.
+              {emptyMessage}
           </div>
       );
   }

@@ -15,7 +15,7 @@ import { ExpenseChart } from '@/components/dashboard/expense-chart';
 import { RevenueComparisonChart } from '@/components/dashboard/revenue-comparison-chart';
 import { IncomeExpensePieChart } from '@/components/dashboard/income-expense-pie-chart';
 import { Skeleton } from '@/components/ui/skeleton';
-import { addMonths, format, getMonth, getYear, subMonths } from 'date-fns';
+import { addMonths, format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -63,6 +63,7 @@ export default function DashboardPage() {
     const [selectedRevenueMonthKeys, setSelectedRevenueMonthKeys] = useState<string[]>([]);
     const [comparisonFilterMode, setComparisonFilterMode] = useState<RevenueFilterMode>('recent');
     const [selectedComparisonMonthKeys, setSelectedComparisonMonthKeys] = useState<string[]>([]);
+    const [selectedExpenseMonthKey, setSelectedExpenseMonthKey] = useState('all');
 
     useEffect(() => {
         setIsLoading(true);
@@ -111,9 +112,7 @@ export default function DashboardPage() {
         return 0;
     }, [clients]);
 
-    const { allRevenueChartData, allComparisonChartData, expenseChartData, incomeExpensePieData } = useMemo(() => {
-        const now = new Date();
-
+    const { allRevenueChartData, allComparisonChartData, expenseMonthOptions, expenseChartData, incomeExpensePieData } = useMemo(() => {
         const allRevenueDataMap: Record<string, RevenueMonthPoint> = {};
         const allComparisonDataMap: Record<string, RevenueMonthPoint> = {};
         const transactionDates = transactions.map(transaction => new Date(transaction.date));
@@ -171,28 +170,27 @@ export default function DashboardPage() {
         const finalAllRevenueData = Object.values(allRevenueDataMap).sort((a, b) => a.sortTime - b.sortTime);
         const finalComparisonData = Object.values(allComparisonDataMap).sort((a, b) => a.sortTime - b.sortTime);
 
-        const expenseData: { [category: string]: number } = {};
-        const currentMonth = getMonth(now);
-        const currentYear = getYear(now);
-
-        transactions
-            .filter(t => t.type === 'expense')
-            .filter(t => {
+        const expenseData: Record<string, number> = {};
+        const expenseMonths = new Map<string, string>();
+        transactions.filter(t => t.type === 'expense').forEach(t => {
                 const transactionDate = new Date(t.date);
-                return getMonth(transactionDate) === currentMonth && getYear(transactionDate) === currentYear;
-            })
-            .forEach(t => {
+                if (Number.isNaN(transactionDate.getTime())) return;
+                const monthKey = format(transactionDate, 'yyyy-MM');
+                expenseMonths.set(monthKey, format(transactionDate, 'MMMM yyyy', { locale: fr }));
+                if (selectedExpenseMonthKey !== 'all' && monthKey !== selectedExpenseMonthKey) return;
                 const category = t.category || 'Autre';
-                if (!expenseData[category]) {
-                    expenseData[category] = 0;
-                }
-                expenseData[category] += t.amount;
+                expenseData[category] = (expenseData[category] || 0) + t.amount;
             });
 
-        const finalExpenseData = Object.entries(expenseData)
+        const sortedExpenseData = Object.entries(expenseData)
             .map(([category, expenses]) => ({ category, expenses }))
-            .sort((a, b) => b.expenses - a.expenses)
-            .slice(0, 5);
+            .sort((a, b) => b.expenses - a.expenses);
+        const finalExpenseData = sortedExpenseData.length > 8
+            ? [
+                ...sortedExpenseData.slice(0, 7),
+                { category: 'Autres catégories', expenses: sortedExpenseData.slice(7).reduce((sum, item) => sum + item.expenses, 0) },
+            ]
+            : sortedExpenseData;
 
         const finalIncomeExpensePieData = [
             { name: 'Entrees', value: totalIncome, fill: 'hsl(var(--chart-1))' },
@@ -202,10 +200,11 @@ export default function DashboardPage() {
         return {
             allRevenueChartData: finalAllRevenueData.map(data => ({ key: data.key, month: data.month, fullMonth: data.fullMonth, revenue: data.revenue })),
             allComparisonChartData: finalComparisonData.map(data => ({ key: data.key, month: data.month, fullMonth: data.fullMonth, revenue: data.revenue, expenses: data.expenses })),
+            expenseMonthOptions: [...expenseMonths.entries()].sort(([a], [b]) => b.localeCompare(a)).map(([key, label]) => ({ key, label })),
             expenseChartData: finalExpenseData,
             incomeExpensePieData: finalIncomeExpensePieData,
         };
-    }, [transactions, totalIncome, totalExpenses]);
+    }, [transactions, totalIncome, totalExpenses, selectedExpenseMonthKey]);
 
     useEffect(() => {
         if (allRevenueChartData.length === 0) {
@@ -419,9 +418,20 @@ export default function DashboardPage() {
                     </CardContent>
                 </Card>
                 <Card className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/50 dark:via-indigo-950/50 dark:to-purple-950/50">
-                    <CardHeader>
-                        <CardTitle>Repartition des Depenses</CardTitle>
-                        <CardDescription>Depenses par categorie ce mois-ci.</CardDescription>
+                    <CardHeader className="flex flex-col gap-3">
+                        <div>
+                            <CardTitle>Répartition des dépenses</CardTitle>
+                            <CardDescription>{selectedExpenseMonthKey === 'all' ? 'Dépenses par catégorie sur tous les mois.' : `Dépenses par catégorie en ${expenseMonthOptions.find(item => item.key === selectedExpenseMonthKey)?.label || selectedExpenseMonthKey}.`}</CardDescription>
+                        </div>
+                        <Select value={selectedExpenseMonthKey} onValueChange={setSelectedExpenseMonthKey}>
+                            <SelectTrigger className="w-full bg-background/80" aria-label="Période de répartition des dépenses">
+                                <SelectValue placeholder="Choisir une période" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Tous les mois</SelectItem>
+                                {expenseMonthOptions.map(item => <SelectItem key={item.key} value={item.key}>{item.label}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
                     </CardHeader>
                     <CardContent>
                         <ExpenseChart data={expenseChartData} isLoading={isLoading} />
