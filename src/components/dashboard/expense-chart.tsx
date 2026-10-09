@@ -2,24 +2,13 @@
 "use client"
 
 import * as React from "react"
-import { TrendingUp } from "lucide-react"
 import { Label, Pie, PieChart, Sector } from "recharts"
 import { Skeleton } from '../ui/skeleton';
 
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
   ChartContainer,
   ChartTooltip,
-  ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent
+  ChartTooltipContent
 } from "@/components/ui/chart"
 
 
@@ -80,11 +69,12 @@ export function ExpenseChart({ data, isLoading, emptyMessage = 'Aucune dépense 
   }
 
   return (
-    <ChartContainer
-        config={chartConfig}
-        className="mx-auto aspect-square h-[300px]"
-      >
-        <PieChart>
+    <div className="w-full min-w-0">
+      <ChartContainer
+          config={chartConfig}
+          className="mx-auto aspect-square h-[260px] w-full max-w-[300px]"
+        >
+          <PieChart>
           <ChartTooltip
             cursor={false}
             content={<ChartTooltipContent hideLabel 
@@ -139,8 +129,16 @@ export function ExpenseChart({ data, isLoading, emptyMessage = 'Aucune dépense 
               }}
             />
            </Pie>
-           <ChartLegend content={<ChartLegendContent nameKey="category" />} className="-mt-4" />
-        </PieChart>
-      </ChartContainer>
+          </PieChart>
+        </ChartContainer>
+      <ul className="mt-4 grid grid-cols-2 gap-x-3 gap-y-2 text-xs" aria-label="Légende des dépenses">
+        {chartData.map(item => (
+          <li key={item.category} className="flex min-w-0 items-start gap-2">
+            <span className="mt-1 h-2 w-2 shrink-0 rounded-sm" style={{ backgroundColor: item.fill }} aria-hidden="true" />
+            <span className="min-w-0 break-words leading-tight" title={item.category}>{item.category}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
   )
 }
