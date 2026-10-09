@@ -56,6 +56,7 @@ async function start() {
     minWidth: 960,
     minHeight: 640,
     title: 'Gestion SV',
+    icon: join(__dirname, 'icon.png'),
     show: false,
     webPreferences: {
       nodeIntegration: false,

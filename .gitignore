@@ -18,6 +18,7 @@
 /.next-dev/
 /out/
 /dist-desktop/
+/desktop/package-lock.json
 
 # production
 /build

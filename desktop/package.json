@@ -9,13 +9,14 @@
     "productName": "Gestion SV",
     "electronVersion": "44.7.0",
     "directories": { "output": "../dist-desktop" },
-    "files": ["main.cjs", "package.json"],
+    "files": ["main.cjs", "package.json", "icon.png"],
     "extraResources": [
       { "from": "../.next/standalone", "to": "web" },
       { "from": "../.next/standalone/node_modules", "to": "web/node_modules", "filter": ["**/*"] }
     ],
     "win": {
       "target": ["nsis"],
+      "icon": "icon.ico",
       "artifactName": "Gestion-SV-Setup-${version}.${ext}"
     },
     "nsis": {
