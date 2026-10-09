@@ -16,8 +16,8 @@ export default function LoginPage() {
     const { toast } = useToast();
     const { login, currentUser, loading, firebaseConfigured } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
-    const [email, setEmail] = useState('test-admin@gestiosv.com');
-    const [password, setPassword] = useState('password');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [showPassword, setShowPassword] = useState(false);
 
@@ -42,11 +42,19 @@ export default function LoginPage() {
             router.push('/dashboard');
         } catch (err: any) {
             if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-                 setError("L'adresse e-mail ou le mot de passe est incorrect.");
+                 setError("Ce compte n'a pas pu être authentifié par Firebase. Vérifiez qu'il existe dans Authentication > Utilisateurs du projet Firebase de l'application, qu'il utilise la connexion par e-mail et mot de passe, puis réinitialisez son mot de passe si nécessaire.");
+            } else if (err.code === 'auth/operation-not-allowed') {
+                setError("La connexion par e-mail et mot de passe n'est pas activée dans Firebase Authentication > Méthode de connexion.");
+            } else if (err.code === 'auth/user-disabled') {
+                setError("Ce compte est désactivé dans Firebase Authentication.");
+            } else if (err.code === 'auth/too-many-requests') {
+                setError("Trop de tentatives de connexion. Réessayez plus tard ou réinitialisez le mot de passe.");
+            } else if (err.code === 'auth/network-request-failed') {
+                setError("Impossible de joindre Firebase. Vérifiez votre connexion réseau.");
             } else if (err.message === 'firebase/not-configured') {
                 setError("Firebase n'est pas configure. Ajoute les variables NEXT_PUBLIC_FIREBASE_* dans .env.local.");
             } else {
-                setError("Une erreur inattendue est survenue.");
+                setError(`Une erreur de connexion est survenue (${err.code || 'code inconnu'}).`);
             }
         } finally {
             setIsLoading(false);

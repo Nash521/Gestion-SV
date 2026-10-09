@@ -17,7 +17,7 @@ export default function NewInvoicePage() {
         title: "Proforma créée",
         description: "La nouvelle proforma a été enregistrée dans la base de données.",
       });
-      router.push('/dashboard/invoices');
+      router.push('/dashboard/documents');
     } catch (error) {
       console.error("Failed to create invoice:", error);
       toast({

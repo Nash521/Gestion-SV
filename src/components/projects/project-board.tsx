@@ -251,7 +251,7 @@ const TaskCard = ({ task, collaborators, onTaskClick, availableLabels, onSetColo
             <div className="flex -space-x-2">
                     {assignees.map(assignee => (
                         <Avatar key={assignee.id} className="h-6 w-6 border-2 border-background">
-                            <AvatarImage src={`https://picsum.photos/seed/${assignee.id}/40/40`} />
+                            {assignee.photoURL && <AvatarImage src={assignee.photoURL} alt={assignee.name} />}
                             <AvatarFallback>{assignee.name.charAt(0)}</AvatarFallback>
                         </Avatar>
                     ))}
@@ -713,7 +713,7 @@ const TaskDialog = ({ isOpen, setIsOpen, onSubmit, task, collaborators, availabl
                                         />
                                         <Label htmlFor={`assignee-${c.id}`} className="flex items-center gap-2 font-normal">
                                             <Avatar className="h-6 w-6">
-                                                <AvatarImage src={`https://picsum.photos/seed/${c.id}/40/40`} />
+                                                {c.photoURL && <AvatarImage src={c.photoURL} alt={c.name} />}
                                                 <AvatarFallback>{c.name.charAt(0)}</AvatarFallback>
                                             </Avatar>
                                             {c.name}

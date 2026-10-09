@@ -37,7 +37,7 @@ function EditInvoiceForm({ id }: { id: string }) {
                 title: "Proforma modifiée",
                 description: `La proforma ${id} a été mise à jour avec succès.`,
             });
-            router.push('/dashboard/invoices');
+            router.push('/dashboard/documents');
         } catch (error) {
             console.error("Failed to update invoice:", error);
             toast({

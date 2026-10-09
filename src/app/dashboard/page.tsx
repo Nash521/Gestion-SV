@@ -507,7 +507,7 @@ export default function DashboardPage() {
                         <CardDescription>Vos proformas les plus recentes.</CardDescription>
                     </div>
                     <Button asChild size="sm" className="ml-auto gap-1">
-                        <Link href="/dashboard/invoices">
+                        <Link href="/dashboard/documents">
                             Voir tout
                             <ArrowUpRight className="h-4 w-4" />
                         </Link>

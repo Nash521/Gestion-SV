@@ -9,13 +9,12 @@ import {
   Users,
   Wallet,
   FilePieChart,
-  ShoppingCart,
-  Truck,
   UsersRound,
   HardHat,
   ClipboardCheck,
   Bell,
   Contact,
+  Loader2,
 } from 'lucide-react';
 import {
   SidebarMenu,
@@ -27,9 +26,7 @@ import type { CollaboratorRole } from '@/lib/definitions';
 const navItems = [
     { href: '/dashboard', icon: <LayoutDashboard />, label: 'Tableau de bord', requiredRole: ['Admin'] },
     { href: '/dashboard/projects', icon: <ClipboardCheck />, label: 'Projets', requiredRole: ['Admin'] },
-    { href: '/dashboard/invoices', icon: <FileText />, label: 'Proformas', requiredRole: ['Admin', 'Employee'] },
-    { href: '/dashboard/purchase-orders', icon: <ShoppingCart />, label: 'Bons de commande', requiredRole: ['Admin', 'Employee'] },
-    { href: '/dashboard/delivery-notes', icon: <Truck />, label: 'Bons de livraison', requiredRole: ['Admin', 'Employee'] },
+    { href: '/dashboard/documents', icon: <FileText />, label: 'Documents commerciaux', requiredRole: ['Admin', 'Employee'] },
     { href: '/dashboard/clients', icon: <Users />, label: 'Clients', requiredRole: ['Admin', 'Employee'] },
     { href: '/dashboard/prospects', icon: <Contact />, label: 'Prospects', requiredRole: ['Admin', 'Employee'] },
     { href: '/dashboard/subcontractors', icon: <HardHat />, label: 'Sous-traitants', requiredRole: ['Admin', 'Employee'] },
@@ -38,7 +35,15 @@ const navItems = [
     { href: '/dashboard/notifications', icon: <Bell />, label: 'Notifications', requiredRole: ['Admin', 'Employee'] },
 ];
 
-export function SidebarNav({ currentUserRole }: { currentUserRole?: CollaboratorRole }) {
+export function SidebarNav({
+  currentUserRole,
+  pendingPath,
+  onNavigate,
+}: {
+  currentUserRole?: CollaboratorRole;
+  pendingPath: string | null;
+  onNavigate: (path: string) => void;
+}) {
   const pathname = usePathname();
 
   if (!currentUserRole) {
@@ -56,9 +61,10 @@ export function SidebarNav({ currentUserRole }: { currentUserRole?: Collaborator
             size="lg"
             isActive={pathname.startsWith(item.href) && (item.href === '/dashboard' ? pathname === item.href : true)}
           >
-            <Link href={item.href}>
+            <Link href={item.href} onClick={() => onNavigate(item.href)}>
               {item.icon}
               {item.label}
+              {pendingPath === item.href && <Loader2 className="ml-auto size-4 animate-spin" aria-label="Chargement" />}
             </Link>
           </SidebarMenuButton>
         </SidebarMenuItem>

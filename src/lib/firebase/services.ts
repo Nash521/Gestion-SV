@@ -1,6 +1,6 @@
 import { db, auth } from './client';
 import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, onSnapshot, getDoc, Timestamp, where, writeBatch, setDoc, orderBy, limit } from 'firebase/firestore';
-import type { Client, Invoice, PurchaseOrder, DeliveryNote, LineItem, Transaction, CashRegister, Subcontractor, SubcontractorService, Project, TaskList, ProjectTask, Collaborator, AppNotification, Prospect, TransactionImportSeed } from '../definitions';
+import type { Client, Invoice, PurchaseOrder, DeliveryNote, LineItem, CommercialDocumentSource, Transaction, CashRegister, Subcontractor, SubcontractorService, Project, TaskList, ProjectTask, Collaborator, AppNotification, Prospect, TransactionImportSeed } from '../definitions';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 
 
@@ -111,13 +111,12 @@ export const subscribeToInvoices = (callback: (invoices: Invoice[]) => void) => 
     const q = query(collection(db, "invoices"));
     return onSnapshot(q, async (querySnapshot) => {
         const clientsMap = await getClientsMap();
-        const invoices: Invoice[] = [];
-        for (const doc of querySnapshot.docs) {
+        const invoices = await Promise.all(querySnapshot.docs.map(async (doc) => {
             const lineItemsQuery = query(collection(db, 'invoices', doc.id, 'lineItems'));
             const lineItemsSnapshot = await getDocs(lineItemsQuery);
             const lineItems = lineItemsSnapshot.docs.map(itemDoc => ({ id: itemDoc.id, ...itemDoc.data() } as LineItem));
-            invoices.push(processInvoiceDoc(doc, clientsMap, lineItems));
-        }
+            return processInvoiceDoc(doc, clientsMap, lineItems);
+        }));
         callback(invoices.sort((a,b) => b.issueDate.getTime() - a.issueDate.getTime()));
     });
 };
@@ -246,13 +245,12 @@ export const subscribeToPurchaseOrders = (callback: (pos: PurchaseOrder[]) => vo
     const q = query(collection(db, "purchaseOrders"));
     return onSnapshot(q, async (querySnapshot) => {
         const clientsMap = await getClientsMap();
-        const pos: PurchaseOrder[] = [];
-        for (const doc of querySnapshot.docs) {
+        const pos = await Promise.all(querySnapshot.docs.map(async (doc) => {
              const lineItemsQuery = query(collection(db, 'purchaseOrders', doc.id, 'lineItems'));
              const lineItemsSnapshot = await getDocs(lineItemsQuery);
              const lineItems = lineItemsSnapshot.docs.map(itemDoc => ({ id: itemDoc.id, ...itemDoc.data() } as LineItem));
-            pos.push(processPODoc(doc, clientsMap, lineItems));
-        }
+            return processPODoc(doc, clientsMap, lineItems);
+        }));
         callback(pos.sort((a,b) => b.issueDate.getTime() - a.issueDate.getTime()));
     });
 };
@@ -353,13 +351,12 @@ export const subscribeToDeliveryNotes = (callback: (dns: DeliveryNote[]) => void
     const q = query(collection(db, "deliveryNotes"));
     return onSnapshot(q, async (querySnapshot) => {
         const clientsMap = await getClientsMap();
-        const dns: DeliveryNote[] = [];
-        for (const doc of querySnapshot.docs) {
+        const dns = await Promise.all(querySnapshot.docs.map(async (doc) => {
             const lineItemsQuery = query(collection(db, 'deliveryNotes', doc.id, 'lineItems'));
             const lineItemsSnapshot = await getDocs(lineItemsQuery);
             const lineItems = lineItemsSnapshot.docs.map(itemDoc => ({ id: itemDoc.id, ...itemDoc.data() } as Omit<LineItem, 'price'>));
-            dns.push(processDNDoc(doc, clientsMap, lineItems));
-        }
+            return processDNDoc(doc, clientsMap, lineItems);
+        }));
         callback(dns.sort((a,b) => b.deliveryDate.getTime() - a.deliveryDate.getTime()));
     });
 };
@@ -430,6 +427,85 @@ export const addDeliveryNote = async (dnData: Omit<DeliveryNote, 'id' | 'client'
     await batch.commit();
 
     return newId;
+};
+
+export type CommercialDocumentType = 'invoice' | 'purchaseOrder' | 'deliveryNote';
+
+export type CommercialDocumentInput = {
+    clientId: string;
+    issueDate: Date;
+    dueDate: Date;
+    deliveryDate: Date;
+    discountAmount: number;
+    notes: string;
+    lineItems: Omit<LineItem, 'id'>[];
+    types: CommercialDocumentType[];
+    sourceDocument?: CommercialDocumentSource;
+};
+
+// Save all selected documents and their lines in one Firestore batch.
+export const addCommercialDocuments = async (input: CommercialDocumentInput) => {
+    const types = [...new Set(input.types)];
+    if (types.length === 0 || input.lineItems.length === 0) {
+        throw new Error('Select at least one document and one line item.');
+    }
+    if (types.length * (input.lineItems.length + 1) > 500) {
+        throw new Error('Too many line items for one save operation.');
+    }
+
+    const ids: Partial<Record<CommercialDocumentType, string>> = {};
+    if (types.includes('invoice')) ids.invoice = await generateNewInvoiceId();
+    if (types.includes('purchaseOrder')) ids.purchaseOrder = await generateNewPurchaseOrderId();
+    if (types.includes('deliveryNote')) ids.deliveryNote = await generateNewDeliveryNoteId();
+
+    const batch = writeBatch(db);
+    const source = input.sourceDocument ? { sourceDocument: input.sourceDocument } : {};
+
+    if (ids.invoice) {
+        batch.set(doc(db, 'invoices', ids.invoice), {
+            id: ids.invoice,
+            clientId: input.clientId,
+            issueDate: Timestamp.fromDate(input.issueDate),
+            dueDate: Timestamp.fromDate(input.dueDate),
+            discountAmount: input.discountAmount,
+            notes: input.notes,
+            status: 'Draft',
+            ...source,
+        });
+        input.lineItems.forEach(item => batch.set(doc(collection(db, 'invoices', ids.invoice!, 'lineItems')), item));
+    }
+
+    if (ids.purchaseOrder) {
+        batch.set(doc(db, 'purchaseOrders', ids.purchaseOrder), {
+            id: ids.purchaseOrder,
+            clientId: input.clientId,
+            issueDate: Timestamp.fromDate(input.issueDate),
+            deliveryDate: Timestamp.fromDate(input.deliveryDate),
+            notes: input.notes,
+            status: 'Draft',
+            ...source,
+        });
+        input.lineItems.forEach(item => batch.set(doc(collection(db, 'purchaseOrders', ids.purchaseOrder!, 'lineItems')), item));
+    }
+
+    if (ids.deliveryNote) {
+        const invoiceId = ids.invoice || (input.sourceDocument?.type === 'invoice' ? input.sourceDocument.id : undefined);
+        batch.set(doc(db, 'deliveryNotes', ids.deliveryNote), {
+            id: ids.deliveryNote,
+            clientId: input.clientId,
+            deliveryDate: Timestamp.fromDate(input.deliveryDate),
+            notes: input.notes,
+            status: 'Draft',
+            ...(invoiceId ? { invoiceId } : {}),
+            ...source,
+        });
+        input.lineItems.forEach(({ description, quantity }) => {
+            batch.set(doc(collection(db, 'deliveryNotes', ids.deliveryNote!, 'lineItems')), { description, quantity });
+        });
+    }
+
+    await batch.commit();
+    return ids;
 };
 
 export const updateDeliveryNoteStatus = async (id: string, status: DeliveryNote['status']) => {
