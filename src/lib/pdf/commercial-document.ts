@@ -5,6 +5,7 @@ import 'jspdf-autotable';
 import { format } from 'date-fns';
 import type { DeliveryNote, Invoice, PurchaseOrder } from '@/lib/definitions';
 import { getDocumentFooter } from '@/lib/firebase/document-settings';
+import { xofInWords } from '@/lib/format/french-amount';
 
 type CommercialDocument =
   | { type: 'invoice'; value: Invoice }
@@ -147,6 +148,12 @@ export async function exportCommercialDocumentPDF(document: CommercialDocument):
   const subtotal = priced ? items.reduce((sum, item) => sum + ('price' in item ? item.price : 0) * item.quantity, 0) : 0;
   const discount = type === 'invoice' ? value.discountAmount || 0 : 0;
   const total = subtotal - discount;
+  const closingText = priced
+    ? `Arrêter ${type === 'invoice' ? 'la présente proforma' : 'le présent bon de commande'} à la somme de ${xofInWords(total)}.`
+    : '';
+  pdf.setFont(font, 'normal');
+  pdf.setFontSize(8.5);
+  const closingLines = priced ? pdf.splitTextToSize(closingText, 180) as string[] : [];
   const notes = value.notes?.trim() || '';
   const noteWidth = priced ? 102 : 178;
   const noteLines = notes ? pdf.splitTextToSize(notes, noteWidth) : [];
@@ -167,7 +174,9 @@ export async function exportCommercialDocumentPDF(document: CommercialDocument):
   const notesHeight = notes ? noteLines.length * 4.2 + (standardTerms.length ? 4 : 5) : 0;
   const contentHeight = termsHeight + notesHeight;
   let summaryY = ((pdf as any).lastAutoTable?.finalY || 170) + 8;
-  const requiredHeight = Math.max(contentHeight + (priced ? 7 : 5), priced ? 36 : 22);
+  const requiredHeight = priced
+    ? Math.max(36, Math.max(23, contentHeight + 5) + closingLines.length * 4.2)
+    : Math.max(22, contentHeight + 5);
   if (summaryY + requiredHeight > 257) {
     pdf.addPage();
     drawHeader(pdf, document, logo);
@@ -206,7 +215,7 @@ export async function exportCommercialDocumentPDF(document: CommercialDocument):
     pdf.text(`Net à payer : ${xof(total)}`, 115, summaryY + (type === 'invoice' ? 14 : 7));
     pdf.setFont(font, 'normal');
     pdf.setFontSize(8.5);
-    pdf.text(`Arrêter ${type === 'invoice' ? 'la présente proforma' : 'le présent bon de commande'} à la somme de ${xof(total)}.`, 15, summaryY + Math.max(23, contentHeight + 5), { maxWidth: 180 });
+    pdf.text(closingLines, 15, summaryY + Math.max(23, contentHeight + 5));
   } else {
     pdf.setTextColor(0);
     pdf.setFont(font, 'normal');
