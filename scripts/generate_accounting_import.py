@@ -2,12 +2,13 @@
 from __future__ import annotations
 
 import json
+import argparse
 import re
 import unicodedata
 import zipfile
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 NS = {'main': 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
@@ -99,6 +100,22 @@ def excel_date_to_iso(serial_value: str) -> str | None:
     return (base + timedelta(days=serial)).date().isoformat()
 
 
+def parse_transaction_date(value: str, year: int = 2026) -> str | None:
+    serial_date = excel_date_to_iso(value)
+    if serial_date:
+        return serial_date
+
+    normalized = normalize_text(value)
+    match = re.match(r'^(\d{1,2})\s+(janv|fev|mars|avr|mai|juin|juil|aout|sept|oct|nov|dec)', normalized)
+    if not match:
+        return None
+    month_prefixes = ('janv', 'fev', 'mars', 'avr', 'mai', 'juin', 'juil', 'aout', 'sept', 'oct', 'nov', 'dec')
+    try:
+        return date(year, month_prefixes.index(match.group(2)) + 1, int(match.group(1))).isoformat()
+    except ValueError:
+        return None
+
+
 def read_cell_value(cell: ET.Element, shared_strings: list[str]) -> str:
     cell_type = cell.attrib.get('t')
     value_node = cell.find('main:v', NS)
@@ -115,7 +132,7 @@ def read_cell_value(cell: ET.Element, shared_strings: list[str]) -> str:
     return ''
 
 
-def parse_workbook(xlsx_path: Path) -> list[ImportRow]:
+def parse_workbook(xlsx_path: Path, through: str | None = None) -> list[ImportRow]:
     rows: list[ImportRow] = []
 
     with zipfile.ZipFile(xlsx_path) as archive:
@@ -155,11 +172,13 @@ def parse_workbook(xlsx_path: Path) -> list[ImportRow]:
 
                 row_type = 'income' if income else 'expense'
                 amount = int(float(income or expense))
-                date = excel_date_to_iso(data.get('B') or '') or last_known_date
-                if not date:
+                transaction_date = parse_transaction_date(data.get('B') or '') or last_known_date
+                if not transaction_date:
                     continue
 
-                last_known_date = date
+                last_known_date = transaction_date
+                if through and transaction_date > through:
+                    continue
 
                 rows.append(
                     ImportRow(
@@ -168,7 +187,7 @@ def parse_workbook(xlsx_path: Path) -> list[ImportRow]:
                         description=description,
                         category=categorize(description, row_type),
                         amount=amount,
-                        date=date,
+                        date=transaction_date,
                         linkedSourceIds=[],
                         tokens=tokenize(description),
                     )
@@ -233,11 +252,14 @@ def write_module(rows: list[ImportRow], output_path: Path) -> None:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--input', type=Path, default=Path('E:/Téléchargements/CAISSE SMART VISUEL_2026 (2).xlsx'))
+    parser.add_argument('--through', default='2026-10-09')
+    args = parser.parse_args()
     project_root = Path(__file__).resolve().parent.parent
-    xlsx_path = Path("E:/T\u00e9l\u00e9chargements/CAISSE SMART VISUEL_2026 (1).xlsx")
     output_path = project_root / 'src' / 'lib' / 'generated' / 'caisse-smart-visuel-2026.ts'
 
-    rows = parse_workbook(xlsx_path)
+    rows = parse_workbook(args.input, args.through)
     link_expenses(rows)
     write_module(rows, output_path)
 

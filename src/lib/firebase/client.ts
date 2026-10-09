@@ -21,10 +21,6 @@ export const isFirebaseConfigured = Boolean(
   firebaseConfig.appId
 );
 
-if (!isFirebaseConfigured) {
-  console.error("Firebase is not configured. Add your NEXT_PUBLIC_FIREBASE_* variables to .env.local.");
-}
-
 const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const auth: Auth | null = typeof window !== 'undefined' && isFirebaseConfigured ? getAuth(app) : null;
 

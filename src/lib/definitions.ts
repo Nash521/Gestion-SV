@@ -21,6 +21,11 @@ export type LineItem = {
   price: number;
 };
 
+export type CommercialDocumentSource = {
+  type: 'invoice' | 'purchaseOrder' | 'deliveryNote';
+  id: string;
+};
+
 export type Invoice = {
   id: string;
   clientId: string;
@@ -31,6 +36,7 @@ export type Invoice = {
   dueDate: Date;
   discountAmount?: number; // as a fixed amount
   notes?: string;
+  sourceDocument?: CommercialDocumentSource;
 };
 
 export type PurchaseOrder = {
@@ -42,6 +48,7 @@ export type PurchaseOrder = {
   issueDate: Date;
   deliveryDate: Date;
   notes?: string;
+  sourceDocument?: CommercialDocumentSource;
 };
 
 export type DeliveryNote = {
@@ -53,6 +60,7 @@ export type DeliveryNote = {
     status: 'Draft' | 'Delivered' | 'Canceled';
     deliveryDate: Date;
     notes?: string;
+    sourceDocument?: CommercialDocumentSource;
 };
 
 export type Transaction = {
@@ -90,6 +98,7 @@ export type Collaborator = {
   name: string;
   email: string;
   role: CollaboratorRole;
+  photoURL?: string;
 };
 
 export type SubcontractorService = {

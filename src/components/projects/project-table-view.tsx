@@ -112,7 +112,7 @@ export function ProjectTableView({ tasks, lists, collaborators, currentView, onV
                                                 if (!assignee) return null;
                                                 return (
                                                     <Avatar key={assignee.id} className="h-7 w-7 border-2 border-background">
-                                                        <AvatarImage src={`https://picsum.photos/seed/${assignee.id}/40/40`} />
+                                                        {assignee.photoURL && <AvatarImage src={assignee.photoURL} alt={assignee.name} />}
                                                         <AvatarFallback>{assignee.name.charAt(0)}</AvatarFallback>
                                                     </Avatar>
                                                 )

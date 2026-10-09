@@ -94,8 +94,8 @@ export function InvoiceForm({ formType, onSubmit, initialData }: InvoiceFormProp
   useEffect(() => {
     const subscription = form.watch((values) => {
         const currentSubtotal = (values.lineItems || []).reduce((acc, item) => {
-            const qty = Number(item.quantity) || 0;
-            const prc = Number(item.price) || 0;
+            const qty = Number(item?.quantity) || 0;
+            const prc = Number(item?.price) || 0;
             return acc + (qty * prc);
         }, 0);
         const discount = Number(values.discountAmount) || 0;
@@ -299,7 +299,7 @@ export function InvoiceForm({ formType, onSubmit, initialData }: InvoiceFormProp
                         name="notes"
                         render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Notes</FormLabel>
+                            <FormLabel>NB / notes du document</FormLabel>
                             <FormControl>
                                 <Textarea placeholder="Notes optionnelles sur la proforma" {...field} />
                             </FormControl>
@@ -342,7 +342,7 @@ export function InvoiceForm({ formType, onSubmit, initialData }: InvoiceFormProp
           </CardContent>
           <CardFooter className="flex justify-end gap-2">
             <Button type="button" variant="outline" asChild>
-                <Link href="/dashboard/invoices">Annuler</Link>
+                <Link href="/dashboard/documents">Annuler</Link>
             </Button>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

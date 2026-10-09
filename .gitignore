@@ -15,7 +15,10 @@
 
 # next.js
 /.next/
+/.next-dev/
 /out/
+/dist-desktop/
+/desktop/package-lock.json
 
 # production
 /build
@@ -39,6 +42,11 @@ next-env.d.ts
 
 .genkit/*
 .env*
+__pycache__/
+*.pyc
+
+# Locally installed Century Gothic fonts (not licensed for repository distribution)
+/public/fonts/century-gothic*.ttf
 
 # firebase
 firebase-debug.log

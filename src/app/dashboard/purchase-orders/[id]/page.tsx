@@ -1,8 +1,7 @@
 "use client"
 import React, { useEffect, useState } from 'react';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
 import { notFound, useParams } from 'next/navigation';
+import { exportCommercialDocumentPDF } from '@/lib/pdf/commercial-document';
 import type { PurchaseOrder } from '@/lib/definitions';
 import { getPurchaseOrder } from '@/lib/firebase/services';
 import { Button } from '@/components/ui/button';
@@ -23,113 +22,11 @@ const companyInfo = {
 };
 
 function exportPurchaseOrderToPDF(order: PurchaseOrder) {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const margin = 15;
-
-    const generatePdfContent = (logoImage: HTMLImageElement | null) => {
-        // Header
-        doc.setFillColor(76, 81, 191);
-        doc.rect(0, 0, pageWidth, 40, 'F');
-        
-        if (logoImage) {
-            doc.addImage(logoImage, 'JPEG', margin, 5, 50, 30);
-        } else {
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(10);
-            doc.text("Logo non chargé", margin + 5, 20);
-        }
-
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(28);
-        doc.setFont('helvetica', 'bold');
-        doc.text('BON DE COMMANDE', pageWidth - margin, 18, { align: 'right' });
-        
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'normal');
-        doc.text(`N° ${order.id}`, pageWidth - margin, 26, { align: 'right' });
-        doc.text(`Date: ${format(order.issueDate, 'dd/MM/yyyy', { locale: fr })}`, pageWidth - margin, 32, { align: 'right' });
-
-        // Client Info
-        doc.setTextColor(51, 51, 51);
-        doc.setFontSize(10);
-        const clientInfoY = 50;
-        doc.setFont('helvetica', 'bold');
-        doc.text('Fournisseur :', margin, clientInfoY);
-        doc.setFont('helvetica', 'normal');
-        doc.text(companyInfo.name, margin, clientInfoY + 5);
-        doc.text(companyInfo.address, margin, clientInfoY + 10, { maxWidth: 80 });
-        
-        doc.setFont('helvetica', 'bold');
-        doc.text('Client :', pageWidth / 2 + 10, clientInfoY);
-        doc.setFont('helvetica', 'normal');
-        doc.text(order.client.name, pageWidth / 2 + 10, clientInfoY + 5);
-        doc.text(order.client.address, pageWidth / 2 + 10, clientInfoY + 10);
-        doc.text(order.client.phone || '', pageWidth / 2 + 10, clientInfoY + 15);
-
-        // Table
-        const tableData = order.lineItems.map((item, index) => ([
-            index + 1,
-            item.description,
-            item.quantity,
-            item.price.toLocaleString('fr-FR') + ' XOF',
-            (item.price * item.quantity).toLocaleString('fr-FR') + ' XOF'
-        ]));
-
-        (doc as any).autoTable({
-            startY: clientInfoY + 40,
-            head: [['N°', 'DESCRIPTION', 'QTY', 'PRIX UNITAIRE', 'TOTAL']],
-            body: tableData,
-            theme: 'grid',
-            headStyles: { fillColor: [76, 81, 191], textColor: 255, fontSize: 10 },
-            styles: { fontSize: 9 },
-            columnStyles: {
-                0: { cellWidth: 10 },
-                2: { halign: 'right', cellWidth: 15 },
-                3: { halign: 'right', cellWidth: 30 },
-                4: { halign: 'right', cellWidth: 30 },
-            }
-        });
-
-        // Total
-        const finalY = (doc as any).lastAutoTable.finalY || 150;
-        const total = order.lineItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-
-        (doc as any).autoTable({
-            startY: finalY + 5,
-            body: [
-                [{ content: 'TOTAL', styles: { fontStyle: 'bold', fontSize: 11 } }, { content: `${total.toLocaleString('fr-FR')} XOF`, styles: { fontStyle: 'bold', fontSize: 11 } }],
-            ],
-            theme: 'plain',
-            tableWidth: 'wrap',
-            margin: { left: pageWidth - margin - 80 },
-            styles: {
-                fontSize: 10,
-                cellPadding: { top: 1, right: 0, bottom: 1, left: 0 },
-            },
-            columnStyles: {
-                0: { halign: 'left' },
-                1: { halign: 'right' },
-            }
-        });
-
-        doc.save(`bon-de-commande-${order.id}.pdf`);
-    };
-
-    const img = new Image();
-    img.crossOrigin = 'Anonymous';
-    img.src = '/logo.jpeg'; 
-
-    img.onload = () => {
-        generatePdfContent(img);
-    };
-
-    img.onerror = (err) => {
-        console.error('Failed to load image', err);
-        generatePdfContent(null);
-    };
+    void exportCommercialDocumentPDF({ type: 'purchaseOrder', value: order }).catch(error => {
+        console.error('PDF export failed:', error);
+        window.alert('Impossible de générer le PDF. Vérifiez les paramètres du document.');
+    });
 }
-
 
 const DetailPageSkeleton = () => (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -209,7 +106,7 @@ export default function PurchaseOrderDetailPage() {
                 <h1 className="text-2xl font-bold">Bon de Commande {order.id}</h1>
                 <div className="flex items-center gap-2">
                     <Button variant="outline" asChild>
-                        <Link href="/dashboard/purchase-orders">Retour</Link>
+                        <Link href="/dashboard/documents">Retour</Link>
                     </Button>
                     <Button onClick={() => exportPurchaseOrderToPDF(order)}>
                         <FileDown className="mr-2 h-4 w-4" /> Exporter en PDF

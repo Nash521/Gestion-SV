@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   Briefcase,
@@ -39,6 +39,7 @@ const searchablePages = [
 
 const employeeAllowedPaths = [
   '/dashboard/prospects',
+  '/dashboard/documents',
   '/dashboard/invoices',
   '/dashboard/purchase-orders',
   '/dashboard/delivery-notes',
@@ -55,7 +56,18 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const router = useRouter();
   const { currentUser, loading, logout } = useAuth();
+  const [pendingPath, setPendingPath] = useState<string | null>(null);
   const isSearchable = searchablePages.some(page => pathname.startsWith(page));
+
+  useEffect(() => {
+    setPendingPath(null);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!pendingPath) return;
+    const timeout = window.setTimeout(() => setPendingPath(null), 15000);
+    return () => window.clearTimeout(timeout);
+  }, [pendingPath]);
 
   useEffect(() => {
     if (!loading && !currentUser) {
@@ -104,7 +116,11 @@ export default function DashboardLayout({
         <SidebarContent>
           <SidebarGroup>
             <SidebarGroupLabel className="group-data-[state=collapsed]/sidebar-wrapper:hidden">MENU</SidebarGroupLabel>
-            <SidebarNav currentUserRole={currentUser.role} />
+            <SidebarNav
+              currentUserRole={currentUser.role}
+              pendingPath={pendingPath}
+              onNavigate={(path) => setPendingPath(path === pathname ? null : path)}
+            />
           </SidebarGroup>
         </SidebarContent>
         <SidebarFooter>
@@ -112,7 +128,7 @@ export default function DashboardLayout({
             <DropdownMenuTrigger asChild>
               <div className="flex items-center gap-3 p-2 cursor-pointer hover:bg-muted rounded-md transition-colors">
                 <Avatar className="h-9 w-9">
-                  <AvatarImage src="https://picsum.photos/seed/user/100/100" data-ai-hint="profile avatar" alt="User" />
+                  {currentUser.photoURL && <AvatarImage src={currentUser.photoURL} alt={currentUser.name} />}
                   <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col text-sm text-left group-data-[state=collapsed]/sidebar-wrapper:hidden">
@@ -148,8 +164,16 @@ export default function DashboardLayout({
             <SettingsSheet />
           </div>
         </header>
-        <main className="flex-1 p-4 md:p-6 animate-fade-in-up bg-background overflow-auto">
+        <main className="relative flex-1 p-4 md:p-6 animate-fade-in-up bg-background overflow-auto" aria-busy={!!pendingPath}>
           {children}
+          {pendingPath && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/75 backdrop-blur-[2px]" role="status" aria-live="polite">
+              <div className="flex items-center gap-3 rounded-lg border bg-card px-5 py-4 shadow-lg">
+                <Loader2 className="size-5 animate-spin text-primary" />
+                <span className="text-sm font-medium">Chargement de la page…</span>
+              </div>
+            </div>
+          )}
         </main>
       </SidebarInset>
     </SidebarProvider>
