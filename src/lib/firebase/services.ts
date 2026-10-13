@@ -10,7 +10,9 @@ const getClientsMap = async (): Promise<Map<string, Client>> => {
 }
 
 // Client Services
-const clientCode = (year: number, number: number) => `CCSV.${String(number).padStart(3, '0')}-${year}`;
+const clientCode = (year: number, number: number) => `CCSV.${String(number).padStart(3, '0')}-${String(year).slice(-2)}`;
+const hasLongYearClientCode = (code?: string) => /^CCSV\.\d+-\d{4}$/.test(code ?? '');
+export const needsClientCodeUpdate = (client: Client) => !client.code || hasLongYearClientCode(client.code);
 
 const reserveClientCode = async (clientRef: ReturnType<typeof doc>, data?: Omit<Client, 'id'>) => {
     const year = new Date().getFullYear();
@@ -19,7 +21,14 @@ const reserveClientCode = async (clientRef: ReturnType<typeof doc>, data?: Omit<
         const clientSnapshot = data ? null : await transaction.get(clientRef);
         if (!data && !clientSnapshot?.exists()) throw new Error('Client introuvable.');
         const existingCode = clientSnapshot?.data()?.code;
-        if (existingCode) return existingCode as string;
+        if (existingCode) {
+            if (hasLongYearClientCode(existingCode)) {
+                const shortCode = `${existingCode.slice(0, -4)}${existingCode.slice(-2)}`;
+                transaction.update(clientRef, { code: shortCode });
+                return shortCode;
+            }
+            return existingCode as string;
+        }
 
         const counterSnapshot = await transaction.get(counterRef);
         const nextNumber = (counterSnapshot.data()?.lastNumber ?? 0) + 1;
@@ -31,8 +40,8 @@ const reserveClientCode = async (clientRef: ReturnType<typeof doc>, data?: Omit<
     });
 };
 
-export const assignMissingClientCodes = async (clients: Client[]) => {
-    for (const client of [...clients].filter(client => !client.code).sort((a, b) => a.id.localeCompare(b.id))) {
+export const ensureClientCodes = async (clients: Client[]) => {
+    for (const client of [...clients].filter(needsClientCodeUpdate).sort((a, b) => a.id.localeCompare(b.id))) {
         await reserveClientCode(doc(db, 'clients', client.id));
     }
 };

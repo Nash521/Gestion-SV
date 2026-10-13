@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
 import { useNotifications } from '@/contexts/notification-context';
-import { addClient, updateClient, deleteClient, subscribeToClients, assignMissingClientCodes } from '@/lib/firebase/services';
+import { addClient, updateClient, deleteClient, subscribeToClients, ensureClientCodes, needsClientCodeUpdate } from '@/lib/firebase/services';
 import { Skeleton } from '@/components/ui/skeleton';
 
 
@@ -124,9 +124,9 @@ export default function ClientsPage() {
     const unsubscribe = subscribeToClients((clientsData) => {
         setClients(clientsData);
         setIsLoading(false);
-        if (clientsData.some(client => !client.code) && !assigningCodes.current) {
+        if (clientsData.some(needsClientCodeUpdate) && !assigningCodes.current) {
             assigningCodes.current = true;
-            assignMissingClientCodes(clientsData)
+            ensureClientCodes(clientsData)
                 .catch(error => {
                     console.error('Error assigning client codes:', error);
                     toast({ variant: 'destructive', title: 'Codes clients', description: "Impossible d’attribuer les codes aux clients existants." });
