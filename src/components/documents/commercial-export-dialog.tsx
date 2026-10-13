@@ -60,7 +60,11 @@ export function CommercialExportDialog({ source }: { source: ExportSource }) {
       const deliveryDate = selected.type === 'invoice' ? new Date(issueDate.getTime() + 14 * 86400000) : selected.value.deliveryDate;
       const dueDate = selected.type === 'invoice' || selected.type === 'commercial' ? selected.value.dueDate : new Date(issueDate.getTime() + 30 * 86400000);
       const prefix = type === 'invoice' ? 'P' : type === 'purchaseOrder' ? 'C' : 'L';
-      const id = selected.type === 'commercial' ? value.id.replace(/^DOC-/, `${prefix}-SV-`) : value.id;
+      const id = selected.type === 'commercial'
+        ? value.id.replace(/^DOC-/, `${prefix}-SV-`)
+        : selected.type === type
+          ? value.id
+          : value.id.replace(/^[PCL](?=-SV-)/, prefix);
       const common = {
         id,
         clientId: value.clientId,

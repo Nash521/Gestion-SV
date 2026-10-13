@@ -276,6 +276,12 @@ export async function exportCommercialDocumentPDF(document: CommercialDocument):
     pdf.setPage(page);
     drawFooter(pdf, footer, font);
   }
-  const prefix = type === 'invoice' ? 'proforma' : type === 'purchaseOrder' ? 'bon-de-commande' : 'bon-de-livraison';
-  pdf.save(`${prefix}-${value.id}.pdf`);
+  const safeFilenamePart = (part: string) => part
+    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/[. ]+$/g, '')
+    .trim();
+  const clientName = safeFilenamePart(value.client.name) || 'Client';
+  const documentNumber = safeFilenamePart(value.id) || 'Document';
+  pdf.save(`${clientName} - ${documentNumber}.pdf`);
 }
