@@ -4,11 +4,10 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Download, FilePlus2, Loader2, MoreHorizontal, Plus, Trash2 } from 'lucide-react';
+import { FilePlus2, Loader2, MoreHorizontal, Plus, Trash2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -35,7 +34,6 @@ import {
   updatePurchaseOrderStatus,
   type CommercialDocumentType,
 } from '@/lib/firebase/services';
-import { exportCommercialDocumentPDF } from '@/lib/pdf/commercial-document';
 
 type DocumentRow =
   | { type: 'commercial'; document: CommercialRecord }
@@ -85,9 +83,6 @@ export default function CommercialDocumentsPage() {
   const [saving, setSaving] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<DocumentRow | null>(null);
   const [source, setSource] = useState<DocumentRow | null>(null);
-  const [documentToExport, setDocumentToExport] = useState<ListedRow | null>(null);
-  const [exportType, setExportType] = useState<CommercialDocumentType>('invoice');
-  const [exporting, setExporting] = useState(false);
   const [clientId, setClientId] = useState('');
   const [issueDate, setIssueDate] = useState(today);
   const [dueDate, setDueDate] = useState(() => addDays(30));
@@ -251,48 +246,6 @@ export default function CommercialDocumentsPage() {
     }
   };
 
-  const openExport = (row: ListedRow) => {
-    setDocumentToExport(row);
-    setExportType(row.type === 'commercial' ? 'invoice' : row.type);
-  };
-
-  const exportDocument = async () => {
-    if (!documentToExport) return;
-    const row = documentToExport.related?.[exportType] || documentToExport;
-    const value = row.document;
-    const issue = row.type === 'deliveryNote' ? row.document.deliveryDate : row.document.issueDate;
-    const delivery = row.type === 'invoice' ? new Date(issue.getTime() + 14 * 86400000) : row.document.deliveryDate;
-    const due = row.type === 'invoice' || row.type === 'commercial' ? row.document.dueDate : new Date(issue.getTime() + 30 * 86400000);
-    const lineItems = value.lineItems.map(item => ({
-      description: item.description,
-      quantity: item.quantity,
-      price: 'price' in item ? item.price : 0,
-    }));
-    if (exportType !== 'deliveryNote' && row.type === 'deliveryNote') {
-      toast({ variant: 'destructive', title: 'Prix manquants', description: 'Réutilisez ce bon de livraison et renseignez les prix avant de l’exporter avec des montants.' });
-      return;
-    }
-    setExporting(true);
-    try {
-      const prefix = exportType === 'invoice' ? 'P' : exportType === 'purchaseOrder' ? 'C' : 'L';
-      const id = row.type === 'commercial' ? value.id.replace(/^DOC-/, `${prefix}-SV-`) : value.id;
-      const common = { id, clientId: value.clientId, client: value.client, lineItems, notes: value.notes };
-      if (exportType === 'invoice') {
-        await exportCommercialDocumentPDF({ type: 'invoice', value: { ...common, status: 'Draft', issueDate: issue, dueDate: due, discountAmount: row.type === 'invoice' || row.type === 'commercial' ? row.document.discountAmount || 0 : 0 } });
-      } else if (exportType === 'purchaseOrder') {
-        await exportCommercialDocumentPDF({ type: 'purchaseOrder', value: { ...common, status: 'Draft', issueDate: issue, deliveryDate: delivery } });
-      } else {
-        await exportCommercialDocumentPDF({ type: 'deliveryNote', value: { ...common, status: 'Draft', deliveryDate: delivery } });
-      }
-      setDocumentToExport(null);
-    } catch (error) {
-      console.error('Failed to export commercial document:', error);
-      toast({ variant: 'destructive', title: 'Export impossible', description: 'Le PDF n’a pas pu être généré.' });
-    } finally {
-      setExporting(false);
-    }
-  };
-
   return (
     <div className="space-y-6">
       <AlertDialog open={!!documentToDelete} onOpenChange={open => !open && setDocumentToDelete(null)}>
@@ -304,30 +257,10 @@ export default function CommercialDocumentsPage() {
           <AlertDialogFooter><AlertDialogCancel>Annuler</AlertDialogCancel><AlertDialogAction onClick={confirmDelete}>Supprimer</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <Dialog open={!!documentToExport} onOpenChange={open => !open && setDocumentToExport(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Exporter le document</DialogTitle>
-            <DialogDescription>Choisissez le format PDF pour {documentToExport?.related?.[exportType]?.document.id || documentToExport?.document.id}. Les mêmes informations seront utilisées.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="export-type">Type de document</Label>
-            <Select value={exportType} onValueChange={value => setExportType(value as CommercialDocumentType)}>
-              <SelectTrigger id="export-type"><SelectValue /></SelectTrigger>
-              <SelectContent>{exportTypes.map(type => <SelectItem key={type} value={type}>{labels[type]}</SelectItem>)}</SelectContent>
-            </Select>
-            {documentToExport?.type === 'deliveryNote' && exportType !== 'deliveryNote' && <p className="text-sm text-muted-foreground">Ce bon de livraison ne contient pas de prix. Réutilisez-le pour renseigner les montants avant cet export.</p>}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDocumentToExport(null)}>Annuler</Button>
-            <Button onClick={exportDocument} disabled={exporting || (documentToExport?.type === 'deliveryNote' && exportType !== 'deliveryNote')}>{exporting && <Loader2 className="mr-2 size-4 animate-spin" />}Exporter en PDF</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="text-2xl font-semibold">Documents commerciaux</h2>
-          <p className="text-sm text-muted-foreground">Créez un document, puis choisissez son format lors de l’exportation.</p>
+          <p className="text-sm text-muted-foreground">Ouvrez un document avec « Voir », puis choisissez son format lors de l’exportation.</p>
         </div>
         <Button onClick={showForm ? () => setShowForm(false) : startNew}>
           <FilePlus2 className="mr-2 size-4" />{showForm ? 'Fermer le formulaire' : 'Créer un document'}
@@ -381,7 +314,7 @@ export default function CommercialDocumentsPage() {
 
       <Card>
         <CardHeader className="gap-4 md:flex-row md:items-center md:justify-between">
-          <div><CardTitle>Documents ({rows.length})</CardTitle><CardDescription>Une seule liste pour créer, réutiliser et exporter vos documents commerciaux.</CardDescription></div>
+          <div><CardTitle>Documents ({rows.length})</CardTitle><CardDescription>Ouvrez un document pour choisir son type lors de l’exportation.</CardDescription></div>
           <Input className="md:w-64" type="search" placeholder="Rechercher un ID ou un client" value={search} onChange={event => setSearch(event.target.value)} />
         </CardHeader>
         <CardContent className="space-y-4">
@@ -400,8 +333,7 @@ export default function CommercialDocumentsPage() {
                       <TableCell>{row.type === 'commercial' ? 'Prêt à exporter' : <StatusBadge status={row.document.status} />}</TableCell>
                       <TableCell className="text-right">{row.type === 'deliveryNote' ? '—' : row.type === 'commercial' ? money(row.document.lineItems.reduce((sum, item) => sum + item.price * item.quantity, 0) - row.document.discountAmount) : money(getInvoiceTotal(row.document))}</TableCell>
                       <TableCell className="space-x-2 text-right whitespace-nowrap">
-                        {row.type !== 'commercial' && <Button asChild size="sm" variant="outline"><Link href={`/dashboard/${paths[row.type]}/${row.document.id}`}>Voir</Link></Button>}
-                        <Button size="sm" variant="outline" onClick={() => openExport(row)}><Download className="mr-1 size-4" />Exporter</Button>
+                        <Button asChild size="sm" variant="outline"><Link href={row.type === 'commercial' ? `/dashboard/documents/${row.document.id}` : `/dashboard/${paths[row.type]}/${row.document.id}`}>Voir</Link></Button>
                         <Button size="sm" variant="secondary" onClick={() => reuseDocument(row)}>Réutiliser</Button>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild><Button size="icon" variant="ghost" aria-label={`Actions pour ${row.document.id}`}><MoreHorizontal className="size-4" /></Button></DropdownMenuTrigger>

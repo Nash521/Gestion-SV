@@ -1,13 +1,12 @@
 "use client"
 import React, { useEffect, useState } from 'react';
 import { notFound, useParams } from 'next/navigation';
-import { exportCommercialDocumentPDF } from '@/lib/pdf/commercial-document';
+import { CommercialExportDialog } from '@/components/documents/commercial-export-dialog';
 import type { Invoice } from '@/lib/definitions';
 import { getInvoice } from '@/lib/firebase/services';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { FileDown, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Link from 'next/link';
@@ -22,13 +21,6 @@ const companyInfo = {
     legalName: 'SMART VISUEL SARL',
     legalFooter: 'N°RCCM: CI-TDI-22-Mo-742 - N°CC2242970-A. Régime d\'imposition: TEE - Direction régionale des impôts de Yamoussoukro\nBP: 1538 Yamoussoukro - Côte d\'Ivoire\nCel: 07 59 72 52 72 - smartvisuel1@gmail.com'
 };
-
-function exportInvoiceToPDF(invoice: Invoice) {
-    void exportCommercialDocumentPDF({ type: 'invoice', value: invoice }).catch(error => {
-        console.error('PDF export failed:', error);
-        window.alert('Impossible de générer le PDF. Vérifiez les paramètres du document.');
-    });
-}
 
 const InvoiceDetailSkeleton = () => (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -117,9 +109,7 @@ export default function InvoiceDetailPage() {
                     <Button variant="outline" asChild>
                         <Link href="/dashboard/documents">Retour</Link>
                     </Button>
-                    <Button onClick={() => exportInvoiceToPDF(invoice)}>
-                        <FileDown className="mr-2 h-4 w-4" /> Exporter en PDF
-                    </Button>
+                    <CommercialExportDialog source={{ type: 'invoice', value: invoice }} />
                 </div>
             </div>
             

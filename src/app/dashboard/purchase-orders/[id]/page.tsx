@@ -1,13 +1,12 @@
 "use client"
 import React, { useEffect, useState } from 'react';
 import { notFound, useParams } from 'next/navigation';
-import { exportCommercialDocumentPDF } from '@/lib/pdf/commercial-document';
+import { CommercialExportDialog } from '@/components/documents/commercial-export-dialog';
 import type { PurchaseOrder } from '@/lib/definitions';
 import { getPurchaseOrder } from '@/lib/firebase/services';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { FileDown, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Link from 'next/link';
@@ -20,13 +19,6 @@ const companyInfo = {
     phone: '+225 27 30 64 02 78 / +225 07 08 09 09 04',
     email: 'smartvisuel1@gmail.com',
 };
-
-function exportPurchaseOrderToPDF(order: PurchaseOrder) {
-    void exportCommercialDocumentPDF({ type: 'purchaseOrder', value: order }).catch(error => {
-        console.error('PDF export failed:', error);
-        window.alert('Impossible de générer le PDF. Vérifiez les paramètres du document.');
-    });
-}
 
 const DetailPageSkeleton = () => (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -108,9 +100,7 @@ export default function PurchaseOrderDetailPage() {
                     <Button variant="outline" asChild>
                         <Link href="/dashboard/documents">Retour</Link>
                     </Button>
-                    <Button onClick={() => exportPurchaseOrderToPDF(order)}>
-                        <FileDown className="mr-2 h-4 w-4" /> Exporter en PDF
-                    </Button>
+                    <CommercialExportDialog source={{ type: 'purchaseOrder', value: order }} />
                 </div>
             </div>
             

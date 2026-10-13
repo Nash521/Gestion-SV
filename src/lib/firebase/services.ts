@@ -451,6 +451,23 @@ export const subscribeToCommercialRecords = (callback: (records: CommercialRecor
     });
 };
 
+export const getCommercialRecord = async (id: string): Promise<CommercialRecord | null> => {
+    if (!id) return null;
+    const snapshot = await getDoc(doc(db, 'commercialDocuments', id));
+    if (!snapshot.exists()) return null;
+    const data = snapshot.data();
+    const clientsMap = await getClientsMap();
+    return {
+        ...data,
+        id: snapshot.id,
+        client: clientsMap.get(data.clientId) || { id: data.clientId, name: 'Client Inconnu', email: '', address: '' },
+        issueDate: data.issueDate.toDate(),
+        dueDate: data.dueDate.toDate(),
+        deliveryDate: data.deliveryDate.toDate(),
+        createdAt: data.createdAt.toDate(),
+    } as CommercialRecord;
+};
+
 export const addCommercialRecord = async (input: Omit<CommercialRecord, 'id' | 'client' | 'createdAt'>) => {
     const ref = doc(collection(db, 'commercialDocuments'));
     const date = new Date();

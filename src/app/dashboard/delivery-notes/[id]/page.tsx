@@ -1,13 +1,12 @@
 "use client"
 import React, { useEffect, useState } from 'react';
 import { notFound, useParams } from 'next/navigation';
-import { exportCommercialDocumentPDF } from '@/lib/pdf/commercial-document';
+import { CommercialExportDialog } from '@/components/documents/commercial-export-dialog';
 import type { DeliveryNote } from '@/lib/definitions';
 import { getDeliveryNote } from '@/lib/firebase/services';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { FileDown, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Link from 'next/link';
@@ -17,13 +16,6 @@ const companyInfo = {
     name: 'Smart Visuel SARL',
     address: 'YAMOUSSOUKRO - Centre commercial mofaitai local n°20',
 };
-
-function exportDeliveryNoteToPDF(note: DeliveryNote) {
-    void exportCommercialDocumentPDF({ type: 'deliveryNote', value: note }).catch(error => {
-        console.error('PDF export failed:', error);
-        window.alert('Impossible de générer le PDF. Vérifiez les paramètres du document.');
-    });
-}
 
 const DetailPageSkeleton = () => (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -102,9 +94,7 @@ export default function DeliveryNoteDetailPage() {
                     <Button variant="outline" asChild>
                         <Link href="/dashboard/documents">Retour</Link>
                     </Button>
-                    <Button onClick={() => exportDeliveryNoteToPDF(note)}>
-                        <FileDown className="mr-2 h-4 w-4" /> Exporter en PDF
-                    </Button>
+                    <CommercialExportDialog source={{ type: 'deliveryNote', value: note }} />
                 </div>
             </div>
             
