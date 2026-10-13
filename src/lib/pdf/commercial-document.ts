@@ -178,7 +178,7 @@ export async function exportCommercialDocumentPDF(document: CommercialDocument):
 
   (pdf as any).autoTable({
     startY: 90,
-    margin: { left: 15, right: 15, top: 90, bottom: 37 },
+    margin: { left: 15, right: 15, top: 15, bottom: 37 },
     head: [priced ? ['REF', 'DESIGNATION', 'PRIX UNIT', 'QTS', 'PRIX TOTAL'] : ['REF', 'DESIGNATION', 'QTS']],
     body,
     theme: 'grid',
