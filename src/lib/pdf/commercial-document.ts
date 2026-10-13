@@ -129,9 +129,9 @@ function drawDeliveryReceptionArea(pdf: jsPDF, startY: number, font: string) {
   const visaWidth = 70;
   const clientX = left + visaWidth + gap;
   const clientWidth = totalWidth - visaWidth - gap;
-  const signatureHeight = 25;
-  const observationY = startY + signatureHeight + 1;
-  const observationHeight = 22;
+  const signatureHeight = 28;
+  const observationY = startY + signatureHeight + 2;
+  const observationHeight = 26;
 
   pdf.setDrawColor(0);
   pdf.setLineWidth(0.25);
@@ -145,14 +145,14 @@ function drawDeliveryReceptionArea(pdf: jsPDF, startY: number, font: string) {
   pdf.text('Visa SMART VISUEL', left + visaWidth / 2, startY + 6, { align: 'center' });
 
   pdf.setFont(font, 'bold');
-  pdf.text('Pour le client', clientX + 3, startY + 5);
+  pdf.text('Pour le client', clientX + 3, startY + 6);
   pdf.setFont(font, 'normal');
-  pdf.text('Réceptionneur :', clientX + 3, startY + 10);
-  pdf.text('Contact :', clientX + 3, startY + 15);
-  pdf.text('Signature :', clientX + 3, startY + 20);
+  pdf.text('Réceptionneur :', clientX + 3, startY + 12);
+  pdf.text('Contact :', clientX + 3, startY + 18);
+  pdf.text('Signature :', clientX + 3, startY + 24);
 
   pdf.setFontSize(10);
-  pdf.text('Observation du client :', left + 3, observationY + 6);
+  pdf.text('Observation du client :', left + 3, observationY + 7);
   pdf.setFontSize(8.5);
   pdf.text('Merci pour votre confiance et très bientôt', pageWidth / 2, observationY + observationHeight + 5, { align: 'center' });
 }
@@ -166,7 +166,6 @@ export async function exportCommercialDocumentPDF(document: CommercialDocument):
   drawHeader(pdf, document, logo);
 
   const priced = type !== 'deliveryNote';
-  const deliveryNote = type === 'deliveryNote';
   const items = value.lineItems;
   const body = items.map((item, index) => priced ? [
     String(index + 1),
@@ -175,8 +174,7 @@ export async function exportCommercialDocumentPDF(document: CommercialDocument):
     String(item.quantity),
     xof(('price' in item ? item.price : 0) * item.quantity),
   ] : [String(index + 1), item.description, String(item.quantity)]);
-  const minimumTableRows = deliveryNote ? 6 : 12;
-  while (body.length < minimumTableRows) body.push(priced ? ['', '', '', '', ''] : ['', '', '']);
+  while (body.length < 12) body.push(priced ? ['', '', '', '', ''] : ['', '', '']);
 
   (pdf as any).autoTable({
     startY: 90,
@@ -184,8 +182,8 @@ export async function exportCommercialDocumentPDF(document: CommercialDocument):
     head: [priced ? ['REF', 'DESIGNATION', 'PRIX UNIT', 'QTS', 'PRIX TOTAL'] : ['REF', 'DESIGNATION', 'QTS']],
     body,
     theme: 'grid',
-    styles: { font, fontSize: deliveryNote ? 7.5 : 8.5, textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.15, minCellHeight: deliveryNote ? 6 : 8, cellPadding: deliveryNote ? 1 : 2, valign: 'middle' },
-    headStyles: { font, fontSize: deliveryNote ? 7.5 : 8.5, fillColor: lightBlue, textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center', minCellHeight: deliveryNote ? 7 : 9 },
+    styles: { font, fontSize: 8.5, textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.15, minCellHeight: 8, cellPadding: 2, valign: 'middle' },
+    headStyles: { font, fontSize: 8.5, fillColor: lightBlue, textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center', minCellHeight: 9 },
     columnStyles: priced
       ? { 0: { cellWidth: 19, halign: 'center' }, 1: { cellWidth: 83 }, 2: { cellWidth: 31, halign: 'right' }, 3: { cellWidth: 17, halign: 'center' }, 4: { cellWidth: 30, halign: 'right' } }
       : { 0: { cellWidth: 20, halign: 'center' }, 1: { cellWidth: 140 }, 2: { cellWidth: 20, halign: 'center' } },
@@ -222,8 +220,8 @@ export async function exportCommercialDocumentPDF(document: CommercialDocument):
   const termsHeight = termLines.reduce((height, { lines }) => height + lines.length * 4.2 + 1, 0);
   const notesHeight = notes ? noteLines.length * 4.2 + (standardTerms.length ? 4 : 5) : 0;
   const contentHeight = termsHeight + notesHeight;
-  let summaryY = ((pdf as any).lastAutoTable?.finalY || 170) + (deliveryNote ? 4 : 8);
-  const deliveryAreaHeight = 25 + 1 + 22 + 7;
+  let summaryY = ((pdf as any).lastAutoTable?.finalY || 170) + 8;
+  const deliveryAreaHeight = 28 + 2 + 26 + 7;
   const requiredHeight = type === 'deliveryNote'
     ? (notes ? notesHeight + 2 : 0) + deliveryAreaHeight
     : priced
