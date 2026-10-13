@@ -121,6 +121,42 @@ function drawFooter(pdf: jsPDF, footer: string, font: string) {
   lines.forEach((line: string, index: number) => pdf.text(line, pageWidth / 2, 273 + index * spacing, { align: 'center' }));
 }
 
+function drawDeliveryReceptionArea(pdf: jsPDF, startY: number, font: string) {
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const left = 15;
+  const totalWidth = pageWidth - 30;
+  const gap = 1.5;
+  const visaWidth = 70;
+  const clientX = left + visaWidth + gap;
+  const clientWidth = totalWidth - visaWidth - gap;
+  const signatureHeight = 28;
+  const observationY = startY + signatureHeight + 2;
+  const observationHeight = 26;
+
+  pdf.setDrawColor(0);
+  pdf.setLineWidth(0.25);
+  pdf.rect(left, startY, visaWidth, signatureHeight);
+  pdf.rect(clientX, startY, clientWidth, signatureHeight);
+  pdf.rect(left, observationY, totalWidth, observationHeight);
+
+  pdf.setTextColor(0);
+  pdf.setFont(font, 'normal');
+  pdf.setFontSize(9.5);
+  pdf.text('Visa SMART VISUEL', left + visaWidth / 2, startY + 6, { align: 'center' });
+
+  pdf.setFont(font, 'bold');
+  pdf.text('Pour le client', clientX + 3, startY + 6);
+  pdf.setFont(font, 'normal');
+  pdf.text('Réceptionneur :', clientX + 3, startY + 12);
+  pdf.text('Contact :', clientX + 3, startY + 18);
+  pdf.text('Signature :', clientX + 3, startY + 24);
+
+  pdf.setFontSize(10);
+  pdf.text('Observation du client :', left + 3, observationY + 7);
+  pdf.setFontSize(8.5);
+  pdf.text('Merci pour votre confiance et très bientôt', pageWidth / 2, observationY + observationHeight + 5, { align: 'center' });
+}
+
 export async function exportCommercialDocumentPDF(document: CommercialDocument): Promise<void> {
   const [footer, logo] = await Promise.all([getDocumentFooter(), loadLogo()]);
   const pdf = new jsPDF({ format: 'a4', unit: 'mm' });
@@ -185,9 +221,12 @@ export async function exportCommercialDocumentPDF(document: CommercialDocument):
   const notesHeight = notes ? noteLines.length * 4.2 + (standardTerms.length ? 4 : 5) : 0;
   const contentHeight = termsHeight + notesHeight;
   let summaryY = ((pdf as any).lastAutoTable?.finalY || 170) + 8;
-  const requiredHeight = priced
-    ? Math.max(36, Math.max(23, contentHeight + 5) + closingLines.length * 4.2)
-    : Math.max(22, contentHeight + 5);
+  const deliveryAreaHeight = 28 + 2 + 26 + 7;
+  const requiredHeight = type === 'deliveryNote'
+    ? (notes ? notesHeight + 2 : 0) + deliveryAreaHeight
+    : priced
+      ? Math.max(36, Math.max(23, contentHeight + 5) + closingLines.length * 4.2)
+      : Math.max(22, contentHeight + 5);
   if (summaryY + requiredHeight > 257) {
     pdf.addPage();
     drawHeader(pdf, document, logo);
@@ -228,12 +267,8 @@ export async function exportCommercialDocumentPDF(document: CommercialDocument):
     pdf.setFontSize(8.5);
     pdf.text(closingLines, 15, summaryY + Math.max(23, contentHeight + 5));
   } else {
-    pdf.setTextColor(0);
-    pdf.setFont(font, 'normal');
-    pdf.setFontSize(8.5);
-    const signY = summaryY + Math.max(12, contentHeight + 5);
-    pdf.text('Signature du client pour réception', 15, signY);
-    pdf.text('Signature Smart Visuel', 120, signY);
+    const areaY = summaryY + (notes ? notesHeight + 2 : 0);
+    drawDeliveryReceptionArea(pdf, areaY, font);
   }
 
   for (let page = 1; page <= pdf.getNumberOfPages(); page++) {
