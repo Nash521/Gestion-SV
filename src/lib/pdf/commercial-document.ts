@@ -63,21 +63,21 @@ function drawHeader(pdf: jsPDF, document: CommercialDocument, logo: HTMLImageEle
 
   pdf.setTextColor(...blue);
   pdf.setFont(font, 'bold');
-  pdf.setFontSize(22);
+  pdf.setFontSize(type === 'invoice' ? 18 : 15);
   const titleWidth = pdf.getTextWidth(title);
   const number = `N° ${value.id}`;
   pdf.setFont(font, 'normal');
-  pdf.setFontSize(18);
+  pdf.setFontSize(10);
   const numberWidth = pdf.getTextWidth(number);
   const pageRight = pdf.internal.pageSize.getWidth() - 15;
   const titleX = Math.min(70, pageRight - titleWidth - numberWidth - 6);
   const numberX = titleX + titleWidth + 6;
   pdf.setFont(font, 'bold');
-  pdf.setFontSize(22);
+  pdf.setFontSize(type === 'invoice' ? 18 : 15);
   pdf.text(title, titleX, 42);
   pdf.setTextColor(...red);
   pdf.setFont(font, 'normal');
-  pdf.setFontSize(18);
+  pdf.setFontSize(10);
   pdf.text(number, numberX, 42);
 
   pdf.setTextColor(...blue);
@@ -146,8 +146,8 @@ export async function exportCommercialDocumentPDF(document: CommercialDocument):
     head: [priced ? ['REF', 'DESIGNATION', 'PRIX UNIT', 'QTS', 'PRIX TOTAL'] : ['REF', 'DESIGNATION', 'QTS']],
     body,
     theme: 'grid',
-    styles: { font, fontSize: 12, textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.15, minCellHeight: 8, cellPadding: 2, valign: 'middle' },
-    headStyles: { font, fontSize: 12, fillColor: lightBlue, textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center', minCellHeight: 9 },
+    styles: { font, fontSize: 8.5, textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.15, minCellHeight: 8, cellPadding: 2, valign: 'middle' },
+    headStyles: { font, fontSize: 8.5, fillColor: lightBlue, textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center', minCellHeight: 9 },
     columnStyles: priced
       ? { 0: { cellWidth: 19, halign: 'center' }, 1: { cellWidth: 83 }, 2: { cellWidth: 31, halign: 'right' }, 3: { cellWidth: 17, halign: 'center' }, 4: { cellWidth: 30, halign: 'right' } }
       : { 0: { cellWidth: 20, halign: 'center' }, 1: { cellWidth: 140 }, 2: { cellWidth: 20, halign: 'center' } },
