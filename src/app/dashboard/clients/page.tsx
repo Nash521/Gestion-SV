@@ -1,7 +1,6 @@
 "use client"
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { mockClients } from '@/lib/data';
 import type { Client } from '@/lib/definitions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
 import { useNotifications } from '@/contexts/notification-context';
-import { addClient, updateClient, deleteClient, subscribeToClients } from '@/lib/firebase/services';
+import { addClient, updateClient, deleteClient, subscribeToClients, assignMissingClientCodes } from '@/lib/firebase/services';
 import { Skeleton } from '@/components/ui/skeleton';
 
 
@@ -118,16 +117,26 @@ export default function ClientsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [clientToEdit, setClientToEdit] = useState<Client | null>(null);
   const [clientIdToDelete, setClientIdToDelete] = useState<string | null>(null);
+  const assigningCodes = useRef(false);
 
   useEffect(() => {
     setIsLoading(true);
     const unsubscribe = subscribeToClients((clientsData) => {
         setClients(clientsData);
         setIsLoading(false);
+        if (clientsData.some(client => !client.code) && !assigningCodes.current) {
+            assigningCodes.current = true;
+            assignMissingClientCodes(clientsData)
+                .catch(error => {
+                    console.error('Error assigning client codes:', error);
+                    toast({ variant: 'destructive', title: 'Codes clients', description: "Impossible d’attribuer les codes aux clients existants." });
+                })
+                .finally(() => { assigningCodes.current = false; });
+        }
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [toast]);
 
   const handleOpenAddDialog = () => {
     setClientToEdit(null);
@@ -212,7 +221,8 @@ export default function ClientsPage() {
 
     return clients.filter(client =>
       client.name.toLowerCase().includes(searchQuery) ||
-      client.email.toLowerCase().includes(searchQuery)
+      client.email.toLowerCase().includes(searchQuery) ||
+      client.code?.toLowerCase().includes(searchQuery)
     );
   }, [clients, searchQuery]);
 
@@ -220,6 +230,7 @@ export default function ClientsPage() {
     <TableBody>
         {[...Array(5)].map((_, i) => (
              <TableRow key={i}>
+                <TableCell><Skeleton className="h-5 w-28" /></TableCell>
                 <TableCell><Skeleton className="h-5 w-32" /></TableCell>
                 <TableCell><Skeleton className="h-5 w-40" /></TableCell>
                 <TableCell><Skeleton className="h-5 w-24" /></TableCell>
@@ -271,6 +282,7 @@ export default function ClientsPage() {
             <Table>
             <TableHeader>
                 <TableRow>
+                <TableHead>Code client</TableHead>
                 <TableHead>Nom du client</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Téléphone</TableHead>
@@ -282,6 +294,7 @@ export default function ClientsPage() {
             <TableBody>
                 {filteredClients.map((client) => (
                 <TableRow key={client.id}>
+                    <TableCell className="font-mono whitespace-nowrap">{client.code || 'Attribution…'}</TableCell>
                     <TableCell className="font-medium">{client.name}</TableCell>
                     <TableCell>{client.email}</TableCell>
                     <TableCell>{client.phone || 'N/A'}</TableCell>

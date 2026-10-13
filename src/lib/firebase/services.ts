@@ -1,5 +1,5 @@
 import { db, auth } from './client';
-import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, onSnapshot, getDoc, Timestamp, where, writeBatch, setDoc, orderBy, limit } from 'firebase/firestore';
+import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, onSnapshot, getDoc, Timestamp, where, writeBatch, setDoc, orderBy, limit, runTransaction } from 'firebase/firestore';
 import type { Client, Invoice, PurchaseOrder, DeliveryNote, CommercialRecord, LineItem, CommercialDocumentSource, Transaction, CashRegister, Subcontractor, SubcontractorService, Project, TaskList, ProjectTask, Collaborator, AppNotification, Prospect, TransactionImportSeed } from '../definitions';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 
@@ -10,6 +10,33 @@ const getClientsMap = async (): Promise<Map<string, Client>> => {
 }
 
 // Client Services
+const clientCode = (year: number, number: number) => `CCSV.${String(number).padStart(3, '0')}-${year}`;
+
+const reserveClientCode = async (clientRef: ReturnType<typeof doc>, data?: Omit<Client, 'id'>) => {
+    const year = new Date().getFullYear();
+    const counterRef = doc(db, 'clientCodeCounters', String(year));
+    return runTransaction(db, async transaction => {
+        const clientSnapshot = data ? null : await transaction.get(clientRef);
+        if (!data && !clientSnapshot?.exists()) throw new Error('Client introuvable.');
+        const existingCode = clientSnapshot?.data()?.code;
+        if (existingCode) return existingCode as string;
+
+        const counterSnapshot = await transaction.get(counterRef);
+        const nextNumber = (counterSnapshot.data()?.lastNumber ?? 0) + 1;
+        const code = clientCode(year, nextNumber);
+        transaction.set(counterRef, { lastNumber: nextNumber });
+        if (data) transaction.set(clientRef, { ...data, code });
+        else transaction.update(clientRef, { code });
+        return code;
+    });
+};
+
+export const assignMissingClientCodes = async (clients: Client[]) => {
+    for (const client of [...clients].filter(client => !client.code).sort((a, b) => a.id.localeCompare(b.id))) {
+        await reserveClientCode(doc(db, 'clients', client.id));
+    }
+};
+
 export const getClients = async (): Promise<Client[]> => {
     const clientsCol = collection(db, 'clients');
     const clientSnapshot = await getDocs(clientsCol);
@@ -32,7 +59,8 @@ export const subscribeToClients = (callback: (clients: Client[]) => void) => {
 
 export const addClient = async (clientData: Omit<Client, 'id'>) => {
     try {
-        const docRef = await addDoc(collection(db, 'clients'), clientData);
+        const docRef = doc(collection(db, 'clients'));
+        await reserveClientCode(docRef, clientData);
         return docRef.id;
     } catch (e) {
         console.error("Error adding document: ", e);
@@ -91,7 +119,7 @@ export const updateProspect = (id: string, data: Partial<Omit<Prospect, 'id'>>) 
     return updateDoc(doc(db, 'prospects', id), payload);
 };
 export const deleteProspect = (id: string) => deleteDoc(doc(db, 'prospects', id));
-export const addClientFromProspect = (data: Omit<Client, 'id'>) => addDoc(collection(db, 'clients'), data);
+export const addClientFromProspect = (data: Omit<Client, 'id'>) => addClient(data);
 
 
 // Invoice Services
