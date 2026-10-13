@@ -220,14 +220,15 @@ export async function exportCommercialDocumentPDF(document: CommercialDocument):
   const termsHeight = termLines.reduce((height, { lines }) => height + lines.length * 4.2 + 1, 0);
   const notesHeight = notes ? noteLines.length * 4.2 + (standardTerms.length ? 4 : 5) : 0;
   const contentHeight = termsHeight + notesHeight;
-  let summaryY = ((pdf as any).lastAutoTable?.finalY || 170) + 8;
+  let summaryY = ((pdf as any).lastAutoTable?.finalY || 170) + (type === 'deliveryNote' ? 3 : 8);
   const deliveryAreaHeight = 28 + 2 + 26 + 7;
   const requiredHeight = type === 'deliveryNote'
     ? (notes ? notesHeight + 2 : 0) + deliveryAreaHeight
     : priced
       ? Math.max(36, Math.max(23, contentHeight + 5) + closingLines.length * 4.2)
       : Math.max(22, contentHeight + 5);
-  if (summaryY + requiredHeight > 257) {
+  const contentLimit = type === 'deliveryNote' ? 262 : 257;
+  if (summaryY + requiredHeight > contentLimit) {
     pdf.addPage();
     drawHeader(pdf, document, logo);
     summaryY = 94;
