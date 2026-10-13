@@ -1,6 +1,6 @@
 import { db, auth } from './client';
 import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, onSnapshot, getDoc, Timestamp, where, writeBatch, setDoc, orderBy, limit } from 'firebase/firestore';
-import type { Client, Invoice, PurchaseOrder, DeliveryNote, LineItem, CommercialDocumentSource, Transaction, CashRegister, Subcontractor, SubcontractorService, Project, TaskList, ProjectTask, Collaborator, AppNotification, Prospect, TransactionImportSeed } from '../definitions';
+import type { Client, Invoice, PurchaseOrder, DeliveryNote, CommercialRecord, LineItem, CommercialDocumentSource, Transaction, CashRegister, Subcontractor, SubcontractorService, Project, TaskList, ProjectTask, Collaborator, AppNotification, Prospect, TransactionImportSeed } from '../definitions';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 
 
@@ -430,6 +430,42 @@ export const addDeliveryNote = async (dnData: Omit<DeliveryNote, 'id' | 'client'
 };
 
 export type CommercialDocumentType = 'invoice' | 'purchaseOrder' | 'deliveryNote';
+
+// One editable source record can be exported in any of the three PDF layouts.
+export const subscribeToCommercialRecords = (callback: (records: CommercialRecord[]) => void) => {
+    return onSnapshot(collection(db, 'commercialDocuments'), async snapshot => {
+        const clientsMap = await getClientsMap();
+        const records = snapshot.docs.map(document => {
+            const data = document.data();
+            return {
+                ...data,
+                id: document.id,
+                client: clientsMap.get(data.clientId) || { id: data.clientId, name: 'Client Inconnu', email: '', address: '' },
+                issueDate: data.issueDate.toDate(),
+                dueDate: data.dueDate.toDate(),
+                deliveryDate: data.deliveryDate.toDate(),
+                createdAt: data.createdAt.toDate(),
+            } as CommercialRecord;
+        });
+        callback(records.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()));
+    });
+};
+
+export const addCommercialRecord = async (input: Omit<CommercialRecord, 'id' | 'client' | 'createdAt'>) => {
+    const ref = doc(collection(db, 'commercialDocuments'));
+    const date = new Date();
+    const id = `DOC-${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}-${ref.id.slice(0, 8).toUpperCase()}`;
+    await setDoc(doc(db, 'commercialDocuments', id), {
+        ...input,
+        issueDate: Timestamp.fromDate(input.issueDate),
+        dueDate: Timestamp.fromDate(input.dueDate),
+        deliveryDate: Timestamp.fromDate(input.deliveryDate),
+        createdAt: Timestamp.fromDate(date),
+    });
+    return id;
+};
+
+export const deleteCommercialRecord = (id: string) => deleteDoc(doc(db, 'commercialDocuments', id));
 
 export type CommercialDocumentInput = {
     clientId: string;

@@ -26,6 +26,19 @@ export type CommercialDocumentSource = {
   id: string;
 };
 
+export type CommercialRecord = {
+  id: string;
+  clientId: string;
+  client: Client;
+  lineItems: LineItem[];
+  issueDate: Date;
+  dueDate: Date;
+  deliveryDate: Date;
+  discountAmount: number;
+  notes?: string;
+  createdAt: Date;
+};
+
 export type Invoice = {
   id: string;
   clientId: string;
