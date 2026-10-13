@@ -44,6 +44,7 @@ const employeeAllowedPaths = [
   '/dashboard/purchase-orders',
   '/dashboard/delivery-notes',
   '/dashboard/clients',
+  '/dashboard/accounting',
   '/dashboard/notifications',
   '/dashboard/subcontractors',
 ];
