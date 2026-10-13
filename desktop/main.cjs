@@ -44,6 +44,7 @@ async function start() {
       NODE_ENV: 'production',
       HOSTNAME: '127.0.0.1',
       PORT: String(port),
+      GESTIONSV_ADMIN_API_ORIGIN: 'https://gestionsv.netlify.app',
     },
     windowsHide: true,
     stdio: 'ignore',
