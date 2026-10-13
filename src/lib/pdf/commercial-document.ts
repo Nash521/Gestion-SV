@@ -187,9 +187,6 @@ export async function exportCommercialDocumentPDF(document: CommercialDocument):
     columnStyles: priced
       ? { 0: { cellWidth: 19, halign: 'center' }, 1: { cellWidth: 83 }, 2: { cellWidth: 31, halign: 'right' }, 3: { cellWidth: 17, halign: 'center' }, 4: { cellWidth: 30, halign: 'right' } }
       : { 0: { cellWidth: 20, halign: 'center' }, 1: { cellWidth: 140 }, 2: { cellWidth: 20, halign: 'center' } },
-    didDrawPage: (data: { pageNumber: number }) => {
-      if (data.pageNumber > 1) drawHeader(pdf, document, logo);
-    },
   });
 
   const subtotal = priced ? items.reduce((sum, item) => sum + ('price' in item ? item.price : 0) * item.quantity, 0) : 0;
@@ -230,8 +227,7 @@ export async function exportCommercialDocumentPDF(document: CommercialDocument):
   const contentLimit = type === 'deliveryNote' ? 262 : 257;
   if (summaryY + requiredHeight > contentLimit) {
     pdf.addPage();
-    drawHeader(pdf, document, logo);
-    summaryY = 94;
+    summaryY = 20;
   }
 
   if (standardTerms.length) {
@@ -272,9 +268,16 @@ export async function exportCommercialDocumentPDF(document: CommercialDocument):
     drawDeliveryReceptionArea(pdf, areaY, font);
   }
 
-  for (let page = 1; page <= pdf.getNumberOfPages(); page++) {
+  const pageCount = pdf.getNumberOfPages();
+  for (let page = 1; page <= pageCount; page++) {
     pdf.setPage(page);
     drawFooter(pdf, footer, font);
+    if (pageCount <= 2) {
+      pdf.setTextColor(70);
+      pdf.setFont(font, 'normal');
+      pdf.setFontSize(7);
+      pdf.text(`Page ${page} / ${pageCount}`, pdf.internal.pageSize.getWidth() - 15, 290, { align: 'right' });
+    }
   }
   const safeFilenamePart = (part: string) => part
     .replace(/[<>:"/\\|?*\u0000-\u001F]/g, ' ')
