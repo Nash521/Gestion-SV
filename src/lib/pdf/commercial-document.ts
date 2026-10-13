@@ -64,10 +64,11 @@ function drawHeader(pdf: jsPDF, document: CommercialDocument, logo: HTMLImageEle
   pdf.setTextColor(...blue);
   pdf.setFontSize(type === 'invoice' ? 18 : 15);
   pdf.text(title, 70, 42);
+  const numberX = 70 + pdf.getTextWidth(title) + 6;
   pdf.setTextColor(...red);
   pdf.setFont(font, 'normal');
   pdf.setFontSize(10);
-  pdf.text(`N° ${value.id}`, 70, 48);
+  pdf.text(`N° ${value.id}`, numberX, 42);
 
   pdf.setTextColor(...blue);
   pdf.setFont(font, 'bold');
