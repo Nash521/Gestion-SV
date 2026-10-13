@@ -48,7 +48,7 @@ function loadLogo(): Promise<HTMLImageElement | null> {
 
 function drawHeader(pdf: jsPDF, document: CommercialDocument, logo: HTMLImageElement | null) {
   const { value, type } = document;
-  const font = type === 'invoice' && pdf.getFontList().CenturyGothic ? 'CenturyGothic' : 'helvetica';
+  const font = pdf.getFontList().CenturyGothic ? 'CenturyGothic' : 'helvetica';
   const title = type === 'invoice' ? 'PROFORMA' : type === 'purchaseOrder' ? 'BON DE COMMANDE' : 'BON DE LIVRAISON';
   const date = type === 'deliveryNote' ? value.deliveryDate : value.issueDate;
 
@@ -62,13 +62,23 @@ function drawHeader(pdf: jsPDF, document: CommercialDocument, logo: HTMLImageEle
   pdf.text('IMPRESSION NUMERIQUE - OFFSET & COMMUNICATION VISUELLE', 65, 22);
 
   pdf.setTextColor(...blue);
-  pdf.setFontSize(type === 'invoice' ? 18 : 15);
-  pdf.text(title, 70, 42);
-  const numberX = 70 + pdf.getTextWidth(title) + 6;
+  pdf.setFont(font, 'bold');
+  pdf.setFontSize(22);
+  const titleWidth = pdf.getTextWidth(title);
+  const number = `N° ${value.id}`;
+  pdf.setFont(font, 'normal');
+  pdf.setFontSize(18);
+  const numberWidth = pdf.getTextWidth(number);
+  const pageRight = pdf.internal.pageSize.getWidth() - 15;
+  const titleX = Math.min(70, pageRight - titleWidth - numberWidth - 6);
+  const numberX = titleX + titleWidth + 6;
+  pdf.setFont(font, 'bold');
+  pdf.setFontSize(22);
+  pdf.text(title, titleX, 42);
   pdf.setTextColor(...red);
   pdf.setFont(font, 'normal');
-  pdf.setFontSize(10);
-  pdf.text(`N° ${value.id}`, numberX, 42);
+  pdf.setFontSize(18);
+  pdf.text(number, numberX, 42);
 
   pdf.setTextColor(...blue);
   pdf.setFont(font, 'bold');
@@ -115,8 +125,8 @@ export async function exportCommercialDocumentPDF(document: CommercialDocument):
   const [footer, logo] = await Promise.all([getDocumentFooter(), loadLogo()]);
   const pdf = new jsPDF({ format: 'a4', unit: 'mm' });
   const { value, type } = document;
-  if (type === 'invoice') await loadCenturyGothic(pdf);
-  const font = type === 'invoice' && pdf.getFontList().CenturyGothic ? 'CenturyGothic' : 'helvetica';
+  await loadCenturyGothic(pdf);
+  const font = pdf.getFontList().CenturyGothic ? 'CenturyGothic' : 'helvetica';
   drawHeader(pdf, document, logo);
 
   const priced = type !== 'deliveryNote';
@@ -136,8 +146,8 @@ export async function exportCommercialDocumentPDF(document: CommercialDocument):
     head: [priced ? ['REF', 'DESIGNATION', 'PRIX UNIT', 'QTS', 'PRIX TOTAL'] : ['REF', 'DESIGNATION', 'QTS']],
     body,
     theme: 'grid',
-    styles: { font, fontSize: 8.5, textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.15, minCellHeight: 8, cellPadding: 2, valign: 'middle' },
-    headStyles: { fillColor: lightBlue, textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center', minCellHeight: 9 },
+    styles: { font, fontSize: 12, textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.15, minCellHeight: 8, cellPadding: 2, valign: 'middle' },
+    headStyles: { font, fontSize: 12, fillColor: lightBlue, textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center', minCellHeight: 9 },
     columnStyles: priced
       ? { 0: { cellWidth: 19, halign: 'center' }, 1: { cellWidth: 83 }, 2: { cellWidth: 31, halign: 'right' }, 3: { cellWidth: 17, halign: 'center' }, 4: { cellWidth: 30, halign: 'right' } }
       : { 0: { cellWidth: 20, halign: 'center' }, 1: { cellWidth: 140 }, 2: { cellWidth: 20, halign: 'center' } },
