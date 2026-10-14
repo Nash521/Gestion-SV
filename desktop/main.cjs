@@ -1,9 +1,65 @@
-const { app, BrowserWindow, dialog, shell } = require('electron');
+const { app, BrowserWindow, dialog, Menu, shell } = require('electron');
 const { spawn } = require('node:child_process');
 const { createServer } = require('node:net');
 const { join } = require('node:path');
 
 let server;
+
+function startUpdates(window) {
+  if (!app.isPackaged) return;
+
+  const { autoUpdater } = require('electron-updater');
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+  let checking = false;
+
+  async function check(manual = false) {
+    if (checking) return;
+    checking = true;
+    try {
+      const result = await autoUpdater.checkForUpdates();
+      if (manual && !result?.isUpdateAvailable) {
+        await dialog.showMessageBox(window, {
+          type: 'info', title: 'Mises à jour',
+          message: 'Aucune nouvelle version disponible.',
+        });
+      }
+    } catch (error) {
+      console.error('Recherche de mise à jour impossible:', error);
+      if (manual) {
+        await dialog.showMessageBox(window, {
+          type: 'warning', title: 'Mises à jour',
+          message: 'Impossible de vérifier les mises à jour. Vérifiez votre connexion Internet.',
+        });
+      }
+    } finally {
+      checking = false;
+    }
+  }
+
+  autoUpdater.on('update-downloaded', async ({ version }) => {
+    const { response } = await dialog.showMessageBox(window, {
+      type: 'info', title: 'Mise à jour prête',
+      message: `La version ${version} de Gestion SV est prête à être installée.`,
+      detail: 'L’application va redémarrer pour terminer l’installation.',
+      buttons: ['Installer maintenant', 'Plus tard'],
+      defaultId: 0,
+      cancelId: 1,
+    });
+    if (response === 0) autoUpdater.quitAndInstall();
+  });
+  autoUpdater.on('error', (error) => console.error('Mise à jour:', error));
+
+  Menu.setApplicationMenu(Menu.buildFromTemplate([
+    { label: 'Gestion SV', submenu: [
+      { label: 'Vérifier les mises à jour', click: () => check(true) },
+      { type: 'separator' },
+      { role: 'quit', label: 'Quitter' },
+    ] },
+  ]));
+  setTimeout(() => check(), 10_000).unref();
+  setInterval(() => check(), 6 * 60 * 60 * 1000).unref();
+}
 
 function availablePort() {
   return new Promise((resolve, reject) => {
@@ -77,6 +133,7 @@ async function start() {
     }
   });
   await window.loadURL(url);
+  startUpdates(window);
 }
 
 app.whenReady().then(start).catch((error) => {

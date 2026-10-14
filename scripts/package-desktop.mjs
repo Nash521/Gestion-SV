@@ -15,4 +15,7 @@ const standalone = join('.next', 'standalone');
 await mkdir(join(standalone, '.next'), { recursive: true });
 await cp(join('.next', 'static'), join(standalone, '.next', 'static'), { recursive: true, force: true });
 await cp('public', join(standalone, 'public'), { recursive: true, force: true });
-await run('npx', ['electron-builder', '--projectDir', 'desktop', '--win', 'nsis', '--x64']);
+await run('npx', [
+  'electron-builder', '--projectDir', 'desktop', '--win', 'nsis', '--x64',
+  '--publish', process.env.DESKTOP_PUBLISH === 'true' ? 'always' : 'never',
+]);

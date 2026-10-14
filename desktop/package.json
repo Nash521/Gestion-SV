@@ -1,13 +1,17 @@
 {
   "name": "gestion-sv-desktop",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Application de bureau Gestion SV",
   "author": "Smart Visuel",
   "main": "main.cjs",
+  "dependencies": {
+    "electron-updater": "^6.8.3"
+  },
   "build": {
     "appId": "ci.smartvisuel.gestionsv",
     "productName": "Gestion SV",
     "electronVersion": "44.7.0",
+    "publish": [{ "provider": "github", "owner": "Nash521", "repo": "Gestion-SV", "releaseType": "release" }],
     "directories": { "output": "../dist-desktop" },
     "files": ["main.cjs", "package.json", "icon.png"],
     "extraResources": [
