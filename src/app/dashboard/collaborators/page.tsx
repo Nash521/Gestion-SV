@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs, doc, updateDoc, deleteDoc, addDoc, setDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase/client';
+import { auth, db } from '@/lib/firebase/client';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -46,6 +46,10 @@ export default function CollaboratorsPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [isPasswordSaving, setIsPasswordSaving] = useState(false);
+  const [employeePassword, setEmployeePassword] = useState('');
+  const [employeePasswordConfirmation, setEmployeePasswordConfirmation] = useState('');
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [newUserName, setNewUserName] = useState("");
   const [newUserEmail, setNewUserEmail] = useState("");
@@ -168,6 +172,44 @@ export default function CollaboratorsPage() {
     }
   };
 
+  const handleChangeEmployeePassword = async () => {
+    if (!selectedUser || selectedUser.role !== 'Employee') return;
+    if (employeePassword.length < 8 || employeePassword.length > 128) {
+      toast({ variant: 'destructive', title: 'Mot de passe invalide', description: 'Utilisez entre 8 et 128 caractères.' });
+      return;
+    }
+    if (employeePassword !== employeePasswordConfirmation) {
+      toast({ variant: 'destructive', title: 'Confirmation différente', description: 'Les deux mots de passe doivent être identiques.' });
+      return;
+    }
+    setIsPasswordSaving(true);
+    try {
+      const token = await auth?.currentUser?.getIdToken();
+      if (!token) throw new Error('Session expirée. Reconnectez-vous.');
+      const response = await fetch('/api/admin/collaborators/password', {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ employeeId: selectedUser.id, password: employeePassword }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Impossible de modifier le mot de passe.');
+      toast({
+        title: 'Mot de passe modifié',
+        description: result.sessionWarning
+          ? `Le mot de passe de ${selectedUser.name} a été modifié. Certaines sessions ouvertes peuvent rester actives temporairement.`
+          : `Le mot de passe de ${selectedUser.name} a été modifié.`,
+      });
+      setEmployeePassword('');
+      setEmployeePasswordConfirmation('');
+      setIsPasswordDialogOpen(false);
+      setSelectedUser(null);
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Erreur', description: error instanceof Error ? error.message : 'Impossible de modifier le mot de passe.' });
+    } finally {
+      setIsPasswordSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
@@ -269,6 +311,16 @@ export default function CollaboratorsPage() {
                         >
                           Modifier
                         </DropdownMenuItem>
+                        {user.role === 'Employee' && (
+                          <DropdownMenuItem onClick={() => {
+                            setSelectedUser(user);
+                            setEmployeePassword('');
+                            setEmployeePasswordConfirmation('');
+                            setIsPasswordDialogOpen(true);
+                          }}>
+                            Modifier le mot de passe
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           onClick={() => {
@@ -323,13 +375,49 @@ export default function CollaboratorsPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <p className='text-sm text-muted-foreground text-center pt-2'>La modification du mot de passe doit être gérée via un flux de réinitialisation sécurisé.</p>
             </div>
             <DialogFooter>
                 <DialogClose asChild>
                     <Button variant="outline">Annuler</Button>
                 </DialogClose>
               <Button onClick={handleEditUser}>Enregistrer</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isPasswordDialogOpen} onOpenChange={(open) => {
+          if (isPasswordSaving) return;
+          setIsPasswordDialogOpen(open);
+          if (!open) {
+            setEmployeePassword('');
+            setEmployeePasswordConfirmation('');
+            setSelectedUser(null);
+          }
+        }}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Modifier le mot de passe</DialogTitle>
+              <DialogDescription>
+                Définissez un nouveau mot de passe pour {selectedUser?.name}. L’employé devra se reconnecter.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="employee-password">Nouveau mot de passe</Label>
+                <Input id="employee-password" type="password" autoComplete="new-password" value={employeePassword} onChange={event => setEmployeePassword(event.target.value)} disabled={isPasswordSaving} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="employee-password-confirmation">Confirmer le mot de passe</Label>
+                <Input id="employee-password-confirmation" type="password" autoComplete="new-password" value={employeePasswordConfirmation} onChange={event => setEmployeePasswordConfirmation(event.target.value)} disabled={isPasswordSaving} />
+              </div>
+              <p className="text-sm text-muted-foreground">8 caractères minimum.</p>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsPasswordDialogOpen(false)} disabled={isPasswordSaving}>Annuler</Button>
+              <Button onClick={handleChangeEmployeePassword} disabled={isPasswordSaving}>
+                {isPasswordSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Enregistrer le mot de passe
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

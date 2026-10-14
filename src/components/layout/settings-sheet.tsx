@@ -1,9 +1,11 @@
 "use client"
 
+import { useEffect, useState } from 'react'
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from '@/components/ui/textarea'
 import {
   Sheet,
   SheetContent,
@@ -17,11 +19,72 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Settings, Sun, Moon, Laptop, LogOut } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { useRouter } from "next/navigation"
+import { saveProfilePhoto } from '@/lib/firebase/profile'
+import { useToast } from '@/hooks/use-toast'
+import { defaultDocumentFooter, getDocumentFooter, saveDocumentFooter } from '@/lib/firebase/document-settings'
 
 export function SettingsSheet() {
   const { setTheme } = useTheme()
   const { currentUser, logout } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
+  const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
+  const [previewURL, setPreviewURL] = useState<string | null>(null);
+  const [savingPhoto, setSavingPhoto] = useState(false);
+  const [footerText, setFooterText] = useState(defaultDocumentFooter);
+  const [savingFooter, setSavingFooter] = useState(false);
+
+  useEffect(() => {
+    if (currentUser?.role !== 'Admin') return;
+    getDocumentFooter().then(setFooterText).catch(error => {
+      console.error('Failed to load document footer:', error);
+    });
+  }, [currentUser?.role]);
+
+  const handleSaveFooter = async () => {
+    if (footerText.length > 350 || footerText.split(/\r?\n/).length > 6) {
+      toast({ variant: 'destructive', title: 'Pied de page trop long', description: 'Utilisez au maximum 350 caractères et 6 lignes.' });
+      return;
+    }
+    setSavingFooter(true);
+    try {
+      await saveDocumentFooter(footerText.trim());
+      toast({ title: 'Pied de page enregistré', description: 'Les prochains PDF utiliseront ce texte.' });
+    } catch (error) {
+      console.error('Failed to save document footer:', error);
+      toast({ variant: 'destructive', title: 'Enregistrement impossible', description: 'Vérifiez les autorisations Firestore pour les paramètres de l’application.' });
+    } finally {
+      setSavingFooter(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!selectedPhoto) {
+      setPreviewURL(null);
+      return;
+    }
+    const url = URL.createObjectURL(selectedPhoto);
+    setPreviewURL(url);
+    return () => URL.revokeObjectURL(url);
+  }, [selectedPhoto]);
+
+  const handleSavePhoto = async () => {
+    if (!selectedPhoto) return;
+    setSavingPhoto(true);
+    try {
+      await saveProfilePhoto(selectedPhoto);
+      setSelectedPhoto(null);
+      toast({ title: 'Photo de profil enregistrée' });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Impossible d’enregistrer la photo',
+        description: error instanceof Error ? error.message : 'Vérifiez les autorisations de Firebase Storage.',
+      });
+    } finally {
+      setSavingPhoto(false);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -39,7 +102,7 @@ export function SettingsSheet() {
             <Settings className="h-5 w-5"/>
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-[400px] sm:w-[540px] p-0">
+      <SheetContent className="w-[400px] sm:w-[540px] p-0 overflow-y-auto">
         <SheetHeader className="p-6">
           <SheetTitle>Paramètres</SheetTitle>
           <SheetDescription>
@@ -75,7 +138,7 @@ export function SettingsSheet() {
                 <h3 className="font-medium text-lg">Profil Utilisateur</h3>
                 <div className="flex items-center space-x-4">
                      <Avatar className="h-16 w-16">
-                        <AvatarImage src="https://picsum.photos/seed/user/100/100" data-ai-hint="profile avatar" alt="User" />
+                        {(previewURL || currentUser.photoURL) && <AvatarImage src={previewURL || currentUser.photoURL} alt={currentUser.name} />}
                         <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div className="space-y-1">
@@ -87,10 +150,38 @@ export function SettingsSheet() {
                         </Button>
                     </div>
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="profile-photo">Photo de profil</Label>
+                  <Input
+                    id="profile-photo"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={event => setSelectedPhoto(event.target.files?.[0] || null)}
+                  />
+                  <p className="text-xs text-muted-foreground">JPG, PNG ou WebP, 2 Mo maximum. Sans photo, vos initiales s’affichent.</p>
+                  <Button type="button" size="sm" onClick={handleSavePhoto} disabled={!selectedPhoto || savingPhoto}>
+                    {savingPhoto ? 'Enregistrement…' : 'Enregistrer la photo'}
+                  </Button>
+                </div>
             </div>
            )}
 
             <Separator />
+
+            {currentUser?.role === 'Admin' && (
+              <>
+                <div className="space-y-3">
+                  <h3 className="font-medium text-lg">Pied de page des documents</h3>
+                  <p className="text-sm text-muted-foreground">Ce texte apparaît au bas des proformas, bons de commande et bons de livraison exportés en PDF.</p>
+                  <Label htmlFor="document-footer">Texte du pied de page</Label>
+                  <Textarea id="document-footer" value={footerText} onChange={event => setFooterText(event.target.value)} rows={5} maxLength={350} />
+                  <Button type="button" size="sm" onClick={handleSaveFooter} disabled={savingFooter || !footerText.trim()}>
+                    {savingFooter ? 'Enregistrement…' : 'Enregistrer le pied de page'}
+                  </Button>
+                </div>
+                <Separator />
+              </>
+            )}
 
             {/* Company Information */}
             <div className="space-y-4">

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Bell, CheckCheck } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useNotifications } from '@/contexts/notification-context';
 import { format, formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -80,7 +80,6 @@ export default function NotificationsPage() {
                                         onClick={() => !notif.read && markAsRead(notif.id)}
                                     >
                                         <Avatar className="mt-1">
-                                            <AvatarImage src={`https://picsum.photos/seed/${notif.actorId}/40/40`} alt={notif.actorName} />
                                             <AvatarFallback>{notif.actorName.charAt(0)}</AvatarFallback>
                                         </Avatar>
                                         <div className="flex-1">

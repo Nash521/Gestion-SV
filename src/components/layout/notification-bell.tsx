@@ -12,7 +12,7 @@ import {
 import { useNotifications } from '@/contexts/notification-context';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { Avatar, AvatarFallback } from '../ui/avatar';
 import { ScrollArea } from '../ui/scroll-area';
 
 export function NotificationBell() {
@@ -55,7 +55,6 @@ export function NotificationBell() {
                     >
                         <div className="flex items-start gap-3">
                              <Avatar className="h-8 w-8">
-                                <AvatarImage src={`https://picsum.photos/seed/${notif.actorId}/40/40`} alt={notif.actorName} />
                                 <AvatarFallback>{notif.actorName.charAt(0)}</AvatarFallback>
                             </Avatar>
                             <div className="flex-1 space-y-1">

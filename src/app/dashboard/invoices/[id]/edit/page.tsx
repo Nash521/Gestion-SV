@@ -37,7 +37,7 @@ function EditInvoiceForm({ id }: { id: string }) {
                 title: "Proforma modifiée",
                 description: `La proforma ${id} a été mise à jour avec succès.`,
             });
-            router.push('/dashboard/invoices');
+            router.push('/dashboard/documents');
         } catch (error) {
             console.error("Failed to update invoice:", error);
             toast({
@@ -93,8 +93,8 @@ function EditInvoiceSkeleton() {
 }
 
 
-export default function EditInvoicePage({ params }: { params: { id: string } }) {
-    const { id } = params;
+export default function EditInvoicePage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = use(params);
 
     return (
        <Suspense fallback={<EditInvoiceSkeleton/>}>

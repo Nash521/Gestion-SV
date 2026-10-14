@@ -79,8 +79,8 @@ function PurchaseOrderForm({
   useEffect(() => {
     const subscription = form.watch((values) => {
         const currentTotal = (values.lineItems || []).reduce((acc, item) => {
-            const qty = Number(item.quantity) || 0;
-            const prc = Number(item.price) || 0;
+            const qty = Number(item?.quantity) || 0;
+            const prc = Number(item?.price) || 0;
             return acc + (qty * prc);
         }, 0);
         setTotal(currentTotal);
@@ -186,7 +186,7 @@ function PurchaseOrderForm({
             </div>
 
             <div className="grid md:grid-cols-2 gap-6">
-                <FormField control={form.control} name="notes" render={({ field }) => (<FormItem><FormLabel>Notes</FormLabel><FormControl><Textarea placeholder="Notes optionnelles..." {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="notes" render={({ field }) => (<FormItem><FormLabel>NB / notes du document</FormLabel><FormControl><Textarea placeholder="Notes optionnelles..." {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <div className="flex justify-end items-end">
                      <div className="w-full max-w-xs space-y-2">
                          <div className="flex justify-between font-bold text-lg border-t pt-2 mt-2">
@@ -199,7 +199,7 @@ function PurchaseOrderForm({
 
           </CardContent>
           <CardFooter className="flex justify-end gap-2">
-            <Button type="button" variant="outline" asChild><Link href="/dashboard/purchase-orders">Annuler</Link></Button>
+            <Button type="button" variant="outline" asChild><Link href="/dashboard/documents">Annuler</Link></Button>
             <Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{submitButtonText}</Button>
           </CardFooter>
         </Card>
@@ -220,7 +220,7 @@ export default function NewPurchaseOrderPage() {
         title: "Bon de commande créé",
         description: "Le nouveau bon de commande a été enregistré.",
       });
-      router.push('/dashboard/purchase-orders');
+      router.push('/dashboard/documents');
     } catch (error) {
       console.error("Failed to create purchase order:", error);
       toast({

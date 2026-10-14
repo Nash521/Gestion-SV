@@ -278,7 +278,7 @@ export const getInvoiceTotal = (invoice: Invoice | PurchaseOrder): number => {
         return subtotal - invoice.discountAmount;
     }
 
-    if ('taxRate' in invoice && invoice.taxRate) {
+    if ('taxRate' in invoice && typeof invoice.taxRate === 'number') {
         const tax = subtotal * (invoice.taxRate / 100);
         return subtotal + tax;
     }

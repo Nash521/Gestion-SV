@@ -168,7 +168,7 @@ function DeliveryNoteForm({
 
              <FormField control={form.control} name="notes" render={({ field }) => (
               <FormItem>
-                <FormLabel>Notes</FormLabel>
+                <FormLabel>NB / notes du document</FormLabel>
                 <FormControl>
                   <Textarea placeholder="Notes optionnelles..." {...field} />
                 </FormControl>
@@ -178,7 +178,7 @@ function DeliveryNoteForm({
 
           </CardContent>
           <CardFooter className="flex justify-end gap-2">
-            <Button type="button" variant="outline" asChild><Link href="/dashboard/delivery-notes">Annuler</Link></Button>
+            <Button type="button" variant="outline" asChild><Link href="/dashboard/documents">Annuler</Link></Button>
             <Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{submitButtonText}</Button>
           </CardFooter>
         </Card>
@@ -199,7 +199,7 @@ export default function NewDeliveryNotePage() {
         title: "Bon de livraison créé",
         description: "Le nouveau bon de livraison a été enregistré.",
       });
-      router.push('/dashboard/delivery-notes');
+      router.push('/dashboard/documents');
     } catch (error) {
       console.error("Failed to create delivery note:", error);
       toast({

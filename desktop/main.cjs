@@ -1,0 +1,147 @@
+const { app, BrowserWindow, dialog, Menu, shell } = require('electron');
+const { spawn } = require('node:child_process');
+const { createServer } = require('node:net');
+const { join } = require('node:path');
+
+let server;
+
+function startUpdates(window) {
+  if (!app.isPackaged) return;
+
+  const { autoUpdater } = require('electron-updater');
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+  let checking = false;
+
+  async function check(manual = false) {
+    if (checking) return;
+    checking = true;
+    try {
+      const result = await autoUpdater.checkForUpdates();
+      if (manual && !result?.isUpdateAvailable) {
+        await dialog.showMessageBox(window, {
+          type: 'info', title: 'Mises à jour',
+          message: 'Aucune nouvelle version disponible.',
+        });
+      }
+    } catch (error) {
+      console.error('Recherche de mise à jour impossible:', error);
+      if (manual) {
+        await dialog.showMessageBox(window, {
+          type: 'warning', title: 'Mises à jour',
+          message: 'Impossible de vérifier les mises à jour. Vérifiez votre connexion Internet.',
+        });
+      }
+    } finally {
+      checking = false;
+    }
+  }
+
+  autoUpdater.on('update-downloaded', async ({ version }) => {
+    const { response } = await dialog.showMessageBox(window, {
+      type: 'info', title: 'Mise à jour prête',
+      message: `La version ${version} de Gestion SV est prête à être installée.`,
+      detail: 'L’application va redémarrer pour terminer l’installation.',
+      buttons: ['Installer maintenant', 'Plus tard'],
+      defaultId: 0,
+      cancelId: 1,
+    });
+    if (response === 0) autoUpdater.quitAndInstall();
+  });
+  autoUpdater.on('error', (error) => console.error('Mise à jour:', error));
+
+  Menu.setApplicationMenu(Menu.buildFromTemplate([
+    { label: 'Gestion SV', submenu: [
+      { label: 'Vérifier les mises à jour', click: () => check(true) },
+      { type: 'separator' },
+      { role: 'quit', label: 'Quitter' },
+    ] },
+  ]));
+  setTimeout(() => check(), 10_000).unref();
+  setInterval(() => check(), 6 * 60 * 60 * 1000).unref();
+}
+
+function availablePort() {
+  return new Promise((resolve, reject) => {
+    const probe = createServer();
+    probe.once('error', reject);
+    probe.listen(0, '127.0.0.1', () => {
+      const { port } = probe.address();
+      probe.close(() => resolve(port));
+    });
+  });
+}
+
+async function waitForServer(url, child) {
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    if (child.exitCode !== null) throw new Error('Le serveur local s’est arrêté.');
+    try {
+      const response = await fetch(url, { signal: AbortSignal.timeout(1000) });
+      if (response.status < 500) return;
+    } catch {}
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  throw new Error('Le serveur local ne répond pas.');
+}
+
+async function start() {
+  const port = await availablePort();
+  const url = `http://127.0.0.1:${port}`;
+  const webDirectory = app.isPackaged
+    ? join(process.resourcesPath, 'web')
+    : join(__dirname, '..', '.next', 'standalone');
+  const serverFile = join(webDirectory, 'server.js');
+
+  server = spawn(process.execPath, [serverFile], {
+    cwd: webDirectory,
+    env: {
+      ...process.env,
+      ELECTRON_RUN_AS_NODE: '1',
+      NODE_ENV: 'production',
+      HOSTNAME: '127.0.0.1',
+      PORT: String(port),
+      GESTIONSV_ADMIN_API_ORIGIN: 'https://gestionsv.netlify.app',
+    },
+    windowsHide: true,
+    stdio: 'ignore',
+  });
+
+  await waitForServer(url, server);
+  const window = new BrowserWindow({
+    width: 1360,
+    height: 900,
+    minWidth: 960,
+    minHeight: 640,
+    title: 'Gestion SV',
+    icon: join(__dirname, 'icon.png'),
+    show: false,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true,
+    },
+  });
+  window.once('ready-to-show', () => window.show());
+  window.webContents.setWindowOpenHandler(({ url: target }) => {
+    if (target.startsWith('https://')) shell.openExternal(target);
+    return { action: 'deny' };
+  });
+  window.webContents.on('will-navigate', (event, target) => {
+    if (!target.startsWith(url + '/')) {
+      event.preventDefault();
+      if (target.startsWith('https://')) shell.openExternal(target);
+    }
+  });
+  await window.loadURL(url);
+  startUpdates(window);
+}
+
+app.whenReady().then(start).catch((error) => {
+  dialog.showErrorBox('Gestion SV', `Impossible de démarrer l’application.\n\n${error.message}`);
+  app.quit();
+});
+
+app.on('window-all-closed', () => app.quit());
+app.on('before-quit', () => {
+  if (server && server.exitCode === null) server.kill();
+});

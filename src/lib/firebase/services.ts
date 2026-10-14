@@ -1,6 +1,6 @@
 import { db, auth } from './client';
-import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, onSnapshot, getDoc, Timestamp, where, writeBatch, setDoc, orderBy, limit } from 'firebase/firestore';
-import type { Client, Invoice, PurchaseOrder, DeliveryNote, LineItem, Transaction, CashRegister, Subcontractor, SubcontractorService, Project, TaskList, ProjectTask, Collaborator, AppNotification, Prospect, TransactionImportSeed } from '../definitions';
+import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, onSnapshot, getDoc, Timestamp, where, writeBatch, setDoc, orderBy, limit, runTransaction } from 'firebase/firestore';
+import type { Client, Invoice, PurchaseOrder, DeliveryNote, CommercialRecord, LineItem, CommercialDocumentSource, Transaction, CashRegister, Subcontractor, SubcontractorService, Project, TaskList, ProjectTask, Collaborator, AppNotification, Prospect, TransactionImportSeed } from '../definitions';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 
 
@@ -10,6 +10,42 @@ const getClientsMap = async (): Promise<Map<string, Client>> => {
 }
 
 // Client Services
+const clientCode = (year: number, number: number) => `CCSV.${String(number).padStart(3, '0')}-${String(year).slice(-2)}`;
+const hasLongYearClientCode = (code?: string) => /^CCSV\.\d+-\d{4}$/.test(code ?? '');
+export const needsClientCodeUpdate = (client: Client) => !client.code || hasLongYearClientCode(client.code);
+
+const reserveClientCode = async (clientRef: ReturnType<typeof doc>, data?: Omit<Client, 'id'>) => {
+    const year = new Date().getFullYear();
+    const counterRef = doc(db, 'clientCodeCounters', String(year));
+    return runTransaction(db, async transaction => {
+        const clientSnapshot = data ? null : await transaction.get(clientRef);
+        if (!data && !clientSnapshot?.exists()) throw new Error('Client introuvable.');
+        const existingCode = clientSnapshot?.data()?.code;
+        if (existingCode) {
+            if (hasLongYearClientCode(existingCode)) {
+                const shortCode = `${existingCode.slice(0, -4)}${existingCode.slice(-2)}`;
+                transaction.update(clientRef, { code: shortCode });
+                return shortCode;
+            }
+            return existingCode as string;
+        }
+
+        const counterSnapshot = await transaction.get(counterRef);
+        const nextNumber = (counterSnapshot.data()?.lastNumber ?? 0) + 1;
+        const code = clientCode(year, nextNumber);
+        transaction.set(counterRef, { lastNumber: nextNumber });
+        if (data) transaction.set(clientRef, { ...data, code });
+        else transaction.update(clientRef, { code });
+        return code;
+    });
+};
+
+export const ensureClientCodes = async (clients: Client[]) => {
+    for (const client of [...clients].filter(needsClientCodeUpdate).sort((a, b) => a.id.localeCompare(b.id))) {
+        await reserveClientCode(doc(db, 'clients', client.id));
+    }
+};
+
 export const getClients = async (): Promise<Client[]> => {
     const clientsCol = collection(db, 'clients');
     const clientSnapshot = await getDocs(clientsCol);
@@ -32,7 +68,8 @@ export const subscribeToClients = (callback: (clients: Client[]) => void) => {
 
 export const addClient = async (clientData: Omit<Client, 'id'>) => {
     try {
-        const docRef = await addDoc(collection(db, 'clients'), clientData);
+        const docRef = doc(collection(db, 'clients'));
+        await reserveClientCode(docRef, clientData);
         return docRef.id;
     } catch (e) {
         console.error("Error adding document: ", e);
@@ -91,7 +128,7 @@ export const updateProspect = (id: string, data: Partial<Omit<Prospect, 'id'>>) 
     return updateDoc(doc(db, 'prospects', id), payload);
 };
 export const deleteProspect = (id: string) => deleteDoc(doc(db, 'prospects', id));
-export const addClientFromProspect = (data: Omit<Client, 'id'>) => addDoc(collection(db, 'clients'), data);
+export const addClientFromProspect = (data: Omit<Client, 'id'>) => addClient(data);
 
 
 // Invoice Services
@@ -111,13 +148,12 @@ export const subscribeToInvoices = (callback: (invoices: Invoice[]) => void) => 
     const q = query(collection(db, "invoices"));
     return onSnapshot(q, async (querySnapshot) => {
         const clientsMap = await getClientsMap();
-        const invoices: Invoice[] = [];
-        for (const doc of querySnapshot.docs) {
+        const invoices = await Promise.all(querySnapshot.docs.map(async (doc) => {
             const lineItemsQuery = query(collection(db, 'invoices', doc.id, 'lineItems'));
             const lineItemsSnapshot = await getDocs(lineItemsQuery);
             const lineItems = lineItemsSnapshot.docs.map(itemDoc => ({ id: itemDoc.id, ...itemDoc.data() } as LineItem));
-            invoices.push(processInvoiceDoc(doc, clientsMap, lineItems));
-        }
+            return processInvoiceDoc(doc, clientsMap, lineItems);
+        }));
         callback(invoices.sort((a,b) => b.issueDate.getTime() - a.issueDate.getTime()));
     });
 };
@@ -246,13 +282,12 @@ export const subscribeToPurchaseOrders = (callback: (pos: PurchaseOrder[]) => vo
     const q = query(collection(db, "purchaseOrders"));
     return onSnapshot(q, async (querySnapshot) => {
         const clientsMap = await getClientsMap();
-        const pos: PurchaseOrder[] = [];
-        for (const doc of querySnapshot.docs) {
+        const pos = await Promise.all(querySnapshot.docs.map(async (doc) => {
              const lineItemsQuery = query(collection(db, 'purchaseOrders', doc.id, 'lineItems'));
              const lineItemsSnapshot = await getDocs(lineItemsQuery);
              const lineItems = lineItemsSnapshot.docs.map(itemDoc => ({ id: itemDoc.id, ...itemDoc.data() } as LineItem));
-            pos.push(processPODoc(doc, clientsMap, lineItems));
-        }
+            return processPODoc(doc, clientsMap, lineItems);
+        }));
         callback(pos.sort((a,b) => b.issueDate.getTime() - a.issueDate.getTime()));
     });
 };
@@ -353,13 +388,12 @@ export const subscribeToDeliveryNotes = (callback: (dns: DeliveryNote[]) => void
     const q = query(collection(db, "deliveryNotes"));
     return onSnapshot(q, async (querySnapshot) => {
         const clientsMap = await getClientsMap();
-        const dns: DeliveryNote[] = [];
-        for (const doc of querySnapshot.docs) {
+        const dns = await Promise.all(querySnapshot.docs.map(async (doc) => {
             const lineItemsQuery = query(collection(db, 'deliveryNotes', doc.id, 'lineItems'));
             const lineItemsSnapshot = await getDocs(lineItemsQuery);
             const lineItems = lineItemsSnapshot.docs.map(itemDoc => ({ id: itemDoc.id, ...itemDoc.data() } as Omit<LineItem, 'price'>));
-            dns.push(processDNDoc(doc, clientsMap, lineItems));
-        }
+            return processDNDoc(doc, clientsMap, lineItems);
+        }));
         callback(dns.sort((a,b) => b.deliveryDate.getTime() - a.deliveryDate.getTime()));
     });
 };
@@ -432,6 +466,138 @@ export const addDeliveryNote = async (dnData: Omit<DeliveryNote, 'id' | 'client'
     return newId;
 };
 
+export type CommercialDocumentType = 'invoice' | 'purchaseOrder' | 'deliveryNote';
+
+// One editable source record can be exported in any of the three PDF layouts.
+export const subscribeToCommercialRecords = (callback: (records: CommercialRecord[]) => void) => {
+    return onSnapshot(collection(db, 'commercialDocuments'), async snapshot => {
+        const clientsMap = await getClientsMap();
+        const records = snapshot.docs.map(document => {
+            const data = document.data();
+            return {
+                ...data,
+                id: document.id,
+                client: clientsMap.get(data.clientId) || { id: data.clientId, name: 'Client Inconnu', email: '', address: '' },
+                issueDate: data.issueDate.toDate(),
+                dueDate: data.dueDate.toDate(),
+                deliveryDate: data.deliveryDate.toDate(),
+                createdAt: data.createdAt.toDate(),
+            } as CommercialRecord;
+        });
+        callback(records.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()));
+    });
+};
+
+export const getCommercialRecord = async (id: string): Promise<CommercialRecord | null> => {
+    if (!id) return null;
+    const snapshot = await getDoc(doc(db, 'commercialDocuments', id));
+    if (!snapshot.exists()) return null;
+    const data = snapshot.data();
+    const clientsMap = await getClientsMap();
+    return {
+        ...data,
+        id: snapshot.id,
+        client: clientsMap.get(data.clientId) || { id: data.clientId, name: 'Client Inconnu', email: '', address: '' },
+        issueDate: data.issueDate.toDate(),
+        dueDate: data.dueDate.toDate(),
+        deliveryDate: data.deliveryDate.toDate(),
+        createdAt: data.createdAt.toDate(),
+    } as CommercialRecord;
+};
+
+export const addCommercialRecord = async (input: Omit<CommercialRecord, 'id' | 'client' | 'createdAt'>) => {
+    const ref = doc(collection(db, 'commercialDocuments'));
+    const date = new Date();
+    const id = `DOC-${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}-${ref.id.slice(0, 8).toUpperCase()}`;
+    await setDoc(doc(db, 'commercialDocuments', id), {
+        ...input,
+        issueDate: Timestamp.fromDate(input.issueDate),
+        dueDate: Timestamp.fromDate(input.dueDate),
+        deliveryDate: Timestamp.fromDate(input.deliveryDate),
+        createdAt: Timestamp.fromDate(date),
+    });
+    return id;
+};
+
+export const deleteCommercialRecord = (id: string) => deleteDoc(doc(db, 'commercialDocuments', id));
+
+export type CommercialDocumentInput = {
+    clientId: string;
+    issueDate: Date;
+    dueDate: Date;
+    deliveryDate: Date;
+    discountAmount: number;
+    notes: string;
+    lineItems: Omit<LineItem, 'id'>[];
+    types: CommercialDocumentType[];
+    sourceDocument?: CommercialDocumentSource;
+};
+
+// Save all selected documents and their lines in one Firestore batch.
+export const addCommercialDocuments = async (input: CommercialDocumentInput) => {
+    const types = [...new Set(input.types)];
+    if (types.length === 0 || input.lineItems.length === 0) {
+        throw new Error('Select at least one document and one line item.');
+    }
+    if (types.length * (input.lineItems.length + 1) > 500) {
+        throw new Error('Too many line items for one save operation.');
+    }
+
+    const ids: Partial<Record<CommercialDocumentType, string>> = {};
+    if (types.includes('invoice')) ids.invoice = await generateNewInvoiceId();
+    if (types.includes('purchaseOrder')) ids.purchaseOrder = await generateNewPurchaseOrderId();
+    if (types.includes('deliveryNote')) ids.deliveryNote = await generateNewDeliveryNoteId();
+
+    const batch = writeBatch(db);
+    const source = input.sourceDocument ? { sourceDocument: input.sourceDocument } : {};
+
+    if (ids.invoice) {
+        batch.set(doc(db, 'invoices', ids.invoice), {
+            id: ids.invoice,
+            clientId: input.clientId,
+            issueDate: Timestamp.fromDate(input.issueDate),
+            dueDate: Timestamp.fromDate(input.dueDate),
+            discountAmount: input.discountAmount,
+            notes: input.notes,
+            status: 'Draft',
+            ...source,
+        });
+        input.lineItems.forEach(item => batch.set(doc(collection(db, 'invoices', ids.invoice!, 'lineItems')), item));
+    }
+
+    if (ids.purchaseOrder) {
+        batch.set(doc(db, 'purchaseOrders', ids.purchaseOrder), {
+            id: ids.purchaseOrder,
+            clientId: input.clientId,
+            issueDate: Timestamp.fromDate(input.issueDate),
+            deliveryDate: Timestamp.fromDate(input.deliveryDate),
+            notes: input.notes,
+            status: 'Draft',
+            ...source,
+        });
+        input.lineItems.forEach(item => batch.set(doc(collection(db, 'purchaseOrders', ids.purchaseOrder!, 'lineItems')), item));
+    }
+
+    if (ids.deliveryNote) {
+        const invoiceId = ids.invoice || (input.sourceDocument?.type === 'invoice' ? input.sourceDocument.id : undefined);
+        batch.set(doc(db, 'deliveryNotes', ids.deliveryNote), {
+            id: ids.deliveryNote,
+            clientId: input.clientId,
+            deliveryDate: Timestamp.fromDate(input.deliveryDate),
+            notes: input.notes,
+            status: 'Draft',
+            ...(invoiceId ? { invoiceId } : {}),
+            ...source,
+        });
+        input.lineItems.forEach(({ description, quantity }) => {
+            batch.set(doc(collection(db, 'deliveryNotes', ids.deliveryNote!, 'lineItems')), { description, quantity });
+        });
+    }
+
+    await batch.commit();
+    return ids;
+};
+
 export const updateDeliveryNoteStatus = async (id: string, status: DeliveryNote['status']) => {
     const dnRef = doc(db, 'deliveryNotes', id);
 await updateDoc(dnRef, { status });
@@ -500,7 +666,7 @@ export const importTransactionSeeds = async (
     const cashRegisterId = await getOrCreateCashRegisterId(options?.cashRegisterName ?? MAIN_CASH_REGISTER_NAME);
     const existingTransactionsSnapshot = await getDocs(collection(db, 'transactions'));
 
-    const existingSignatureToId = new Map<string, string>();
+    const existingSignatureToIds = new Map<string, string[]>();
     const existingSourceIdToId = new Map<string, string>();
 
     existingTransactionsSnapshot.forEach(docSnapshot => {
@@ -512,9 +678,7 @@ export const importTransactionSeeds = async (
             date: data.date?.toDate ? data.date.toDate() : data.date,
         });
 
-        if (!existingSignatureToId.has(signature)) {
-            existingSignatureToId.set(signature, docSnapshot.id);
-        }
+        existingSignatureToIds.set(signature, [...(existingSignatureToIds.get(signature) ?? []), docSnapshot.id]);
 
         if (typeof data.importSourceId === 'string') {
             existingSourceIdToId.set(data.importSourceId, docSnapshot.id);
@@ -522,11 +686,13 @@ export const importTransactionSeeds = async (
     });
 
     const sourceIdToFirestoreId = new Map<string, string>();
+    const matchedExistingIds = new Set<string>();
     const docsToCreate = transactionSeeds.filter(seed => {
         const existingId = existingSourceIdToId.get(seed.sourceId)
-            ?? existingSignatureToId.get(buildTransactionSignature(seed));
+            ?? existingSignatureToIds.get(buildTransactionSignature(seed))?.find(id => !matchedExistingIds.has(id));
 
         if (existingId) {
+            matchedExistingIds.add(existingId);
             sourceIdToFirestoreId.set(seed.sourceId, existingId);
             return false;
         }
@@ -542,9 +708,10 @@ export const importTransactionSeeds = async (
     });
 
     if (docsToCreate.length > 0) {
-        const batch = writeBatch(db);
+        for (let start = 0; start < docsToCreate.length; start += 400) {
+          const batch = writeBatch(db);
 
-        docsToCreate.forEach(seed => {
+          docsToCreate.slice(start, start + 400).forEach(seed => {
             const docRef = transactionRefs.get(seed.sourceId);
             if (!docRef) {
                 return;
@@ -569,9 +736,10 @@ export const importTransactionSeeds = async (
                 importSource: options?.importSource ?? 'excel-import',
                 importSourceId: seed.sourceId,
             });
-        });
+          });
 
-        await batch.commit();
+          await batch.commit();
+        }
     }
 
     const linkedExpenseCount = transactionSeeds
